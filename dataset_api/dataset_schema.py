@@ -1,29 +1,12 @@
-from .models import Dataset, Catalog, Organization, Resource
 import graphene
 from graphene_django import DjangoObjectType
+
+from .models import Dataset
 
 
 class DatasetType(DjangoObjectType):
     class Meta:
         model = Dataset
-        fields = "__all__"
-
-
-class CatalogType(DjangoObjectType):
-    class Meta:
-        model = Catalog
-        fields = "__all__"
-
-
-class OrganizationType(DjangoObjectType):
-    class Meta:
-        model = Organization
-        fields = "__all__"
-
-
-class ResourceType(DjangoObjectType):
-    class Meta:
-        model = Resource
         fields = "__all__"
 
 
@@ -58,10 +41,3 @@ class CreateDataset(graphene.Mutation):
         )
         dataset_instance.save()
         return CreateDataset(dataset=dataset_instance)
-
-
-class Mutation(graphene.ObjectType):
-    create_dataset = CreateDataset.Field()
-
-
-schema = graphene.Schema(query=Query, mutation=Mutation)

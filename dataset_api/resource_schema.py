@@ -60,10 +60,3 @@ class CreateResource(graphene.Mutation, Output):
         # )
         # resource_instance.save()
         # return CreateResource(resource=resource_instance)
-
-
-class Mutation(graphene.ObjectType):
-    create_resource = CreateResource.Field()
-
-
-schema = graphene.Schema(query=Query, mutation=Mutation)
