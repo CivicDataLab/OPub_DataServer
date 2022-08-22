@@ -1,7 +1,7 @@
 import graphene
 from graphene_django import DjangoObjectType
 
-from .models import Dataset
+from .models import Dataset, Catalog
 
 
 class DatasetType(DjangoObjectType):
@@ -25,6 +25,10 @@ class DatasetInput(graphene.InputObjectType):
     id = graphene.ID()
     title = graphene.String()
     description = graphene.String()
+    catalog = graphene.String()
+    sector = graphene.String()
+    license = graphene.String()
+    geography = graphene.String()
 
 
 class CreateDataset(graphene.Mutation):
@@ -35,9 +39,14 @@ class CreateDataset(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, dataset_data=None):
+        catalog = Catalog.objects.get(id=dataset_data.catalog)
         dataset_instance = Dataset(
             title=dataset_data.title,
             description=dataset_data.description,
+            License=dataset_data.license,
+            sector=dataset_data.sector,
+            geography=dataset_data.geography,
+            catalog=catalog
         )
         dataset_instance.save()
         return CreateDataset(dataset=dataset_instance)
