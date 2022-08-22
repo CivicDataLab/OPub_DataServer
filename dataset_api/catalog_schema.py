@@ -1,7 +1,7 @@
 import graphene
 from graphene_django import DjangoObjectType
 
-from .models import Catalog
+from .models import Catalog, Organization
 
 
 class CatalogType(DjangoObjectType):
@@ -25,6 +25,7 @@ class CatalogInput(graphene.InputObjectType):
     id = graphene.ID()
     title = graphene.String()
     description = graphene.String()
+    organization = graphene.String()
 
 
 class CreateCatalog(graphene.Mutation):
@@ -35,9 +36,11 @@ class CreateCatalog(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, catalog_data=None):
+        organization = Organization.objects.get(id=catalog_data.organization)
         catalog_instance = Catalog(
             title=catalog_data.title,
             description=catalog_data.description,
+            organization=organization
         )
         catalog_instance.save()
         return CreateCatalog(catalog=catalog_instance)

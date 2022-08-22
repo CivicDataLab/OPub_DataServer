@@ -3,7 +3,7 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
-from .models import Resource
+from .models import Resource, Dataset
 from .resource_form import CreateResourceMutationForm
 
 
@@ -29,30 +29,41 @@ class ResourceInput(graphene.InputObjectType):
     title = graphene.String()
     description = graphene.String()
     file = Upload()
+    dataset = graphene.String(required=True)
 
 
 class CreateResource(graphene.Mutation, Output):
-    form = CreateResourceMutationForm
+    # form = CreateResourceMutationForm
 
     class Arguments:
-        title = graphene.String(required=True, description="Resource title")
-        description = graphene.String(required=True, description="Resource description")
-        file = Upload(required=True, description="Data file")
+        resource_data = ResourceInput()
+        # title = graphene.String(required=True, description="Resource title")
+        # description = graphene.String(required=True, description="Resource description")
+        # file = Upload(required=True, description="Data file")
+        # dataset = graphene.String(required=True)
 
     resource = graphene.Field(ResourceType)
 
     @staticmethod
-    def mutate(root, info, file=None, **data):
-        resource_data = {}
-        if file:
-            file_data = {"file": file}
-
-        resource_form = CreateResource.form(data, file_data)
-        if resource_form.is_valid():
-            resource_form.save()
-            return CreateResource(success=True)
-        else:
-            return CreateResource(success=False, errors=resource_form.errors.get_json_data())
+    def mutate(root, info, resource_data=None):
+        # resource_data = {}
+        # if resource_data.file:
+        #     file_data = {"file": file}
+        print(resource_data)
+        dataset = Dataset.objects.get(id=resource_data.dataset)
+        # resource_form = CreateResource.form(resource_data, file_data)
+        # if resource_form.is_valid():
+        resource_instance = Resource(
+            title=resource_data.title,
+            description=resource_data.description,
+            dataset=dataset,
+            file=resource_data.file
+        )
+        resource_instance.save()
+        # resource_form.save()
+        return CreateResource(success=True)
+        # else:
+        #     return CreateResource(success=False, errors=resource_form.errors.get_json_data())
         # resource_instance = Resource(
         #     title=title,
         #     description=description,
