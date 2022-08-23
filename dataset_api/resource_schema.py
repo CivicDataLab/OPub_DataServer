@@ -26,10 +26,12 @@ class Query(graphene.ObjectType):
 
 class ResourceInput(graphene.InputObjectType):
     id = graphene.ID()
-    title = graphene.String()
-    description = graphene.String()
-    file = Upload()
+    title = graphene.String(required=True)
+    description = graphene.String(required=False)
+    file = Upload(required=False)
     dataset = graphene.String(required=True)
+    format = graphene.String(required=False)
+    remote_url = graphene.String(required=False)
 
 
 class CreateResource(graphene.Mutation, Output):
@@ -57,6 +59,8 @@ class CreateResource(graphene.Mutation, Output):
             title=resource_data.title,
             description=resource_data.description,
             dataset=dataset,
+            format=resource_data.format,
+            remote_url=resource_data.remote_url,
             file=resource_data.file
         )
         resource_instance.save()
