@@ -141,3 +141,6 @@ cython_debug/
 # IDE
 .vscode/
 .idea/
+
+#Resources upload folder
+resources/
