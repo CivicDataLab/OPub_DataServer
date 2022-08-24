@@ -1,7 +1,6 @@
 import os
 
 from django.db import models
-from slugify import slugify
 
 
 def _resource_directory_path(resource, filename):
