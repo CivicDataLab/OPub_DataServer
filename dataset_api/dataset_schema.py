@@ -23,17 +23,23 @@ class Query(graphene.ObjectType):
 
 class DatasetInput(graphene.InputObjectType):
     id = graphene.ID()
-    title = graphene.String()
-    description = graphene.String()
-    catalog = graphene.String()
-    sector = graphene.String()
-    license = graphene.String()
-    geography = graphene.String()
+    title = graphene.String(required=True)
+    description = graphene.String(required=True)
+    catalog = graphene.String(required=True)
+    sector = graphene.String(required=True)
+    license = graphene.String(required=True)
+    geography = graphene.String(required=True)
+    remote_issued = graphene.DateTime(required=False)
+    remote_modified = graphene.DateTime(required=False)
+    funnel = graphene.String(required=False)
+    action = graphene.String(required=False)
+    status = graphene.String(required=True)
+    access_type = graphene.String(required=True)
 
 
 class CreateDataset(graphene.Mutation):
     class Arguments:
-        dataset_data = DatasetInput(required=True)
+        dataset_data = DatasetInput()
 
     dataset = graphene.Field(DatasetType)
 
@@ -46,6 +52,12 @@ class CreateDataset(graphene.Mutation):
             License=dataset_data.license,
             sector=dataset_data.sector,
             geography=dataset_data.geography,
+            remote_issued=dataset_data.remote_issued,
+            remote_modified=dataset_data.remote_modified,
+            funnel=dataset_data.funnel,
+            action=dataset_data.action,
+            status=dataset_data.status,
+            access_type=dataset_data.access_type,
             catalog=catalog
         )
         dataset_instance.save()

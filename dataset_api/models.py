@@ -32,11 +32,18 @@ class Catalog(models.Model):
 
 
 class Dataset(models.Model):
-    title = models.CharField(max_length=100)
-    description = models.CharField(max_length=500)
+    title = models.CharField(max_length=100, blank=True)
+    description = models.CharField(max_length=500, blank=True)
     issued = models.DateTimeField(auto_now_add=True)
+    remote_issued = models.DateTimeField(blank=True, null=True)
+    remote_modified = models.DateTimeField(blank=True, null=True)
     modified = models.DateTimeField(auto_now=True)
     sector = models.CharField(max_length=50, default='Other')
+    status = models.CharField(max_length=50, default='Draft')
+    remark = models.CharField(max_length=200, default='Please follow creation instructions')
+    funnel = models.CharField(max_length=50, default='upload')
+    action = models.CharField(max_length=50, default='create data')
+    access_type = models.CharField(max_length=50, default='open')
     geography = models.CharField(max_length=50, default='Other')
     License = models.CharField(max_length=100, default='not_specified')
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE)
