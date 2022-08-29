@@ -62,3 +62,32 @@ class CreateDataset(graphene.Mutation):
         )
         dataset_instance.save()
         return CreateDataset(dataset=dataset_instance)
+
+
+class UpdateDataset(graphene.Mutation):
+    class Arguments:
+        dataset_data = DatasetInput()
+
+    dataset = graphene.Field(DatasetType)
+
+    @staticmethod
+    def mutate(root, info, dataset_data=None):
+        dataset_instance = Dataset.objects.get(pk=dataset_data.id)
+        catalog = Catalog.objects.get(id=dataset_data.catalog)
+        if dataset_instance:
+            dataset_instance.title = dataset_data.title
+            dataset_instance.description = dataset_data.description
+            dataset_instance.License = dataset_data.license
+            dataset_instance.sector = dataset_data.sector
+            dataset_instance.geography = dataset_data.geography
+            dataset_instance.remote_issued = dataset_data.remote_issued
+            dataset_instance.remote_modified = dataset_data.remote_modified
+            dataset_instance.funnel = dataset_data.funnel
+            dataset_instance.action = dataset_data.action
+            dataset_instance.status = dataset_data.status
+            dataset_instance.access_type = dataset_data.access_type
+            dataset_instance.catalog = catalog
+            dataset_instance.save()
+
+            return UpdateDataset(dataset=dataset_instance)
+        return UpdateDataset(dataset=None)

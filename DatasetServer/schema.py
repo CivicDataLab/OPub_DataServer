@@ -13,6 +13,7 @@ class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Qu
 
 class Mutation(graphene.ObjectType):
     create_dataset = dataset_api.dataset_schema.CreateDataset.Field()
+    update_dataset = dataset_api.dataset_schema.UpdateDataset.Field()
     create_resource = dataset_api.resource_schema.CreateResource.Field()
     create_catalog = dataset_api.catalog_schema.CreateCatalog.Field()
     create_organization = dataset_api.organization_schema.CreateOrganization.Field()
