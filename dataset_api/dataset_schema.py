@@ -72,7 +72,7 @@ class UpdateDataset(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, dataset_data=None):
-        dataset_instance = Dataset.objects.get(pk=dataset_data.id)
+        dataset_instance = Dataset.objects.get(id=dataset_data.id)
         catalog = Catalog.objects.get(id=dataset_data.catalog)
         if dataset_instance:
             dataset_instance.title = dataset_data.title

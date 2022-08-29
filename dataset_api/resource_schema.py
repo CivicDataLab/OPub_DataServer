@@ -35,26 +35,14 @@ class ResourceInput(graphene.InputObjectType):
 
 
 class CreateResource(graphene.Mutation, Output):
-    # form = CreateResourceMutationForm
-
     class Arguments:
         resource_data = ResourceInput()
-        # title = graphene.String(required=True, description="Resource title")
-        # description = graphene.String(required=True, description="Resource description")
-        # file = Upload(required=True, description="Data file")
-        # dataset = graphene.String(required=True)
 
     resource = graphene.Field(ResourceType)
 
     @staticmethod
     def mutate(root, info, resource_data=None):
-        # resource_data = {}
-        # if resource_data.file:
-        #     file_data = {"file": file}
-        print(resource_data)
         dataset = Dataset.objects.get(id=resource_data.dataset)
-        # resource_form = CreateResource.form(resource_data, file_data)
-        # if resource_form.is_valid():
         resource_instance = Resource(
             title=resource_data.title,
             description=resource_data.description,
@@ -64,14 +52,27 @@ class CreateResource(graphene.Mutation, Output):
             file=resource_data.file
         )
         resource_instance.save()
-        # resource_form.save()
         return CreateResource(success=True, resource=resource_instance)
-        # else:
-        #     return CreateResource(success=False, errors=resource_form.errors.get_json_data())
-        # resource_instance = Resource(
-        #     title=title,
-        #     description=description,
-        #     file=file
-        # )
-        # resource_instance.save()
-        # return CreateResource(resource=resource_instance)
+
+
+class UpdateResource(graphene.Mutation, Output):
+    class Arguments:
+        resource_data = ResourceInput(required=True)
+
+    resource = graphene.Field(ResourceType)
+
+    @staticmethod
+    def mutate(root, info, resource_data=None):
+        print(resource_data)
+        resource_instance = Resource.objects.get(id=int(resource_data.id))
+        dataset = Dataset.objects.get(id=resource_data.dataset)
+        if resource_instance:
+            resource_instance.title = resource_data.title
+            resource_instance.description = resource_data.description
+            resource_instance.dataset = dataset
+            resource_instance.format = resource_data.format
+            resource_instance.remote_url = resource_data.remote_url
+            resource_instance.file = resource_data.file
+            resource_instance.save()
+            return CreateResource(success=True, resource=resource_instance)
+        return CreateResource(success=False, resource=None)
