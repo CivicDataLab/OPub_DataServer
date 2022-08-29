@@ -1,0 +1,177 @@
+# This file was generated based on ".graphqlconfig". Do not edit manually.
+
+schema {
+    query: Query
+    mutation: Mutation
+}
+
+type CatalogType {
+    dataset_set: [DatasetType!]!
+    description: String!
+    id: ID!
+    issued: DateTime!
+    modified: DateTime!
+    organization: OrganizationType!
+    title: String!
+}
+
+type CreateCatalog {
+    catalog: CatalogType
+}
+
+type CreateDataset {
+    dataset: DatasetType
+}
+
+type CreateOrganization {
+    organization: OrganizationType
+}
+
+type CreateResource {
+    errors: ExpectedErrorType
+    resource: ResourceType
+    success: Boolean
+}
+
+type DatasetType {
+    License: String!
+    access_type: String!
+    action: String!
+    catalog: CatalogType!
+    description: String!
+    funnel: String!
+    geography: String!
+    id: ID!
+    issued: DateTime!
+    modified: DateTime!
+    remark: String!
+    remote_issued: DateTime
+    remote_modified: DateTime
+    resource_set: [ResourceType!]!
+    sector: String!
+    status: String!
+    title: String!
+}
+
+type Mutation {
+    create_catalog(catalog_data: CatalogInput!): CreateCatalog
+    create_dataset(dataset_data: DatasetInput): CreateDataset
+    create_organization(organization_data: OrganizationInput!): CreateOrganization
+    create_resource(resource_data: ResourceInput): CreateResource
+}
+
+type OrganizationType {
+    catalog_set: [CatalogType!]!
+    contact_email: String!
+    description: String!
+    homepage: String!
+    id: ID!
+    issued: DateTime!
+    modified: DateTime!
+    title: String!
+}
+
+type Query {
+    all_catalog: [CatalogType]
+    all_datasets: [DatasetType]
+    all_organizations: [OrganizationType]
+    all_resources: [ResourceType]
+    catalog(catalog_id: Int): CatalogType
+    dataset(dataset_id: Int): DatasetType
+    organization(organization_id: Int): OrganizationType
+    resource(resource_id: Int): ResourceType
+}
+
+type ResourceType {
+    dataset: DatasetType!
+    description: String!
+    file: String!
+    format: String!
+    id: ID!
+    issued: DateTime!
+    modified: DateTime!
+    remote_url: String!
+    title: String!
+}
+
+"""
+
+The `DateTime` scalar type represents a DateTime
+value as specified by
+[iso8601](https://en.wikipedia.org/wiki/ISO_8601).
+"""
+scalar DateTime
+
+"""
+
+Errors messages and codes mapped to
+    fields or non fields errors.
+    Example:
+    {
+        field_name: [
+            {
+                "message": "error message",
+                "code": "error_code"
+            }
+        ],
+        other_field: [
+            {
+                "message": "error message",
+                "code": "error_code"
+            }
+        ],
+        nonFieldErrors: [
+            {
+                "message": "error message",
+                "code": "error_code"
+            }
+        ]
+    }
+"""
+scalar ExpectedErrorType
+
+"""
+
+Create scalar that ignores normal serialization/deserialization, since
+that will be handled by the multipart request spec
+"""
+scalar Upload
+
+input CatalogInput {
+    description: String
+    id: ID
+    organization: String
+    title: String
+}
+
+input DatasetInput {
+    access_type: String!
+    action: String
+    catalog: String!
+    description: String!
+    funnel: String
+    geography: String!
+    id: ID
+    license: String!
+    remote_issued: DateTime
+    remote_modified: DateTime
+    sector: String!
+    status: String!
+    title: String!
+}
+
+input OrganizationInput {
+    description: String
+    id: ID
+    title: String
+}
+
+input ResourceInput {
+    dataset: String!
+    description: String
+    file: Upload
+    format: String
+    id: ID
+    remote_url: String
+    title: String!
+}

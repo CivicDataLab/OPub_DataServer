@@ -1,0 +1,15 @@
+{
+  "name": "Dataset Server Schema",
+  "schemaPath": "graphql_schema.txt",
+  "extensions": {
+    "endpoints": {
+      "Default GraphQL Endpoint": {
+        "url": "http://127.0.0.1:8005/graphql",
+        "headers": {
+          "user-agent": "Test GraphQL"
+        },
+        "introspect": false
+      }
+    }
+  }
+}
