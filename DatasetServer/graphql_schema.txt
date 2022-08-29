@@ -58,6 +58,8 @@ type Mutation {
     create_dataset(dataset_data: DatasetInput): CreateDataset
     create_organization(organization_data: OrganizationInput!): CreateOrganization
     create_resource(resource_data: ResourceInput): CreateResource
+    update_dataset(dataset_data: DatasetInput): UpdateDataset
+    update_resource(resource_data: ResourceInput!): UpdateResource
 }
 
 type OrganizationType {
@@ -92,6 +94,16 @@ type ResourceType {
     modified: DateTime!
     remote_url: String!
     title: String!
+}
+
+type UpdateDataset {
+    dataset: DatasetType
+}
+
+type UpdateResource {
+    errors: ExpectedErrorType
+    resource: ResourceType
+    success: Boolean
 }
 
 """
