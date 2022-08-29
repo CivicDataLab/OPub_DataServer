@@ -65,7 +65,7 @@ class CreateResource(graphene.Mutation, Output):
         )
         resource_instance.save()
         # resource_form.save()
-        return CreateResource(success=True)
+        return CreateResource(success=True, resource=resource_instance)
         # else:
         #     return CreateResource(success=False, errors=resource_form.errors.get_json_data())
         # resource_instance = Resource(
