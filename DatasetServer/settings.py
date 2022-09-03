@@ -42,7 +42,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'graphene_django',
     'dataset_api',
+    'graphql_jwt.refresh_token.apps.RefreshTokenConfig',
     "graphql_auth",
+    'users',
+    'django_filters',
 ]
 
 MIDDLEWARE = [
@@ -77,17 +80,27 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'DatasetServer.wsgi.application'
 
+#custom user Auth
+AUTH_USER_MODEL = 'users.CustomUser'
+
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
 DATABASES = {
     'default': {
+        # 'ENGINE': 'django.db.backends.sqlite3',
+        # 'NAME': 'sqlite3.db',
+        # 'USER': '',
+        # 'PASSWORD': '',
+        # 'HOST': '',
+        # 'PORT': '',
+        
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'postgres',
         'USER': 'postgres',
         'PASSWORD': 'postgres',
         'HOST': 'db',
-        'PORT': 5432,
+        'PORT': 5432,  
     }
 }
 
@@ -109,7 +122,38 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-GRAPHENE = {"SCHEMA": "DatasetServer.schema.schema"}
+GRAPHENE = {"SCHEMA": "DatasetServer.schema.schema",
+            'MIDDLEWARE': [
+                    'graphql_jwt.middleware.JSONWebTokenMiddleware',
+            ],
+            }
+
+AUTHENTICATION_BACKENDS = [
+    # 'graphql_jwt.backends.JSONWebTokenBackend',
+    'django.contrib.auth.backends.ModelBackend',
+    "graphql_auth.backends.GraphQLAuthBackend",
+]
+
+GRAPHQL_JWT = {
+    "JWT_VERIFY_EXPIRATION": True,
+
+    # optional
+    "JWT_LONG_RUNNING_REFRESH_TOKEN": True,
+    "JWT_ALLOW_ANY_CLASSES": [
+        "graphql_auth.mutations.Register",
+        "graphql_auth.mutations.VerifyAccount",
+        "graphql_auth.mutations.ObtainJSONWebToken",
+        "graphql_auth.mutations.ResendActivationEmail",
+        "graphql_auth.mutations.SendPasswordResetEmail",
+        "graphql_auth.mutations.PasswordReset",
+        "graphql_auth.mutations.VerifyToken",
+        "graphql_auth.mutations.RefreshToken",
+        "graphql_auth.mutations.RevokeToken",
+        "graphql_auth.mutations.VerifySecondaryEmail",
+    ],
+}
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/
