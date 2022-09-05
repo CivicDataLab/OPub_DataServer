@@ -1,15 +1,37 @@
 import graphene
+from graphene import List
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
-from .models import Resource, Dataset
+from .models import Resource, Dataset, ResourceSchema
+
+
+class ResourceSchemaInputType(graphene.InputObjectType):
+    key = graphene.String()
+    format = graphene.String()
+    description = graphene.String()
+
+
+class ResourceSchemaType(DjangoObjectType):
+    class Meta:
+        model = ResourceSchema
+        fields = "__all__"
 
 
 class ResourceType(DjangoObjectType):
+    schema = graphene.List(ResourceSchemaType)
+
     class Meta:
         model = Resource
         fields = "__all__"
+
+    def resolve_schema(self, info):
+        try:
+            schema = ResourceSchema.objects.filter(resource=self)
+            return schema
+        except ResourceSchema.DoesNotExist as e:
+            return []
 
 
 class Query(graphene.ObjectType):
@@ -32,6 +54,7 @@ class ResourceInput(graphene.InputObjectType):
     status = graphene.String(required=True)
     format = graphene.String(required=False)
     remote_url = graphene.String(required=False)
+    schema: List = graphene.List(of_type=ResourceSchemaInputType)
 
 
 class CreateResource(graphene.Mutation, Output):
@@ -42,6 +65,10 @@ class CreateResource(graphene.Mutation, Output):
 
     @staticmethod
     def mutate(root, info, resource_data: ResourceInput = None):
+        """
+
+        :type resource_data: List of dictionary
+        """
         dataset = Dataset.objects.get(id=resource_data.dataset)
         resource_instance = Resource(
             title=resource_data.title,
@@ -50,9 +77,13 @@ class CreateResource(graphene.Mutation, Output):
             format=resource_data.format,
             status=resource_data.status,
             remote_url=resource_data.remote_url,
-            file=resource_data.file
+            file=resource_data.file,
         )
         resource_instance.save()
+        for schema in resource_data.schema:
+            schema_instance = ResourceSchema(key=schema.key, format=schema.format, description=schema.description,
+                                             resource=resource_instance)
+            schema_instance.save()
         return CreateResource(success=True, resource=resource_instance)
 
 
