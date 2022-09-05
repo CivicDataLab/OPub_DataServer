@@ -46,6 +46,3 @@ class CreateTag(graphene.Mutation):
 
 class Mutation(graphene.ObjectType):
     create_tag = CreateTag.Field()
-
-
-schema = graphene.Schema(query=Query, mutation=Mutation)

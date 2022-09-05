@@ -48,6 +48,3 @@ class CreateCatalog(graphene.Mutation):
 
 class Mutation(graphene.ObjectType):
     create_catalog = CreateCatalog.Field()
-
-
-schema = graphene.Schema(query=Query, mutation=Mutation)
