@@ -8,6 +8,7 @@ from .models import Resource, Dataset, ResourceSchema
 
 
 class ResourceSchemaInputType(graphene.InputObjectType):
+    id = graphene.ID(required=False)
     key = graphene.String()
     format = graphene.String()
     description = graphene.String()
@@ -107,18 +108,27 @@ class UpdateResource(graphene.Mutation, Output):
             resource_instance.status = resource_data.status
             resource_instance.save()
 
-            try:
-                schema = ResourceSchema.objects.filter(resource=resource_instance)
-                for instance in schema:
-                    instance.delete()
-            except ResourceSchema.DoesNotExist as e:
-                pass
             for schema in resource_data.schema:
-                schema_instance = ResourceSchema(key=schema.key, format=schema.format, description=schema.description,
-                                                 resource=resource_instance)
-                schema_instance.save()
+                try:
+                    if schema.id:
+                        schema_instance = ResourceSchema.objects.get(id=int(schema.id))
+                        schema_instance.key = schema.key
+                        schema_instance.format = schema.format
+                        schema_instance.description = schema.description
+                        schema_instance.save()
+                    else:
+                        UpdateResource.create_resource_schema_instance(resource_instance, schema)
+
+                except ResourceSchema.DoesNotExist as e:
+                    UpdateResource.create_resource_schema_instance(resource_instance, schema)
             return UpdateResource(success=True, resource=resource_instance)
         return UpdateResource(success=False, resource=None)
+
+    @staticmethod
+    def create_resource_schema_instance(resource_instance, schema):
+        schema_instance = ResourceSchema(key=schema.key, format=schema.format, description=schema.description,
+                                         resource=resource_instance)
+        schema_instance.save()
 
 
 class DeleteResource(graphene.Mutation):
