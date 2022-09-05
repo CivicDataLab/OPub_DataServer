@@ -1,6 +1,5 @@
 import graphene
 from graphene_django import DjangoObjectType
-from graphql.error import GraphQLLocatedError
 
 from .models import Dataset, Catalog, Tag
 
@@ -32,6 +31,9 @@ class DatasetInput(graphene.InputObjectType):
     geography = graphene.String(required=True)
     remote_issued = graphene.DateTime(required=False)
     remote_modified = graphene.DateTime(required=False)
+    period_from = graphene.Date()
+    period_to = graphene.Date()
+    update_frequency = graphene.String()
     funnel = graphene.String(required=False)
     action = graphene.String(required=False)
     status = graphene.String(required=True)
@@ -46,7 +48,7 @@ class CreateDataset(graphene.Mutation):
     dataset = graphene.Field(DatasetType)
 
     @staticmethod
-    def mutate(root, info, dataset_data=None):
+    def mutate(root, info, dataset_data: DatasetInput = None):
         catalog = Catalog.objects.get(id=dataset_data.catalog)
         # print(dataset_data)
         dataset_instance = Dataset(
@@ -62,6 +64,9 @@ class CreateDataset(graphene.Mutation):
             status=dataset_data.status,
             access_type=dataset_data.access_type,
             catalog=catalog,
+            period_to=dataset_data.period_to,
+            period_from=dataset_data.period_from,
+            update_frequency=dataset_data.update_frequency
         )
         dataset_instance.save()
         for tag in dataset_data.tags_list:
@@ -82,7 +87,7 @@ class UpdateDataset(graphene.Mutation):
     dataset = graphene.Field(DatasetType)
 
     @staticmethod
-    def mutate(root, info, dataset_data=None):
+    def mutate(root, info, dataset_data: DatasetInput = None):
         dataset_instance = Dataset.objects.get(id=dataset_data.id)
         catalog = Catalog.objects.get(id=dataset_data.catalog)
         if dataset_instance:
