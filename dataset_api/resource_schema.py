@@ -106,6 +106,17 @@ class UpdateResource(graphene.Mutation, Output):
             resource_instance.file = resource_data.file
             resource_instance.status = resource_data.status
             resource_instance.save()
+
+            try:
+                schema = ResourceSchema.objects.filter(resource=resource_instance)
+                for instance in schema:
+                    instance.delete()
+            except ResourceSchema.DoesNotExist as e:
+                pass
+            for schema in resource_data.schema:
+                schema_instance = ResourceSchema(key=schema.key, format=schema.format, description=schema.description,
+                                                 resource=resource_instance)
+                schema_instance.save()
             return UpdateResource(success=True, resource=resource_instance)
         return UpdateResource(success=False, resource=None)
 
