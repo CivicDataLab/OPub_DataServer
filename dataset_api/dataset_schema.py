@@ -1,7 +1,8 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphql.error import GraphQLLocatedError
 
-from .models import Dataset, Catalog
+from .models import Dataset, Catalog, Tag
 
 
 class DatasetType(DjangoObjectType):
@@ -35,6 +36,7 @@ class DatasetInput(graphene.InputObjectType):
     action = graphene.String(required=False)
     status = graphene.String(required=True)
     access_type = graphene.String(required=True)
+    tags_list = graphene.List(of_type=graphene.String, default=[], required=False)
 
 
 class CreateDataset(graphene.Mutation):
@@ -46,6 +48,7 @@ class CreateDataset(graphene.Mutation):
     @staticmethod
     def mutate(root, info, dataset_data=None):
         catalog = Catalog.objects.get(id=dataset_data.catalog)
+        # print(dataset_data)
         dataset_instance = Dataset(
             title=dataset_data.title,
             description=dataset_data.description,
@@ -58,8 +61,16 @@ class CreateDataset(graphene.Mutation):
             action=dataset_data.action,
             status=dataset_data.status,
             access_type=dataset_data.access_type,
-            catalog=catalog
+            catalog=catalog,
         )
+        dataset_instance.save()
+        for tag in dataset_data.tags_list:
+            try:
+                tag_object = Tag.objects.get(name=tag)
+            except Tag.DoesNotExist as e:
+                tag_object = Tag(name=tag, organization=catalog.organization)
+                tag_object.save()
+            dataset_instance.tags.add(tag_object)
         dataset_instance.save()
         return CreateDataset(dataset=dataset_instance)
 
