@@ -4,7 +4,6 @@ from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
 from .models import Resource, Dataset
-from .resource_form import CreateResourceMutationForm
 
 
 class ResourceType(DjangoObjectType):
@@ -25,11 +24,12 @@ class Query(graphene.ObjectType):
 
 
 class ResourceInput(graphene.InputObjectType):
-    id = graphene.ID()
+    id: str = graphene.ID()
     title = graphene.String(required=True)
     description = graphene.String(required=False)
     file = Upload(required=False)
     dataset = graphene.String(required=True)
+    status = graphene.String(required=True)
     format = graphene.String(required=False)
     remote_url = graphene.String(required=False)
 
@@ -41,13 +41,14 @@ class CreateResource(graphene.Mutation, Output):
     resource = graphene.Field(ResourceType)
 
     @staticmethod
-    def mutate(root, info, resource_data=None):
+    def mutate(root, info, resource_data: ResourceInput = None):
         dataset = Dataset.objects.get(id=resource_data.dataset)
         resource_instance = Resource(
             title=resource_data.title,
             description=resource_data.description,
             dataset=dataset,
             format=resource_data.format,
+            status=resource_data.status,
             remote_url=resource_data.remote_url,
             file=resource_data.file
         )
@@ -62,8 +63,7 @@ class UpdateResource(graphene.Mutation, Output):
     resource = graphene.Field(ResourceType)
 
     @staticmethod
-    def mutate(root, info, resource_data=None):
-        print(resource_data)
+    def mutate(root, info, resource_data: ResourceInput = None):
         resource_instance = Resource.objects.get(id=int(resource_data.id))
         dataset = Dataset.objects.get(id=resource_data.dataset)
         if resource_instance:
@@ -73,6 +73,7 @@ class UpdateResource(graphene.Mutation, Output):
             resource_instance.format = resource_data.format
             resource_instance.remote_url = resource_data.remote_url
             resource_instance.file = resource_data.file
+            resource_instance.status = resource_data.status
             resource_instance.save()
-            return CreateResource(success=True, resource=resource_instance)
-        return CreateResource(success=False, resource=None)
+            return UpdateResource(success=True, resource=resource_instance)
+        return UpdateResource(success=False, resource=None)
