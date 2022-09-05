@@ -77,3 +77,16 @@ class UpdateResource(graphene.Mutation, Output):
             resource_instance.save()
             return UpdateResource(success=True, resource=resource_instance)
         return UpdateResource(success=False, resource=None)
+
+
+class DeleteResource(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID()
+
+    resource = graphene.Field(ResourceType)
+
+    @staticmethod
+    def mutate(root, info, id):
+        resource_instance = Resource.objects.get(id=id)
+        resource_instance.delete()
+        return DeleteResource(success=True, resource=resource_instance)
