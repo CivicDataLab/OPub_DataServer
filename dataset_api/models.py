@@ -58,3 +58,8 @@ class Resource(models.Model):
     format = models.CharField(max_length=15)
     file = models.FileField(upload_to=_resource_directory_path, blank=True)
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
+
+
+class Tag(models.Model):
+    name = models.CharField(max_length=50, unique=True, blank=False)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
