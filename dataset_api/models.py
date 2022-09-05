@@ -44,7 +44,7 @@ class Dataset(models.Model):
     remote_modified = models.DateTimeField(blank=True, null=True)
     period_from = models.DateField(blank=True, null=True)
     period_to = models.DateField(blank=True, null=True)
-    update_frequency = models.CharField(max_length=50,blank=True, null=True)
+    update_frequency = models.CharField(max_length=50, blank=True, null=True)
     modified = models.DateTimeField(auto_now=True)
     sector = models.CharField(max_length=50, default='Other')
     status = models.CharField(max_length=50, default='Draft')
@@ -68,3 +68,10 @@ class Resource(models.Model):
     file = models.FileField(upload_to=_resource_directory_path, blank=True)
     status = models.CharField(max_length=50, default='Draft')
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
+
+
+class ResourceSchema(models.Model):
+    key = models.CharField(max_length=100)
+    format = models.CharField(max_length=100)
+    description = models.CharField(max_length=500)
+    resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
