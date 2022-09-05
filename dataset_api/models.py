@@ -23,6 +23,11 @@ class Organization(models.Model):
     contact_email = models.EmailField(blank=True)
 
 
+class Tag(models.Model):
+    name = models.CharField(max_length=50, unique=True, blank=False)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+
+
 class Catalog(models.Model):
     title = models.CharField(max_length=100)
     description = models.CharField(max_length=500)
@@ -47,6 +52,7 @@ class Dataset(models.Model):
     geography = models.CharField(max_length=50, default='Other')
     License = models.CharField(max_length=100, default='not_specified')
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE)
+    tags = models.ManyToManyField(Tag, blank=True, null=True)
 
 
 class Resource(models.Model):
@@ -58,8 +64,3 @@ class Resource(models.Model):
     format = models.CharField(max_length=15)
     file = models.FileField(upload_to=_resource_directory_path, blank=True)
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
-
-
-class Tag(models.Model):
-    name = models.CharField(max_length=50, unique=True, blank=False)
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
