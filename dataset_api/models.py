@@ -66,4 +66,5 @@ class Resource(models.Model):
     remote_url = models.URLField(blank=True)
     format = models.CharField(max_length=15)
     file = models.FileField(upload_to=_resource_directory_path, blank=True)
+    status = models.CharField(max_length=50, default='Draft')
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
