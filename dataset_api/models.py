@@ -36,6 +36,10 @@ class Catalog(models.Model):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
 
 
+class Geography(models.Model):
+    name = models.CharField(max_length=75)
+
+
 class Dataset(models.Model):
     title = models.CharField(max_length=100, blank=True)
     description = models.CharField(max_length=500, blank=True)
@@ -52,10 +56,11 @@ class Dataset(models.Model):
     funnel = models.CharField(max_length=50, default='upload')
     action = models.CharField(max_length=50, default='create data')
     access_type = models.CharField(max_length=50, default='open')
-    geography = models.CharField(max_length=50, default='Other')
+    # geography = models.CharField(max_length=50, default='Other')
+    geography = models.ManyToManyField(Geography, blank=True, null=True)
     License = models.CharField(max_length=100, default='not_specified')
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE)
-    tags = models.ManyToManyField(Tag, blank=True, null=True)
+    tags = models.ManyToManyField(Tag, blank=True)
 
 
 class Resource(models.Model):
