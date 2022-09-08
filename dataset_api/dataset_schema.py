@@ -2,7 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 
 from .models import Dataset, Catalog, Tag
-
+from .search import index_data, update_data
 
 class DatasetType(DjangoObjectType):
     class Meta:
@@ -34,8 +34,8 @@ class DatasetInput(graphene.InputObjectType):
     period_from = graphene.Date()
     period_to = graphene.Date()
     update_frequency = graphene.String()
-    funnel = graphene.String(required=False)
-    action = graphene.String(required=False)
+    funnel = graphene.String(required=False, default_value='upload')
+    action = graphene.String(required=False, default_value='create data')
     status = graphene.String(required=True)
     access_type = graphene.String(required=True)
     tags_list = graphene.List(of_type=graphene.String, default=[], required=False)
@@ -69,6 +69,7 @@ class CreateDataset(graphene.Mutation):
             update_frequency=dataset_data.update_frequency
         )
         dataset_instance.save()
+        
         for tag in dataset_data.tags_list:
             try:
                 tag_object = Tag.objects.get(name=tag)
@@ -77,6 +78,9 @@ class CreateDataset(graphene.Mutation):
                 tag_object.save()
             dataset_instance.tags.add(tag_object)
         dataset_instance.save()
+        
+        # For indexing data in elasticsearch.
+        index_data(dataset_instance)
         return CreateDataset(dataset=dataset_instance)
 
 
@@ -104,6 +108,9 @@ class UpdateDataset(graphene.Mutation):
             dataset_instance.access_type = dataset_data.access_type
             dataset_instance.catalog = catalog
             dataset_instance.save()
-
+            
+            # For updating indexed data in elasticsearch.
+            update_data(dataset_instance)
+            
             return UpdateDataset(dataset=dataset_instance)
         return UpdateDataset(dataset=None)
