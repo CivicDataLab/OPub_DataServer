@@ -68,14 +68,8 @@ class CreateDataset(graphene.Mutation):
             update_frequency=dataset_data.update_frequency
         )
         dataset_instance.save()
-        attribute_list = dataset_data.tags_list
-        attribute_type = Tag
-        object_field = "tags"
-        CreateDataset.add_attributes_to_dataset(dataset_instance, object_field, attribute_list, attribute_type)
-        attribute_list = dataset_data.geo_list
-        attribute_type = Geography
-        object_field = "geography"
-        CreateDataset.add_attributes_to_dataset(dataset_instance, object_field, attribute_list, attribute_type)
+        CreateDataset.add_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
+        CreateDataset.add_attributes_to_dataset(dataset_instance, "geography", dataset_data.geo_list, Geography)
         return CreateDataset(dataset=dataset_instance)
 
     @staticmethod
@@ -105,7 +99,6 @@ class UpdateDataset(graphene.Mutation):
             dataset_instance.description = dataset_data.description
             dataset_instance.License = dataset_data.license
             dataset_instance.sector = dataset_data.sector
-            dataset_instance.geography = dataset_data.geography
             dataset_instance.remote_issued = dataset_data.remote_issued
             dataset_instance.remote_modified = dataset_data.remote_modified
             dataset_instance.funnel = dataset_data.funnel
@@ -113,6 +106,8 @@ class UpdateDataset(graphene.Mutation):
             dataset_instance.status = dataset_data.status
             dataset_instance.access_type = dataset_data.access_type
             dataset_instance.catalog = catalog
+            dataset_instance.period_to = dataset_data.period_to
+            dataset_instance.period_from = dataset_data.period_from
             dataset_instance.save()
 
             return UpdateDataset(dataset=dataset_instance)
