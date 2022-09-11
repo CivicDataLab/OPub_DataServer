@@ -5,6 +5,7 @@ from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
 from .models import Resource, Dataset, ResourceSchema
+from .search import delete_data, index_data, update_data, delete_data
 
 
 class ResourceSchemaInputType(graphene.InputObjectType):
@@ -81,10 +82,18 @@ class CreateResource(graphene.Mutation, Output):
             file=resource_data.file,
         )
         resource_instance.save()
+
         for schema in resource_data.schema:
-            schema_instance = ResourceSchema(key=schema.key, format=schema.format, description=schema.description,
-                                             resource=resource_instance)
+            schema_instance = ResourceSchema(
+                key=schema.key,
+                format=schema.format,
+                description=schema.description,
+                resource=resource_instance,
+            )
             schema_instance.save()
+
+        # For indexing data in elasticsearch.
+        index_data(resource_instance)
         return CreateResource(success=True, resource=resource_instance)
 
 
@@ -117,17 +126,28 @@ class UpdateResource(graphene.Mutation, Output):
                         schema_instance.description = schema.description
                         schema_instance.save()
                     else:
-                        UpdateResource.create_resource_schema_instance(resource_instance, schema)
+                        UpdateResource.create_resource_schema_instance(
+                            resource_instance, schema
+                        )
 
                 except ResourceSchema.DoesNotExist as e:
-                    UpdateResource.create_resource_schema_instance(resource_instance, schema)
+                    UpdateResource.create_resource_schema_instance(
+                        resource_instance, schema
+                    )
             return UpdateResource(success=True, resource=resource_instance)
+
+        # For updating indexed data in elasticsearch.
+        update_data(resource_instance)
         return UpdateResource(success=False, resource=None)
 
     @staticmethod
     def create_resource_schema_instance(resource_instance, schema):
-        schema_instance = ResourceSchema(key=schema.key, format=schema.format, description=schema.description,
-                                         resource=resource_instance)
+        schema_instance = ResourceSchema(
+            key=schema.key,
+            format=schema.format,
+            description=schema.description,
+            resource=resource_instance,
+        )
         schema_instance.save()
 
 
@@ -135,10 +155,13 @@ class DeleteResource(graphene.Mutation):
     class Arguments:
         id = graphene.ID()
 
-    resource = graphene.Field(ResourceType)
+    success = graphene.String()
+    #resource = graphene.Field(ResourceType)
 
     @staticmethod
     def mutate(root, info, id):
         resource_instance = Resource.objects.get(id=id)
         resource_instance.delete()
-        return DeleteResource(success=True, resource=resource_instance)
+        # For deleting indexed data in elasticsearch.
+        delete_data(id)
+        return DeleteResource(success=True)

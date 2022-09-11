@@ -22,6 +22,11 @@ services:
       - "8005:8000"
     depends_on:
       - db
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.6
+    container_name: "elasticsearch"
+    ports: 
+      - "9200:9200"
 volumes:
   postgres_data:
     name: opub_postgres_data
