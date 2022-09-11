@@ -55,7 +55,6 @@ class Dataset(models.Model):
     funnel = models.CharField(max_length=50, default='upload')
     action = models.CharField(max_length=50, default='create data')
     access_type = models.CharField(max_length=50, default='open')
-    # geography = models.CharField(max_length=50, default='Other')
     geography = models.ManyToManyField(Geography, blank=True, null=True)
     License = models.CharField(max_length=100, default='not_specified')
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE)
