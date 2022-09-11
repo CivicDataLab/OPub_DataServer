@@ -24,7 +24,7 @@ class Query(graphene.ObjectType):
 class TagInput(graphene.InputObjectType):
     id = graphene.ID()
     name = graphene.String()
-    organization = graphene.String()
+    # organization = graphene.String()
 
 
 class CreateTag(graphene.Mutation):
@@ -35,10 +35,9 @@ class CreateTag(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, tag_data=None):
-        organization = Organization.objects.get(id=tag_data.organization)
+        # organization = Organization.objects.get(id=tag_data.organization)
         tag_instance = Tag(
             name=tag_data.name,
-            organization=organization
         )
         tag_instance.save()
         return CreateTag(tag=tag_instance)

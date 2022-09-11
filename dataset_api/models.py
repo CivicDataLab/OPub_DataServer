@@ -25,7 +25,6 @@ class Organization(models.Model):
 
 class Tag(models.Model):
     name = models.CharField(max_length=50, unique=True, blank=False)
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
 
 
 class Catalog(models.Model):
