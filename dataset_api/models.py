@@ -25,7 +25,6 @@ class Organization(models.Model):
 
 class Tag(models.Model):
     name = models.CharField(max_length=50, unique=True, blank=False)
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
 
 
 class Catalog(models.Model):
@@ -34,6 +33,10 @@ class Catalog(models.Model):
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+
+
+class Geography(models.Model):
+    name = models.CharField(max_length=75)
 
 
 class Dataset(models.Model):
@@ -52,10 +55,10 @@ class Dataset(models.Model):
     funnel = models.CharField(max_length=50, default='upload')
     action = models.CharField(max_length=50, default='create data')
     access_type = models.CharField(max_length=50, default='open')
-    geography = models.CharField(max_length=50, default='Other')
+    geography = models.ManyToManyField(Geography, blank=True, null=True)
     License = models.CharField(max_length=100, default='not_specified')
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE)
-    tags = models.ManyToManyField(Tag, blank=True, null=True)
+    tags = models.ManyToManyField(Tag, blank=True)
 
 
 class Resource(models.Model):

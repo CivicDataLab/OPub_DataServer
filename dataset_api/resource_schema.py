@@ -3,6 +3,7 @@ from graphene import List
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
+import pandas as pd
 
 from .models import Resource, Dataset, ResourceSchema
 from .search import delete_data, index_data, update_data, delete_data
@@ -39,12 +40,19 @@ class ResourceType(DjangoObjectType):
 class Query(graphene.ObjectType):
     all_resources = graphene.List(ResourceType)
     resource = graphene.Field(ResourceType, resource_id=graphene.Int())
+    resource_columns = graphene.List(graphene.String, resource_id=graphene.Int())
 
     def resolve_all_resources(self, info, **kwargs):
         return Resource.objects.all()
 
     def resolve_resource(self, info, resource_id):
         return Resource.objects.get(pk=resource_id)
+
+    def resolve_resource_columns(self, info, resource_id):
+        resource = Resource.objects.get(pk=resource_id)
+        if resource.file and len(resource.file.path) and 'csv' in resource.format.lower():
+            file = pd.read_csv(resource.file.path)
+            return file.columns.tolist()
 
 
 class ResourceInput(graphene.InputObjectType):
