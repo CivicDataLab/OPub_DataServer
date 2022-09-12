@@ -1,5 +1,8 @@
 import mimetypes
+import os
+
 import graphene
+from django.core.files.base import ContentFile
 from graphene import List
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
@@ -68,6 +71,17 @@ class ResourceInput(graphene.InputObjectType):
     masked_fields = graphene.List(of_type=graphene.String, default=[], required=False)
 
 
+def _remove_masked_fields(resource_instance):
+    if resource_instance.masked_fields and len(
+            resource_instance.file.path) and 'csv' in resource_instance.format.lower():
+        df = pd.read_csv(resource_instance.file.path)
+        df = df.drop(columns=resource_instance.masked_fields)
+        data = df.to_csv(index=False)
+        temp_file = ContentFile(data.encode('utf-8'))
+        resource_instance.file.save(os.path.basename(resource_instance.file.path), temp_file)
+    resource_instance.save()
+
+
 class CreateResource(graphene.Mutation, Output):
     class Arguments:
         resource_data = ResourceInput()
@@ -82,6 +96,8 @@ class CreateResource(graphene.Mutation, Output):
         """
         dataset = Dataset.objects.get(id=resource_data.dataset)
         data_format = resource_data.format
+
+        masked_fields = resource_data.masked_fields
         resource_instance = Resource(
             title=resource_data.title,
             description=resource_data.description,
@@ -89,12 +105,13 @@ class CreateResource(graphene.Mutation, Output):
             format=data_format,
             status=resource_data.status,
             remote_url=resource_data.remote_url,
-            masked_fields=resource_data.masked_fields,
+            masked_fields=masked_fields,
             file=resource_data.file,
         )
         if data_format == "":
             resource_instance.format = mimetypes.guess_type(resource_instance.file.path)
         resource_instance.save()
+        _remove_masked_fields(resource_instance)
         for schema in resource_data.schema:
             schema_instance = ResourceSchema(key=schema.key, format=schema.format, description=schema.description,
                                              resource=resource_instance)
@@ -120,10 +137,11 @@ class UpdateResource(graphene.Mutation, Output):
             resource_instance.remote_url = resource_data.remote_url
             resource_instance.file = resource_data.file
             resource_instance.status = resource_data.status
+            resource_instance.masked_fields = resource_data.masked_fields
             if resource_data.format == "":
                 resource_instance.format = mimetypes.guess_type(resource_instance.file.path)
             resource_instance.save()
-
+            _remove_masked_fields(resource_instance)
             for schema in resource_data.schema:
                 try:
                     if schema.id:
