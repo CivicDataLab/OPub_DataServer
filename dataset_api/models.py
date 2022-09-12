@@ -80,3 +80,15 @@ class ResourceSchema(models.Model):
     format = models.CharField(max_length=100)
     description = models.CharField(max_length=500)
     resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
+
+
+class APISource(models.Model):
+    title = models.CharField(max_length=100)
+    base_url = models.URLField(null=False, blank=False)
+    description = models.CharField(max_length=500)
+    api_version = models.CharField(max_length=50)
+    headers = models.JSONField(blank=True, null=True)
+    auth_loc = models.CharField(max_length=50)
+    auth_type = models.CharField(max_length=50)
+    auth_credentials = models.JSONField(blank=True, null=True)
+    auth_token = models.CharField(blank=True, null=True, max_length=200)
