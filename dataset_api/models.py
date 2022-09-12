@@ -102,4 +102,8 @@ class APIResource(models.Model):
     status = models.CharField(max_length=50, default='Draft')
     masked_fields = ArrayField(models.CharField(max_length=10, blank=True), blank=True, null=True)
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
+    url_path = models.URLField(null=False, blank=False)
+    api_source = models.ForeignKey(APISource, on_delete=models.CASCADE)
+    auth_required = models.BooleanField()
+    response_type = models.CharField(max_length=20)
 
