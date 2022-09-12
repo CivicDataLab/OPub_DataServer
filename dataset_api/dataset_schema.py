@@ -10,6 +10,19 @@ class DatasetType(DjangoObjectType):
         fields = "__all__"
 
 
+def _add_update_attributes_to_dataset(dataset_instance, object_field, attribute_list, attribute_type):
+    dataset_attribute = getattr(dataset_instance, object_field)
+    dataset_attribute.clear()
+    for attribute in attribute_list:
+        try:
+            attribute_object = attribute_type.objects.get(name=attribute)
+        except attribute_type.DoesNotExist as e:
+            attribute_object = attribute_type(name=attribute)
+            attribute_object.save()
+        dataset_attribute.add(attribute_object)
+    dataset_instance.save()
+
+
 class Query(graphene.ObjectType):
     all_datasets = graphene.List(DatasetType)
     dataset = graphene.Field(DatasetType, dataset_id=graphene.Int())
@@ -68,20 +81,9 @@ class CreateDataset(graphene.Mutation):
             update_frequency=dataset_data.update_frequency
         )
         dataset_instance.save()
-        CreateDataset.add_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
-        CreateDataset.add_attributes_to_dataset(dataset_instance, "geography", dataset_data.geo_list, Geography)
+        _add_update_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
+        _add_update_attributes_to_dataset(dataset_instance, "geography", dataset_data.geo_list, Geography)
         return CreateDataset(dataset=dataset_instance)
-
-    @staticmethod
-    def add_attributes_to_dataset(dataset_instance, object_field, attribute_list, attribute_type):
-        for attribute in attribute_list:
-            try:
-                attribute_object = attribute_type.objects.get(name=attribute)
-            except attribute_type.DoesNotExist as e:
-                attribute_object = attribute_type(name=attribute)
-                attribute_object.save()
-            getattr(dataset_instance, object_field).add(attribute_object)
-        dataset_instance.save()
 
 
 class UpdateDataset(graphene.Mutation):
@@ -109,6 +111,8 @@ class UpdateDataset(graphene.Mutation):
             dataset_instance.period_to = dataset_data.period_to
             dataset_instance.period_from = dataset_data.period_from
             dataset_instance.save()
+            _add_update_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
+            _add_update_attributes_to_dataset(dataset_instance, "geography", dataset_data.geo_list, Geography)
 
             return UpdateDataset(dataset=dataset_instance)
         return UpdateDataset(dataset=None)
