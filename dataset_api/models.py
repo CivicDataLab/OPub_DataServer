@@ -67,12 +67,12 @@ class Resource(models.Model):
     description = models.CharField(max_length=500)
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    remote_url = models.URLField(blank=True)
-    format = models.CharField(max_length=15)
-    file = models.FileField(upload_to=_resource_directory_path, blank=True)
     status = models.CharField(max_length=50, default='Draft')
     masked_fields = ArrayField(models.CharField(max_length=10, blank=True), blank=True, null=True)
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
+    remote_url = models.URLField(blank=True)
+    format = models.CharField(max_length=15)
+    file = models.FileField(upload_to=_resource_directory_path, blank=True)
 
 
 class ResourceSchema(models.Model):
@@ -87,8 +87,12 @@ class APISource(models.Model):
     base_url = models.URLField(null=False, blank=False)
     description = models.CharField(max_length=500)
     api_version = models.CharField(max_length=50)
-    headers = models.JSONField(blank=True, null=True)
+    headers = ArrayField(models.JSONField(blank=True, null=True),blank=True, null=True)
     auth_loc = models.CharField(max_length=50)
     auth_type = models.CharField(max_length=50)
     auth_credentials = models.JSONField(blank=True, null=True)
     auth_token = models.CharField(blank=True, null=True, max_length=200)
+
+
+
+
