@@ -14,7 +14,13 @@ es_client = Elasticsearch(settings.ELASTICSEARCH)
 
 def index_data(data_obj):
     dataset_id = data_obj.dataset_id
+
     dataset_instance = Dataset.objects.get(id=dataset_id)
+    geography = dataset_instance.geography.all()
+    dataset_geography = []
+    for geo in geography:
+        dataset_geography.append(geo.name)
+
     catalog_instance = Catalog.objects.get(id=dataset_instance.catalog_id)
     org_instance = Organization.objects.get(id=catalog_instance.organization_id)
 
@@ -26,7 +32,7 @@ def index_data(data_obj):
         "dataset_title": dataset_instance.title,
         "dataset_description": dataset_instance.description,
         "license": dataset_instance.License,
-        "geography": dataset_instance.geography,
+        "geography": dataset_geography,
         "dataset_issued": dataset_instance.issued,
         "dataset_modified": dataset_instance.modified,
         "sector": dataset_instance.sector,
@@ -74,13 +80,16 @@ def update_data(data_obj):
 def update_dataset(dataset_obj):
     # Find all related resources.
     resource_obj = Resource.objects.filter(dataset_id=dataset_obj.id)
-    print(resource_obj)
     for resources in resource_obj:
+        geography = dataset_obj.geography.all()
+        dataset_geography = []
+        for geo in geography:
+            dataset_geography.append(geo.name)
         doc = {
             "dataset_title": dataset_obj.title,
             "dataset_description": dataset_obj.description,
             "license": dataset_obj.License,
-            "geography": dataset_obj.geography,
+            "geography": dataset_geography,
             "dataset_issued": dataset_obj.issued,
             "dataset_modified": dataset_obj.modified,
             "sector": dataset_obj.sector,
@@ -123,7 +132,7 @@ def delete_data(id):
 
 def facets(request, query_string="None"):
     response = []
-    
+
     agg = {
         "license": {"terms": {"field": "license.keyword"}},
         "geography": {"terms": {"field": "geography.keyword"}},
@@ -131,30 +140,24 @@ def facets(request, query_string="None"):
         "format": {"terms": {"field": "format.keyword"}},
     }
 
-    query = {
-        "match": {
-            "dataset_title": query_string
-        }
-    }
-    
+    query = {"match": {"dataset_title": query_string}}
+
     if query_string != "None":
         resp = es_client.search(
             index="dataset",
             aggs=agg,
             query=query,
-            
         )
     else:
         resp = es_client.search(
             index="dataset",
             aggs=agg,
             size=0,
-            
         )
-    
-    response.append({"license": resp['aggregations']['license']['buckets']})
-    response.append({"geography": resp['aggregations']['geography']['buckets']})
-    response.append({"sector": resp['aggregations']['sector']['buckets']})
-    response.append({"format": resp['aggregations']['format']['buckets']})
+
+    response.append({"license": resp["aggregations"]["license"]["buckets"]})
+    response.append({"geography": resp["aggregations"]["geography"]["buckets"]})
+    response.append({"sector": resp["aggregations"]["sector"]["buckets"]})
+    response.append({"format": resp["aggregations"]["format"]["buckets"]})
 
     return HttpResponse(json.dumps(response))

@@ -50,7 +50,11 @@ class Query(graphene.ObjectType):
 
     def resolve_resource_columns(self, info, resource_id):
         resource = Resource.objects.get(pk=resource_id)
-        if resource.file and len(resource.file.path) and 'csv' in resource.format.lower():
+        if (
+            resource.file
+            and len(resource.file.path)
+            and "csv" in resource.format.lower()
+        ):
             file = pd.read_csv(resource.file.path)
             return file.columns.tolist()
 
@@ -164,7 +168,7 @@ class DeleteResource(graphene.Mutation):
         id = graphene.ID()
 
     success = graphene.String()
-    #resource = graphene.Field(ResourceType)
+    # resource = graphene.Field(ResourceType)
 
     @staticmethod
     def mutate(root, info, id):
