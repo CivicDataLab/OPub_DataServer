@@ -1,6 +1,7 @@
 import os
 
 from django.contrib.postgres.fields import ArrayField
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 
@@ -56,7 +57,7 @@ class Dataset(models.Model):
     funnel = models.CharField(max_length=50, default='upload')
     action = models.CharField(max_length=50, default='create data')
     access_type = models.CharField(max_length=50, default='open')
-    geography = models.ManyToManyField(Geography, blank=True, null=True)
+    geography = models.ManyToManyField(Geography, blank=True)
     License = models.CharField(max_length=100, default='not_specified')
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE)
     tags = models.ManyToManyField(Tag, blank=True)
@@ -87,7 +88,7 @@ class APISource(models.Model):
     base_url = models.URLField(null=False, blank=False)
     description = models.CharField(max_length=500)
     api_version = models.CharField(max_length=50)
-    headers = ArrayField(models.JSONField(blank=True, null=True),blank=True, null=True)
+    headers = ArrayField(models.JSONField(blank=True, null=True), blank=True, null=True)
     auth_loc = models.CharField(max_length=50)
     auth_type = models.CharField(max_length=50)
     auth_credentials = models.JSONField(blank=True, null=True)
@@ -107,3 +108,11 @@ class APIResource(models.Model):
     auth_required = models.BooleanField()
     response_type = models.CharField(max_length=20)
 
+
+class DatasetRatings(models.Model):
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
+    review = models.CharField(max_length=500)
+    overall = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
+    data_quality = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
+    data_standards = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
+    coverage = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
