@@ -21,10 +21,33 @@ class Query(graphene.ObjectType):
         return APISource.objects.get(pk=api_source_id)
 
 
+class AuthLocation(graphene.Enum):
+    HEADER = "HEADER"
+    PARAM = "PARAM"
+
+
+class AuthType(graphene.Enum):
+    CREDENTIALS = "CREDENTIALS"
+    TOKEN = "TOKEN"
+
+
+class KeyValueType(graphene.InputObjectType):
+    key = graphene.String()
+    value = graphene.String()
+    description = graphene.String()
+
+
 class APISourceInput(graphene.InputObjectType):
     id = graphene.ID()
-    name = graphene.String()
-    # organization = graphene.String()
+    title = graphene.String()
+    base_url = graphene.String()
+    description = graphene.String()
+    api_version = graphene.String()
+    headers = graphene.List(of_type=KeyValueType)
+    auth_loc = AuthLocation()
+    auth_type = AuthType()
+    auth_credentials = graphene.List(of_type=KeyValueType)
+    auth_token = graphene.String()
 
 
 class CreateAPISource(graphene.Mutation):
@@ -36,7 +59,15 @@ class CreateAPISource(graphene.Mutation):
     @staticmethod
     def mutate(root, info, api_source_data=None):
         api_source_instance = APISource(
-            name=api_source_data.name,
+            title=api_source_data.title,
+            base_url=api_source_data.base_url,
+            description=api_source_data.description,
+            api_version=api_source_data.api_version,
+            headers=api_source_data.headers,
+            auth_loc=api_source_data.auth_loc,
+            auth_type=api_source_data.auth_type,
+            auth_credentials=api_source_data.auth_credentials,
+            auth_token=api_source_data.auth_token,
         )
         api_source_instance.save()
         return CreateAPISource(API_source=api_source_instance)
