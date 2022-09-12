@@ -1,28 +1,10 @@
-import mimetypes
-import os
-
 import graphene
-from django.core.files.base import ContentFile
 from graphene import List
 from graphene_django import DjangoObjectType
-from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
-import pandas as pd
 
 from .models import Dataset, ResourceSchema, APIResource, APISource
-
-
-class ResourceSchemaInputType(graphene.InputObjectType):
-    id = graphene.ID(required=False)
-    key = graphene.String()
-    format = graphene.String()
-    description = graphene.String()
-
-
-class ResourceSchemaType(DjangoObjectType):
-    class Meta:
-        model = ResourceSchema
-        fields = "__all__"
+from .resource_schema import ResourceSchemaType, ResourceSchemaInputType
 
 
 class APIResourceType(DjangoObjectType):
