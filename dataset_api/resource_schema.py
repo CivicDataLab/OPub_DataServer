@@ -63,7 +63,8 @@ class ResourceInput(graphene.InputObjectType):
     status = graphene.String(required=True)
     format = graphene.String(required=False)
     remote_url = graphene.String(required=False)
-    schema: List = graphene.List(of_type=ResourceSchemaInputType)
+    schema: List = graphene.List(of_type=ResourceSchemaInputType, required=True)
+    masked_fields = graphene.List(of_type=graphene.String, default=[], required=False)
 
 
 class CreateResource(graphene.Mutation, Output):
@@ -86,6 +87,7 @@ class CreateResource(graphene.Mutation, Output):
             format=resource_data.format,
             status=resource_data.status,
             remote_url=resource_data.remote_url,
+            masked_fields=resource_data.masked_fields,
             file=resource_data.file,
         )
         resource_instance.save()
