@@ -1,3 +1,4 @@
+import mimetypes
 import graphene
 from graphene import List
 from graphene_django import DjangoObjectType
@@ -80,16 +81,19 @@ class CreateResource(graphene.Mutation, Output):
         :type resource_data: List of dictionary
         """
         dataset = Dataset.objects.get(id=resource_data.dataset)
+        data_format = resource_data.format
         resource_instance = Resource(
             title=resource_data.title,
             description=resource_data.description,
             dataset=dataset,
-            format=resource_data.format,
+            format=data_format,
             status=resource_data.status,
             remote_url=resource_data.remote_url,
             masked_fields=resource_data.masked_fields,
             file=resource_data.file,
         )
+        if data_format == "":
+            resource_instance.format = mimetypes.guess_type(resource_instance.file.path)
         resource_instance.save()
         for schema in resource_data.schema:
             schema_instance = ResourceSchema(key=schema.key, format=schema.format, description=schema.description,
@@ -116,6 +120,8 @@ class UpdateResource(graphene.Mutation, Output):
             resource_instance.remote_url = resource_data.remote_url
             resource_instance.file = resource_data.file
             resource_instance.status = resource_data.status
+            if resource_data.format == "":
+                resource_instance.format = mimetypes.guess_type(resource_instance.file.path)
             resource_instance.save()
 
             for schema in resource_data.schema:
