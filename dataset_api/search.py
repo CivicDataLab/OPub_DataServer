@@ -121,25 +121,40 @@ def delete_data(id):
     print(resp["result"])
 
 
-def facets(request):
-    list = []
+def facets(request, query_string="None"):
+    response = []
+    
     agg = {
-        "license": {"terms": {"field": "status.keyword"}},
+        "license": {"terms": {"field": "license.keyword"}},
         "geography": {"terms": {"field": "geography.keyword"}},
         "sector": {"terms": {"field": "sector.keyword"}},
         "format": {"terms": {"field": "format.keyword"}},
     }
 
-    resp = es_client.search(
-        index="dataset",
-        aggs=agg,
-        size=0,
-    )
-    # print(type(resp))
-    # list.append(resp['aggregations']['license']['buckets'])
-    # list.append(resp['aggregations']['geography']['buckets'])
-    # list.append(resp['aggregations']['sector']['buckets'])
-    # list.append(resp['aggregations']['format']['buckets'])
-    # print(list)
+    query = {
+        "match": {
+            "dataset_title": query_string
+        }
+    }
+    
+    if query_string != "None":
+        resp = es_client.search(
+            index="dataset",
+            aggs=agg,
+            query=query,
+            
+        )
+    else:
+        resp = es_client.search(
+            index="dataset",
+            aggs=agg,
+            size=0,
+            
+        )
+    
+    response.append({"license": resp['aggregations']['license']['buckets']})
+    response.append({"geography": resp['aggregations']['geography']['buckets']})
+    response.append({"sector": resp['aggregations']['sector']['buckets']})
+    response.append({"format": resp['aggregations']['format']['buckets']})
 
-    return HttpResponse(json.dumps(resp))
+    return HttpResponse(json.dumps(response))
