@@ -116,3 +116,7 @@ class DatasetRatings(models.Model):
     data_quality = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
     data_standards = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
     coverage = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
+
+
+class Sector(models.Model):
+    name = models.CharField(max_length=75)
