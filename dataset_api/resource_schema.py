@@ -82,6 +82,28 @@ def _remove_masked_fields(resource_instance):
     resource_instance.save()
 
 
+def _create_update_schema(resource_data, resource_instance):
+    for schema in resource_data.schema:
+        try:
+            if schema.id:
+                schema_instance = ResourceSchema.objects.get(id=int(schema.id))
+                schema_instance.key = schema.key
+                schema_instance.format = schema.format
+                schema_instance.description = schema.description
+                schema_instance.save()
+            else:
+                _create_resource_schema_instance(resource_instance, schema)
+
+        except ResourceSchema.DoesNotExist as e:
+            _create_resource_schema_instance(resource_instance, schema)
+
+
+def _create_resource_schema_instance(resource_instance, schema):
+    schema_instance = ResourceSchema(key=schema.key, format=schema.format, description=schema.description,
+                                     resource=resource_instance)
+    schema_instance.save()
+
+
 class CreateResource(graphene.Mutation, Output):
     class Arguments:
         resource_data = ResourceInput()
@@ -112,10 +134,7 @@ class CreateResource(graphene.Mutation, Output):
             resource_instance.format = mimetypes.guess_type(resource_instance.file.path)
         resource_instance.save()
         _remove_masked_fields(resource_instance)
-        for schema in resource_data.schema:
-            schema_instance = ResourceSchema(key=schema.key, format=schema.format, description=schema.description,
-                                             resource=resource_instance)
-            schema_instance.save()
+        _create_update_schema(resource_data, resource_instance)
         return CreateResource(success=True, resource=resource_instance)
 
 
@@ -142,27 +161,9 @@ class UpdateResource(graphene.Mutation, Output):
                 resource_instance.format = mimetypes.guess_type(resource_instance.file.path)
             resource_instance.save()
             _remove_masked_fields(resource_instance)
-            for schema in resource_data.schema:
-                try:
-                    if schema.id:
-                        schema_instance = ResourceSchema.objects.get(id=int(schema.id))
-                        schema_instance.key = schema.key
-                        schema_instance.format = schema.format
-                        schema_instance.description = schema.description
-                        schema_instance.save()
-                    else:
-                        UpdateResource.create_resource_schema_instance(resource_instance, schema)
-
-                except ResourceSchema.DoesNotExist as e:
-                    UpdateResource.create_resource_schema_instance(resource_instance, schema)
+            _create_update_schema(resource_data, resource_instance)
             return UpdateResource(success=True, resource=resource_instance)
         return UpdateResource(success=False, resource=None)
-
-    @staticmethod
-    def create_resource_schema_instance(resource_instance, schema):
-        schema_instance = ResourceSchema(key=schema.key, format=schema.format, description=schema.description,
-                                         resource=resource_instance)
-        schema_instance.save()
 
 
 class DeleteResource(graphene.Mutation):
