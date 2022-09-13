@@ -41,6 +41,10 @@ class Geography(models.Model):
     name = models.CharField(max_length=75)
 
 
+class Sector(models.Model):
+    name = models.CharField(max_length=75)
+
+
 class Dataset(models.Model):
     title = models.CharField(max_length=100, blank=True)
     description = models.CharField(max_length=500, blank=True)
@@ -51,7 +55,7 @@ class Dataset(models.Model):
     period_to = models.DateField(blank=True, null=True)
     update_frequency = models.CharField(max_length=50, blank=True, null=True)
     modified = models.DateTimeField(auto_now=True)
-    sector = models.CharField(max_length=50, default='Other')
+    sector = models.ManyToManyField(Sector, blank=True)
     status = models.CharField(max_length=50, default='Draft')
     remark = models.CharField(max_length=200, default='Please follow creation instructions')
     funnel = models.CharField(max_length=50, default='upload')
@@ -116,7 +120,3 @@ class DatasetRatings(models.Model):
     data_quality = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
     data_standards = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
     coverage = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
-
-
-class Sector(models.Model):
-    name = models.CharField(max_length=75)

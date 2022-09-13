@@ -1,7 +1,7 @@
 import graphene
 from graphene_django import DjangoObjectType
 
-from .models import Dataset, Catalog, Tag, Geography
+from .models import Dataset, Catalog, Tag, Geography, Sector
 
 
 class DatasetType(DjangoObjectType):
@@ -52,6 +52,7 @@ class DatasetInput(graphene.InputObjectType):
     access_type = graphene.String(required=True)
     tags_list = graphene.List(of_type=graphene.String, default=[], required=False)
     geo_list = graphene.List(of_type=graphene.String, default=[], required=False)
+    sector_list = graphene.List(of_type=graphene.String, default=[], required=False)
 
 
 class CreateDataset(graphene.Mutation):
@@ -68,7 +69,6 @@ class CreateDataset(graphene.Mutation):
             title=dataset_data.title,
             description=dataset_data.description,
             License=dataset_data.license,
-            sector=dataset_data.sector,
             remote_issued=dataset_data.remote_issued,
             remote_modified=dataset_data.remote_modified,
             funnel=dataset_data.funnel,
@@ -83,6 +83,7 @@ class CreateDataset(graphene.Mutation):
         dataset_instance.save()
         _add_update_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
         _add_update_attributes_to_dataset(dataset_instance, "geography", dataset_data.geo_list, Geography)
+        _add_update_attributes_to_dataset(dataset_instance, "sector", dataset_data.sector_list, Sector)
         return CreateDataset(dataset=dataset_instance)
 
 
@@ -100,7 +101,6 @@ class UpdateDataset(graphene.Mutation):
             dataset_instance.title = dataset_data.title
             dataset_instance.description = dataset_data.description
             dataset_instance.License = dataset_data.license
-            dataset_instance.sector = dataset_data.sector
             dataset_instance.remote_issued = dataset_data.remote_issued
             dataset_instance.remote_modified = dataset_data.remote_modified
             dataset_instance.funnel = dataset_data.funnel
@@ -113,6 +113,7 @@ class UpdateDataset(graphene.Mutation):
             dataset_instance.save()
             _add_update_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
             _add_update_attributes_to_dataset(dataset_instance, "geography", dataset_data.geo_list, Geography)
+            _add_update_attributes_to_dataset(dataset_instance, "sector", dataset_data.sector_list, Sector)
 
             return UpdateDataset(dataset=dataset_instance)
         return UpdateDataset(dataset=None)
