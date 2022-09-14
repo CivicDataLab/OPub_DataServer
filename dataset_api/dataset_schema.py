@@ -39,7 +39,6 @@ class DatasetInput(graphene.InputObjectType):
     title = graphene.String(required=True)
     description = graphene.String(required=True)
     catalog = graphene.String(required=True)
-    sector = graphene.String(required=True)
     license = graphene.String(required=True)
     remote_issued = graphene.DateTime(required=False)
     remote_modified = graphene.DateTime(required=False)
