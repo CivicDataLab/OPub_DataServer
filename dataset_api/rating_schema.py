@@ -29,10 +29,10 @@ class DatasetRatingInput(graphene.InputObjectType):
     id = graphene.ID()
     dataset = graphene.String()
     review = graphene.String()
-    overall = graphene.Float()
+    # overall = graphene.Float()
     data_quality = graphene.Float()
-    data_standards = graphene.Float()
-    coverage = graphene.Float()
+    # data_standards = graphene.Float()
+    # coverage = graphene.Float()
 
 
 class CreateDatasetRating(graphene.Mutation):
@@ -46,10 +46,10 @@ class CreateDatasetRating(graphene.Mutation):
         dataset = Dataset.objects.get(id=rating_data.dataset)
         rating_instance = DatasetRatings(
             review=rating_data.review,
-            overall=rating_data.overall,
+            # overall=rating_data.overall,
             data_quality=rating_data.data_quality,
-            data_standards=rating_data.data_standards,
-            coverage=rating_data.coverage,
+            # data_standards=rating_data.data_standards,
+            # coverage=rating_data.coverage,
             dataset=dataset
         )
         rating_instance.save()

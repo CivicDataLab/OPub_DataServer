@@ -116,7 +116,7 @@ class APIResource(models.Model):
 class DatasetRatings(models.Model):
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
     review = models.CharField(max_length=500)
-    overall = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
+    # overall = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
     data_quality = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
-    data_standards = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
-    coverage = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
+    # data_standards = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
+    # coverage = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
