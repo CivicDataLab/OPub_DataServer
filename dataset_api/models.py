@@ -16,6 +16,17 @@ def _resource_directory_path(resource, filename):
     return f"resources/{dataset_name}/{resource_name}/{extension[1:]}/{filename}"
 
 
+def _info_directory_path(info, filename):
+    """
+    Create a directory path to upload additional info.
+
+    """
+    dataset_name = info.dataset.title
+    resource_name = info.title
+    _, extension = os.path.splitext(filename)
+    return f"info/{dataset_name}/{resource_name}/{extension[1:]}/{filename}"
+
+
 class Organization(models.Model):
     title = models.CharField(max_length=100)
     description = models.CharField(max_length=500)
@@ -120,3 +131,15 @@ class DatasetRatings(models.Model):
     data_quality = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
     # data_standards = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
     # coverage = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
+
+
+class AdditionalInfo(models.Model):
+    title = models.CharField(max_length=100)
+    description = models.CharField(max_length=500)
+    issued = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
+    remote_url = models.URLField(blank=True)
+    format = models.CharField(max_length=15)
+    type = models.CharField(max_length=50)
+    file = models.FileField(upload_to=_info_directory_path, blank=True)
