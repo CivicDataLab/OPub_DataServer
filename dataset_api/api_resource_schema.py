@@ -5,7 +5,7 @@ from graphql_auth.bases import Output
 
 from .models import Dataset, ResourceSchema, APIResource, APISource
 from .resource_schema import ResourceSchemaType, ResourceSchemaInputType
-
+from .search import index_api_resource, update_api_resource, delete_api_resource
 
 class APIResourceType(DjangoObjectType):
     schema = graphene.List(ResourceSchemaType)
@@ -55,9 +55,9 @@ class APIResourceInput(graphene.InputObjectType):
 
 class CreateAPIResource(graphene.Mutation, Output):
     class Arguments:
-        resource_data = APIResourceInput()
+        api_resource_data = APIResourceInput()
 
-    resource = graphene.Field(APIResourceType)
+    API_resource = graphene.Field(APIResourceType)
 
     @staticmethod
     def mutate(root, info, api_resource_data: APIResourceInput = None):
@@ -65,7 +65,7 @@ class CreateAPIResource(graphene.Mutation, Output):
         dataset = Dataset.objects.get(id=api_resource_data.dataset)
 
         masked_fields = api_resource_data.masked_fields
-        resource_instance = APIResource(
+        api_resource_instance = APIResource(
             title=api_resource_data.title,
             description=api_resource_data.description,
             dataset=dataset,
@@ -74,18 +74,27 @@ class CreateAPIResource(graphene.Mutation, Output):
             api_source=api_source,
             auth_required=api_resource_data.auth_required,
             response_type=api_resource_data.response_type,
-            url_path=api_resource_data.url_path
+            url_path=api_resource_data.url_path,
         )
+        api_resource_instance.save()
+        
         for schema in api_resource_data.schema:
-            schema_instance = ResourceSchema(key=schema.key, format=schema.format, description=schema.description,
-                                             resource=resource_instance)
+            schema_instance = ResourceSchema(
+                key=schema.key,
+                format=schema.format,
+                description=schema.description,
+                resource=api_resource_instance,
+            )
             schema_instance.save()
-        return CreateAPIResource(success=True, resource=resource_instance)
+
+        # Index data to Elasticsearch
+        index_api_resource(api_resource_instance)
+        return CreateAPIResource(success=True, API_resource=api_resource_instance)
 
 
 class UpdateAPIResource(graphene.Mutation, Output):
     class Arguments:
-        resource_data = APIResourceInput(required=True)
+        api_resource_data = APIResourceInput(required=True)
 
     api_resource = graphene.Field(APIResourceType)
 
@@ -114,17 +123,28 @@ class UpdateAPIResource(graphene.Mutation, Output):
                         schema_instance.description = schema.description
                         schema_instance.save()
                     else:
-                        UpdateAPIResource.create_resource_schema_instance(api_resource_instance, schema)
+                        UpdateAPIResource.create_resource_schema_instance(
+                            api_resource_instance, schema
+                        )
 
                 except ResourceSchema.DoesNotExist as e:
-                    UpdateAPIResource.create_resource_schema_instance(api_resource_instance, schema)
-            return UpdateAPIResource(success=True, resource=api_resource_instance)
-        return UpdateAPIResource(success=False, resource=None)
+                    UpdateAPIResource.create_resource_schema_instance(
+                        api_resource_instance, schema
+                    )
+            
+            # Update data in Elasticsearch
+            update_api_resource(api_resource_instance)
+            return UpdateAPIResource(success=True, api_resource=api_resource_instance)
+        return UpdateAPIResource(success=False, api_resource=None)
 
     @staticmethod
     def create_resource_schema_instance(resource_instance, schema):
-        schema_instance = ResourceSchema(key=schema.key, format=schema.format, description=schema.description,
-                                         resource=resource_instance)
+        schema_instance = ResourceSchema(
+            key=schema.key,
+            format=schema.format,
+            description=schema.description,
+            resource=resource_instance,
+        )
         schema_instance.save()
 
 
@@ -132,10 +152,13 @@ class DeleteAPIResource(graphene.Mutation):
     class Arguments:
         id = graphene.ID()
 
-    resource = graphene.Field(APIResourceType)
-
+    # resource = graphene.Field(APIResourceType)
+    success = graphene.String()
+    
     @staticmethod
     def mutate(root, info, id):
         resource_instance = APIResource.objects.get(id=id)
+        # Delete data in Elasticsearch
+        delete_api_resource(resource_instance)
         resource_instance.delete()
-        return DeleteAPIResource(success=True, resource=resource_instance)
+        return DeleteAPIResource(success=True)

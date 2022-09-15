@@ -10,6 +10,7 @@ from graphql_auth.bases import Output
 import pandas as pd
 
 from .models import Resource, Dataset, ResourceSchema
+from .search import delete_data, index_data, update_data
 
 
 class ResourceSchemaInputType(graphene.InputObjectType):
@@ -53,7 +54,11 @@ class Query(graphene.ObjectType):
 
     def resolve_resource_columns(self, info, resource_id):
         resource = Resource.objects.get(pk=resource_id)
-        if resource.file and len(resource.file.path) and 'csv' in resource.format.lower():
+        if (
+            resource.file
+            and len(resource.file.path)
+            and "csv" in resource.format.lower()
+        ):
             file = pd.read_csv(resource.file.path)
             return file.columns.tolist()
 
@@ -72,13 +77,18 @@ class ResourceInput(graphene.InputObjectType):
 
 
 def _remove_masked_fields(resource_instance):
-    if resource_instance.masked_fields and len(
-            resource_instance.file.path) and 'csv' in resource_instance.format.lower():
+    if (
+        resource_instance.masked_fields
+        and len(resource_instance.file.path)
+        and "csv" in resource_instance.format.lower()
+    ):
         df = pd.read_csv(resource_instance.file.path)
         df = df.drop(columns=resource_instance.masked_fields)
         data = df.to_csv(index=False)
-        temp_file = ContentFile(data.encode('utf-8'))
-        resource_instance.file.save(os.path.basename(resource_instance.file.path), temp_file)
+        temp_file = ContentFile(data.encode("utf-8"))
+        resource_instance.file.save(
+            os.path.basename(resource_instance.file.path), temp_file
+        )
     resource_instance.save()
 
 
@@ -99,8 +109,12 @@ def _create_update_schema(resource_data, resource_instance):
 
 
 def _create_resource_schema_instance(resource_instance, schema):
-    schema_instance = ResourceSchema(key=schema.key, format=schema.format, description=schema.description,
-                                     resource=resource_instance)
+    schema_instance = ResourceSchema(
+        key=schema.key,
+        format=schema.format,
+        description=schema.description,
+        resource=resource_instance,
+    )
     schema_instance.save()
 
 
@@ -135,6 +149,9 @@ class CreateResource(graphene.Mutation, Output):
         resource_instance.save()
         _remove_masked_fields(resource_instance)
         _create_update_schema(resource_data, resource_instance)
+
+        # For indexing data in elasticsearch.
+        index_data(resource_instance)
         return CreateResource(success=True, resource=resource_instance)
 
 
@@ -158,11 +175,17 @@ class UpdateResource(graphene.Mutation, Output):
             resource_instance.status = resource_data.status
             resource_instance.masked_fields = resource_data.masked_fields
             if resource_data.format == "":
-                resource_instance.format = mimetypes.guess_type(resource_instance.file.path)
+                resource_instance.format = mimetypes.guess_type(
+                    resource_instance.file.path
+                )
             resource_instance.save()
             _remove_masked_fields(resource_instance)
             _create_update_schema(resource_data, resource_instance)
+
+            # For updating indexed data in elasticsearch.
+            update_data(resource_instance)
             return UpdateResource(success=True, resource=resource_instance)
+
         return UpdateResource(success=False, resource=None)
 
 
@@ -170,10 +193,13 @@ class DeleteResource(graphene.Mutation):
     class Arguments:
         id = graphene.ID()
 
-    resource = graphene.Field(ResourceType)
+    success = graphene.String()
+    # resource = graphene.Field(ResourceType)
 
     @staticmethod
     def mutate(root, info, id):
         resource_instance = Resource.objects.get(id=id)
         resource_instance.delete()
-        return DeleteResource(success=True, resource=resource_instance)
+        # For deleting indexed data in elasticsearch.
+        delete_data(id)
+        return DeleteResource(success=True)

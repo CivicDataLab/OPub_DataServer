@@ -2,7 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 
 from .models import Dataset, Catalog, Tag, Geography, Sector
-
+from .search import update_dataset
 
 class DatasetType(DjangoObjectType):
     class Meta:
@@ -45,8 +45,8 @@ class DatasetInput(graphene.InputObjectType):
     period_from = graphene.Date()
     period_to = graphene.Date()
     update_frequency = graphene.String()
-    funnel = graphene.String(required=False)
-    action = graphene.String(required=False)
+    funnel = graphene.String(required=False, default_value='upload')
+    action = graphene.String(required=False, default_value='create data')
     status = graphene.String(required=True)
     access_type = graphene.String(required=True)
     tags_list = graphene.List(of_type=graphene.String, default=[], required=False)
@@ -113,6 +113,9 @@ class UpdateDataset(graphene.Mutation):
             _add_update_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
             _add_update_attributes_to_dataset(dataset_instance, "geography", dataset_data.geo_list, Geography)
             _add_update_attributes_to_dataset(dataset_instance, "sector", dataset_data.sector_list, Sector)
-
+            
+            # For updating indexed data in elasticsearch.
+            update_dataset(dataset_instance)
+            
             return UpdateDataset(dataset=dataset_instance)
         return UpdateDataset(dataset=None)

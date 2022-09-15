@@ -2,7 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 
 from .models import DatasetRatings, Dataset
-
+from .search import update_rating
 
 class DatasetRatingType(DjangoObjectType):
     class Meta:
@@ -53,4 +53,6 @@ class CreateDatasetRating(graphene.Mutation):
             dataset=dataset
         )
         rating_instance.save()
-        return CreateDatasetRating(catalog=rating_instance)
+        # Update rating in elasticsearch
+        update_rating(rating_instance)
+        return CreateDatasetRating(dataset_rating=rating_instance)
