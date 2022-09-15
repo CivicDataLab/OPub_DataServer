@@ -5,10 +5,16 @@ import dataset_api.catalog_schema
 import dataset_api.resource_schema
 import dataset_api.tag_schema
 import dataset_api.geography_schema
+import dataset_api.sector_schema
+import dataset_api.api_source_schema
+import dataset_api.api_resource_schema
+import dataset_api.rating_schema
 
 
 class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Query, dataset_api.catalog_schema.Query,
             dataset_api.resource_schema.Query, dataset_api.tag_schema.Query, dataset_api.geography_schema.Query,
+            dataset_api.api_source_schema.Query, dataset_api.api_resource_schema.Query, dataset_api.rating_schema.Query,
+            dataset_api.sector_schema.Query,
             graphene.ObjectType):
     pass
 
@@ -22,6 +28,12 @@ class Mutation(graphene.ObjectType):
     create_catalog = dataset_api.catalog_schema.CreateCatalog.Field()
     create_tag = dataset_api.tag_schema.CreateTag.Field()
     create_geography = dataset_api.geography_schema.CreateGeography.Field()
+    create_sector = dataset_api.sector_schema.CreateSector.Field()
+    create_api_source = dataset_api.api_source_schema.CreateAPISource.Field()
+    create_api_resource = dataset_api.api_resource_schema.CreateAPIResource.Field()
+    update_api_resource = dataset_api.api_resource_schema.UpdateAPIResource.Field()
+    delete_api_resource = dataset_api.api_resource_schema.DeleteAPIResource.Field()
+    create_dataset_rating = dataset_api.rating_schema.CreateDatasetRating.Field()
     create_organization = dataset_api.organization_schema.CreateOrganization.Field()
 
 
