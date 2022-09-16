@@ -26,7 +26,7 @@ def index_data(data_obj):
         dataset_sector.append(sec.name)
     dataset_rating = DatasetRatings.objects.filter(dataset_id=dataset_id)
     if dataset_rating.exists():
-        rating = dataset_rating.data_quality
+        rating = dataset_rating[0].data_quality
     else:
         rating = ""
     catalog_instance = Catalog.objects.get(id=dataset_instance.catalog_id)
@@ -242,3 +242,107 @@ def facets(request, query_string="None"):
     response.append({"rating": resp["aggregations"]["rating"]["buckets"]})
     
     return HttpResponse(json.dumps(response))
+
+def reindex_data():
+    resource_obj = Resource.objects.all()
+    #print(resource_obj)
+    for resources in resource_obj:
+        print("Dataset_id --", resources.dataset_id)
+        dataset_instance = Dataset.objects.get(id=resources.dataset_id)
+        geography = dataset_instance.geography.all()
+        #print(geography)
+        sector = dataset_instance.sector.all()
+        #print(sector)
+        dataset_geography = []
+        dataset_sector = []
+        for geo in geography:
+            dataset_geography.append(geo.name)
+        for sec in sector:
+            dataset_sector.append(sec.name)
+        dataset_rating = DatasetRatings.objects.filter(dataset_id=resources.dataset_id)
+        #print(dataset_rating)
+        if dataset_rating.exists():
+            rating = dataset_rating[0].data_quality
+        else:
+            rating = ""
+        #print(resources.dataset_id)
+        try:
+            api_resource_obj = APIResource.objects.get(dataset_id=resources.dataset_id)
+            api_source_obj = APISource.objects.get(id=api_resource_obj.api_source_id)
+            api_resource_title = api_resource_obj.title
+            api_resource_description = api_resource_obj.description
+            api_resource_status = api_resource_obj.status
+            api_resource_urlpath = api_resource_obj.url_path
+            api_resource_auth_req = api_resource_obj.auth_required
+            api_resource_response_type = api_resource_obj.response_type
+            api_source_title = api_source_obj.title
+            api_source_description = api_source_obj.description
+            api_source_baseurl = api_source_obj.base_url
+            api_source_version = api_source_obj.api_version
+            api_source_auth_loc = api_source_obj.auth_loc
+            api_source_auth_type = api_source_obj.auth_type
+        except APIResource.DoesNotExist as e:
+            api_resource_title = ''
+            api_resource_description = ''
+            api_resource_status = ''
+            api_resource_urlpath = ''
+            api_resource_auth_req = ''
+            api_resource_response_type = ''
+            api_source_title = ''
+            api_source_description = ''
+            api_source_baseurl = ''
+            api_source_version = ''
+            api_source_auth_loc = ''
+            api_source_auth_type = ''
+        catalog_instance = Catalog.objects.get(id=dataset_instance.catalog_id)
+        org_instance = Organization.objects.get(id=catalog_instance.organization_id)
+
+        doc = {
+            "resource_title": resources.title,
+            "resource_description": resources.description,
+            "format": resources.format,
+            "resource_status": resources.status,
+            "dataset_title": dataset_instance.title,
+            "dataset_description": dataset_instance.description,
+            "license": dataset_instance.License,
+            "geography": dataset_geography,
+            "dataset_issued": dataset_instance.issued,
+            "dataset_modified": dataset_instance.modified,
+            "sector": dataset_sector,
+            "access_type": dataset_instance.access_type,
+            "action": dataset_instance.action,
+            "funnel": dataset_instance.funnel,
+            "remote_issued": dataset_instance.remote_issued,
+            "remote_modified": dataset_instance.remote_modified,
+            "status": dataset_instance.status,
+            "period_from": dataset_instance.period_from,
+            "period_to": dataset_instance.period_to,
+            "update_frequency": dataset_instance.update_frequency,
+            "rating": rating,
+            "catalog_title": catalog_instance.title,
+            "catalog_description": catalog_instance.description,
+            "catalog_issued": catalog_instance.issued,
+            "catalog_modified": catalog_instance.modified,
+            "org_title": org_instance.title,
+            "org_description": org_instance.description,
+            "org_issued": org_instance.issued,
+            "org_modified": org_instance.modified,
+            "api_resource_title": api_resource_title,
+            "api_resource_description": api_resource_description,
+            "api_resource_status": api_resource_status,
+            "api_resource_urlpath": api_resource_urlpath,
+            "api_resource_auth_req": api_resource_auth_req,
+            "api_resource_response_type": api_resource_response_type,
+            "api_source_title": api_source_title,
+            "api_source_description": api_source_description,
+            "api_source_baseurl": api_source_baseurl,
+            "api_source_version": api_source_version,
+            "api_source_auth_loc": api_source_auth_loc,
+            "api_source_auth_type": api_source_auth_type
+        }
+        print("Resource_id --", resources.id)
+        if es_client.exists(index="dataset", id=resources.id):
+            pass
+        else:
+            resp = es_client.index(index="dataset", id=resources.id, document=doc)
+            print("Index --", resp["result"])
