@@ -94,7 +94,7 @@ class UpdateAdditionalInfo(graphene.Mutation, Output):
             info_instance.file = info_data.file
             info_instance.type = info_data.type
             if info_data.format == "":
-                info_instance.format = FORMAT_MAPPING[mimetypes.guess_type(info_instance.file.path)]
+                info_instance.format = FORMAT_MAPPING.get(mimetypes.guess_type(info_instance.file.path))
 
             info_instance.save()
             return UpdateAdditionalInfo(success=True, additional_info=info_instance)
