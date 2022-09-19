@@ -7,6 +7,7 @@ from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
 from .models import Dataset, AdditionalInfo
+from .utils import FORMAT_MAPPING
 
 
 class AdditionalInfoType(DjangoObjectType):
@@ -69,7 +70,7 @@ class CreateAdditionInfo(graphene.Mutation, Output):
             file=info_data.file,
         )
         if data_format == "":
-            info_instance.format = mimetypes.guess_type(info_instance.file.path)
+            info_instance.format = FORMAT_MAPPING[mimetypes.guess_type(info_instance.file.path)[0]]
         info_instance.save()
         return CreateAdditionInfo(success=True, resource=info_instance)
 
@@ -93,7 +94,8 @@ class UpdateAdditionalInfo(graphene.Mutation, Output):
             info_instance.file = info_data.file
             info_instance.type = info_data.type
             if info_data.format == "":
-                info_instance.format = mimetypes.guess_type(info_instance.file.path)
+                info_instance.format = FORMAT_MAPPING.get(mimetypes.guess_type(info_instance.file.path)[0])
+
             info_instance.save()
             return UpdateAdditionalInfo(success=True, additional_info=info_instance)
         return UpdateAdditionalInfo(success=False, additional_info=None)

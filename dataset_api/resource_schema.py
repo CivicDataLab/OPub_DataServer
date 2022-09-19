@@ -11,6 +11,7 @@ import pandas as pd
 
 from .models import Resource, Dataset, ResourceSchema
 from .search import delete_data, index_data, update_data
+from .utils import FORMAT_MAPPING
 
 
 class ResourceSchemaInputType(graphene.InputObjectType):
@@ -145,7 +146,7 @@ class CreateResource(graphene.Mutation, Output):
             file=resource_data.file,
         )
         if data_format == "":
-            resource_instance.format = mimetypes.guess_type(resource_instance.file.path)
+            resource_instance.format = FORMAT_MAPPING[mimetypes.guess_type(resource_instance.file.path)[0]]
         resource_instance.save()
         _remove_masked_fields(resource_instance)
         _create_update_schema(resource_data, resource_instance)
@@ -175,9 +176,7 @@ class UpdateResource(graphene.Mutation, Output):
             resource_instance.status = resource_data.status
             resource_instance.masked_fields = resource_data.masked_fields
             if resource_data.format == "":
-                resource_instance.format = mimetypes.guess_type(
-                    resource_instance.file.path
-                )
+                resource_instance.format = FORMAT_MAPPING[mimetypes.guess_type(resource_instance.file.path)[0]]
             resource_instance.save()
             _remove_masked_fields(resource_instance)
             _create_update_schema(resource_data, resource_instance)
