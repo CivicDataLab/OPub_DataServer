@@ -4,7 +4,7 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from graphene_file_upload.scalars import Upload
 
-from .models import Resource, DataRequest
+from .models import Resource, DataRequest, APIResource
 
 
 class DataRequestType(DjangoObjectType):
@@ -74,11 +74,16 @@ class DataRequestMutation(graphene.Mutation, Output):
             file=data_request.file
         )
         data_request_instance.save()
-        for ids in data_request.resource_list:
+        for resource_id in data_request.resource_list:
             try:
-                resource_id = Resource.objects.get(id=int(ids))
-                data_request_instance.resource.add(resource_id)
+                resource = Resource.objects.get(id=int(resource_id))
+                data_request_instance.resource.add(resource)
             except Resource.DoesNotExist as e:
+                pass
+            try:
+                resource = APIResource.objects.get(id=int(resource_id))
+                data_request_instance.api_resource.add(resource)
+            except APIResource.DoesNotExist as e:
                 pass
 
         return DataRequestMutation(data_request=data_request_instance)
@@ -121,10 +126,16 @@ class ApproveRejectDataRequest(graphene.Mutation, Output):
             data_request_instance.status = data_request.status
             data_request_instance.remark = data_request.remark
         data_request_instance.save()
-        if data_request.status is StatusType.APPROVED:
-            url = f"https://pipeline.ndp.civicdatalab.in/transformer/api_source_query?api_source_id={data_request_instance.resource[0].id}&request_id={data_request.id}"
+        resource = data_request_instance.resource[0]
+        api_resource = data_request_instance.api_resource[0]
+        if api_resource and data_request.status is StatusType.APPROVED:
+            url = f"https://pipeline.ndp.civicdatalab.in/transformer/api_source_query?api_source_id={api_resource.id}&request_id={data_request.id}"
             payload = {}
             headers = {}
             response = requests.request("GET", url, headers=headers, data=payload)
             print(response.text)
+        elif resource and data_request.status is StatusType.APPROVED:
+            data_request_instance.file = resource.file
+            data_request_instance.status = StatusType.FETCHED
+        data_request_instance.save()
         return DataRequestUpdateMutation(data_request=data_request_instance)

@@ -150,10 +150,12 @@ class AdditionalInfo(models.Model):
     type = models.CharField(max_length=50)
     file = models.FileField(upload_to=_info_directory_path, blank=True)
 
+
 class DataRequest(models.Model):
     status = models.CharField(max_length=20)
     description = models.CharField(max_length=500)
     remark = models.CharField(max_length=500, blank=True)
     purpose = models.CharField(max_length=500, default="")
     resource = models.ManyToManyField(Resource)
+    api_resource = models.ManyToManyField(APIResource)
     file = models.FileField(upload_to=_data_request_directory_path, blank=True, null=True)
