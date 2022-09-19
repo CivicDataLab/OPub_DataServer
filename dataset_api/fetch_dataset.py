@@ -75,7 +75,8 @@ class DataRequestUpdateMutation(graphene.Mutation, Output):
         data_request_instance = DataRequest.objects.get(id=data_request.id)
         if data_request_instance:
             data_request_instance.status = data_request.status
-            data_request_instance.remark = data_request.remark
+            if data_request.remark:
+                data_request_instance.remark = data_request.remark
             data_request_instance.file = data_request.file
         data_request_instance.save()
         return DataRequestUpdateMutation(data_request=data_request_instance)
