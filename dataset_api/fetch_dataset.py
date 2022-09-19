@@ -42,7 +42,6 @@ class DataRequestMutation(graphene.Mutation, Output):
         data_request_instance.save()
         for ids in data_request.resource_list:
             try:
-                print(ids)
                 resource_id = Resource.objects.get(id=int(ids))
                 data_request_instance.resource.add(resource_id)
             except Resource.DoesNotExist as e:
