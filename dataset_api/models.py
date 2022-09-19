@@ -143,3 +143,9 @@ class AdditionalInfo(models.Model):
     format = models.CharField(max_length=15)
     type = models.CharField(max_length=50)
     file = models.FileField(upload_to=_info_directory_path, blank=True)
+
+class DataRequest(models.Model):
+    status = models.CharField(max_length=20)
+    description = models.CharField(max_length=500)
+    remark = models.CharField(max_length=500, blank=True)
+    resource = models.ManyToManyField(Resource)

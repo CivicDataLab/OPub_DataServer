@@ -6,7 +6,15 @@ import json
 # import warnings
 # warnings.filterwarnings("ignore")
 
-from .models import Catalog, Organization, Dataset, Resource, DatasetRatings, APISource, APIResource
+from .models import (
+    Catalog,
+    Organization,
+    Dataset,
+    Resource,
+    DatasetRatings,
+    APISource,
+    APIResource,
+)
 
 es_client = Elasticsearch(settings.ELASTICSEARCH)
 # print(es_client.info())
@@ -119,8 +127,9 @@ def update_dataset(dataset_obj):
         resp = es_client.update(index="dataset", id=resources.id, doc=doc)
         print(resp["result"])
 
+
 def update_rating(rating_obj):
-    #Find all related resources.
+    # Find all related resources.
     dataset_obj = Dataset.objects.get(id=rating_obj.dataset_id)
     resource_obj = Resource.objects.filter(dataset_id=dataset_obj.id)
     for resources in resource_obj:
@@ -149,10 +158,11 @@ def index_api_resource(api_resource_obj):
             "api_source_baseurl": api_source_obj.base_url,
             "api_source_version": api_source_obj.api_version,
             "api_source_auth_loc": api_source_obj.auth_loc,
-            "api_source_auth_type": api_source_obj.auth_type
+            "api_source_auth_type": api_source_obj.auth_type,
         }
         resp = es_client.update(index="dataset", id=resources.id, doc=doc)
         print(resp["result"])
+
 
 def update_api_resource(api_resource_obj):
     dataset_obj = Dataset.objects.get(id=api_resource_obj.dataset_id)
@@ -169,6 +179,7 @@ def update_api_resource(api_resource_obj):
         resp = es_client.update(index="dataset", id=resources.id, doc=doc)
         print(resp["result"])
 
+
 def delete_api_resource(api_resource_obj):
     dataset_obj = Dataset.objects.get(id=api_resource_obj.dataset_id)
     resource_obj = Resource.objects.filter(dataset_id=dataset_obj.id)
@@ -183,6 +194,7 @@ def delete_api_resource(api_resource_obj):
         }
         resp = es_client.update(index="dataset", id=resources.id, doc=doc)
         print(resp["result"])
+
 
 # def update_catalog(catalog_obj):
 #     # Find all related resources.
@@ -216,7 +228,7 @@ def facets(request, query_string="None"):
         "sector": {"terms": {"field": "sector.keyword"}},
         "format": {"terms": {"field": "format.keyword"}},
         "status": {"terms": {"field": "status.keyword"}},
-        "rating": {"terms": {"field": "rating.keyword"}}
+        "rating": {"terms": {"field": "rating.keyword"}},
     }
 
     query = {"match": {"dataset_title": query_string}}
@@ -240,19 +252,42 @@ def facets(request, query_string="None"):
     response.append({"format": resp["aggregations"]["format"]["buckets"]})
     response.append({"status": resp["aggregations"]["status"]["buckets"]})
     response.append({"rating": resp["aggregations"]["rating"]["buckets"]})
-    
+
     return HttpResponse(json.dumps(response))
+
+
+def search(request):
+    query_string = request.GET['q']
+    size = request.GET['size']
+    frm = request.GET['from']
+    
+    if query_string:
+        query = {
+            "multi_match": {
+                "query": query_string,
+                "operator": "and"
+            }
+        }
+    else:
+        query = {
+            "match_all": {}
+        }
+    
+    resp = es_client.search(index="dataset", query=query, size=size, from_=frm)
+    # print(resp)
+    return HttpResponse(json.dumps(resp["hits"]["hits"]))
+
 
 def reindex_data():
     resource_obj = Resource.objects.all()
-    #print(resource_obj)
+    # print(resource_obj)
     for resources in resource_obj:
         print("Dataset_id --", resources.dataset_id)
         dataset_instance = Dataset.objects.get(id=resources.dataset_id)
         geography = dataset_instance.geography.all()
-        #print(geography)
+        # print(geography)
         sector = dataset_instance.sector.all()
-        #print(sector)
+        # print(sector)
         dataset_geography = []
         dataset_sector = []
         for geo in geography:
@@ -260,12 +295,12 @@ def reindex_data():
         for sec in sector:
             dataset_sector.append(sec.name)
         dataset_rating = DatasetRatings.objects.filter(dataset_id=resources.dataset_id)
-        #print(dataset_rating)
+        # print(dataset_rating)
         if dataset_rating.exists():
             rating = dataset_rating[0].data_quality
         else:
             rating = ""
-        #print(resources.dataset_id)
+        # print(resources.dataset_id)
         try:
             api_resource_obj = APIResource.objects.get(dataset_id=resources.dataset_id)
             api_source_obj = APISource.objects.get(id=api_resource_obj.api_source_id)
@@ -282,18 +317,18 @@ def reindex_data():
             api_source_auth_loc = api_source_obj.auth_loc
             api_source_auth_type = api_source_obj.auth_type
         except APIResource.DoesNotExist as e:
-            api_resource_title = ''
-            api_resource_description = ''
-            api_resource_status = ''
-            api_resource_urlpath = ''
-            api_resource_auth_req = ''
-            api_resource_response_type = ''
-            api_source_title = ''
-            api_source_description = ''
-            api_source_baseurl = ''
-            api_source_version = ''
-            api_source_auth_loc = ''
-            api_source_auth_type = ''
+            api_resource_title = ""
+            api_resource_description = ""
+            api_resource_status = ""
+            api_resource_urlpath = ""
+            api_resource_auth_req = ""
+            api_resource_response_type = ""
+            api_source_title = ""
+            api_source_description = ""
+            api_source_baseurl = ""
+            api_source_version = ""
+            api_source_auth_loc = ""
+            api_source_auth_type = ""
         catalog_instance = Catalog.objects.get(id=dataset_instance.catalog_id)
         org_instance = Organization.objects.get(id=catalog_instance.organization_id)
 
@@ -338,7 +373,7 @@ def reindex_data():
             "api_source_baseurl": api_source_baseurl,
             "api_source_version": api_source_version,
             "api_source_auth_loc": api_source_auth_loc,
-            "api_source_auth_type": api_source_auth_type
+            "api_source_auth_type": api_source_auth_type,
         }
         print("Resource_id --", resources.id)
         if es_client.exists(index="dataset", id=resources.id):

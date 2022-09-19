@@ -10,6 +10,7 @@ import dataset_api.api_source_schema
 import dataset_api.api_resource_schema
 import dataset_api.additional_info_schema
 import dataset_api.rating_schema
+import dataset_api.fetch_dataset
 
 
 class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Query, dataset_api.catalog_schema.Query,
@@ -39,6 +40,7 @@ class Mutation(graphene.ObjectType):
     delete_additional_info = dataset_api.additional_info_schema.DeleteAdditionalInfo.Field()
     create_dataset_rating = dataset_api.rating_schema.CreateDatasetRating.Field()
     create_organization = dataset_api.organization_schema.CreateOrganization.Field()
+    data_request = dataset_api.fetch_dataset.DataRequestMutation.Field()
 
 
 schema = graphene.Schema(query=Query, mutation=Mutation, auto_camelcase=False)
