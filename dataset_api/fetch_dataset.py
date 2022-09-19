@@ -28,6 +28,17 @@ class PurposeType(graphene.Enum):
     OTHERS = "OTHERS"
 
 
+class Query(graphene.ObjectType):
+    all_data_requests = graphene.List(DataRequestType)
+    data_request = graphene.Field(DataRequestType, data_request_id=graphene.Int())
+
+    def resolve_all_data_requests(self, info, **kwargs):
+        return DataRequest.objects.all()
+
+    def resolve_data_request(self, info, data_request_id):
+        return DataRequest.objects.get(pk=data_request_id)
+
+
 class DataRequestInput(graphene.InputObjectType):
     id = graphene.ID()
     status = StatusType()
