@@ -25,15 +25,13 @@ def _info_directory_path(info, filename):
     _, extension = os.path.splitext(filename)
     return f"info/{dataset_name}/{resource_name}/{extension[1:]}/{filename}"
 
-def _data_request_directory_path(resource, filename):
+def _data_request_directory_path(request, filename):
     """
     Create a directory path to receive the request data.
 
     """
-    dataset_name = resource.dataset.title
-    resource_name = resource.title
     _, extension = os.path.splitext(filename)
-    return f"request/{dataset_name}/{resource_name}/{extension[1:]}/{filename}"
+    return f"request/{request.id}/{extension[1:]}/{filename}"
 
 class Organization(models.Model):
     title = models.CharField(max_length=100)
