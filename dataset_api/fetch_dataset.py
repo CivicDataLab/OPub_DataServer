@@ -15,7 +15,7 @@ class StatusType(graphene.Enum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     FULFILLED = "FULFILLED"
-
+    FETCHED = "FETCHED"
 class PurposeType(graphene.Enum):
     EDUCATION = "EDUCATION"
     RESEARCH = "RESEARCH"
@@ -31,6 +31,11 @@ class DataRequestInput(graphene.InputObjectType):
     file = Upload(required=False)
     resource_list = graphene.List(of_type=graphene.String, required=True)
 
+class DataRequestUpdateInput(graphene.InputObjectType):
+    id = graphene.ID(required=True)
+    status = StatusType()
+    remark = graphene.String(required=False)
+    file = Upload(required=False)
 
 class DataRequestMutation(graphene.Mutation, Output):
     class Arguments:
@@ -59,8 +64,18 @@ class DataRequestMutation(graphene.Mutation, Output):
         
         return DataRequestMutation(data_request=data_request_instance)
 
-# class DataRequestUpdateMutation(graphene.Mutation, Output):
-#     class Arguments:
-#         data_request = DataRequestInput()
+class DataRequestUpdateMutation(graphene.Mutation, Output):
+    class Arguments:
+        data_request = DataRequestUpdateInput()
 
-#     data_request = graphene.Field(DataRequestType)
+    data_request = graphene.Field(DataRequestType)
+    
+    @staticmethod
+    def mutate(root, info, data_request: DataRequestUpdateInput = None):
+        data_request_instance = DataRequest.objects.get(id=data_request.id)
+        if data_request_instance:
+            data_request_instance.status = data_request.status
+            data_request_instance.remark = data_request.remark
+            data_request_instance.file = data_request.file
+        data_request_instance.save()
+        return DataRequestUpdateMutation(data_request=data_request_instance)
