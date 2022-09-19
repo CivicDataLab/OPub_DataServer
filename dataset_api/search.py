@@ -220,7 +220,7 @@ def delete_data(id):
 
 
 def facets(request, query_string="None"):
-    response = []
+    # response = []
 
     agg = {
         "license": {"terms": {"field": "license.keyword"}},
@@ -231,9 +231,22 @@ def facets(request, query_string="None"):
         "rating": {"terms": {"field": "rating.keyword"}},
     }
 
-    query = {"match": {"dataset_title": query_string}}
+    query = {
+        "bool": {
+            "should": [
+                {"match": {"license": request.GET["license"]}},
+                {"match": {"geography": request.GET["geography"]}},
+                {"match": {"sector": request.GET["sector"]}},
+                {"match": {"format": request.GET["format"]}},
+                {"match": {"status": request.GET["status"]}},
+                {"match": {"rating": request.GET["rating"]}},
+                {"match": {"resource_title": request.GET["query_string"]}},
+            ]
+        }
+    }
 
-    if query_string != "None":
+    if request.GET["query_string"] != "":
+        print("Here")
         resp = es_client.search(
             index="dataset",
             aggs=agg,
@@ -246,33 +259,27 @@ def facets(request, query_string="None"):
             size=0,
         )
 
-    response.append({"license": resp["aggregations"]["license"]["buckets"]})
-    response.append({"geography": resp["aggregations"]["geography"]["buckets"]})
-    response.append({"sector": resp["aggregations"]["sector"]["buckets"]})
-    response.append({"format": resp["aggregations"]["format"]["buckets"]})
-    response.append({"status": resp["aggregations"]["status"]["buckets"]})
-    response.append({"rating": resp["aggregations"]["rating"]["buckets"]})
+    # response.append({"license": resp["aggregations"]["license"]["buckets"]})
+    # response.append({"geography": resp["aggregations"]["geography"]["buckets"]})
+    # response.append({"sector": resp["aggregations"]["sector"]["buckets"]})
+    # response.append({"format": resp["aggregations"]["format"]["buckets"]})
+    # response.append({"status": resp["aggregations"]["status"]["buckets"]})
+    # response.append({"rating": resp["aggregations"]["rating"]["buckets"]})
 
-    return HttpResponse(json.dumps(response))
+    return HttpResponse(json.dumps(resp))
 
 
 def search(request):
-    query_string = request.GET['q']
-    size = request.GET['size']
-    frm = request.GET['from']
-    
+    print(request.GET)
+    query_string = request.GET["q"]
+    size = request.GET["size"]
+    frm = request.GET["from"]
+
     if query_string:
-        query = {
-            "multi_match": {
-                "query": query_string,
-                "operator": "and"
-            }
-        }
+        query = {"multi_match": {"query": query_string, "operator": "and"}}
     else:
-        query = {
-            "match_all": {}
-        }
-    
+        query = {"match_all": {}}
+
     resp = es_client.search(index="dataset", query=query, size=size, from_=frm)
     # print(resp)
     return HttpResponse(json.dumps(resp["hits"]["hits"]))
