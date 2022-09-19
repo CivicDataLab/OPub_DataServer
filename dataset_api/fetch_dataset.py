@@ -126,8 +126,8 @@ class ApproveRejectDataRequest(graphene.Mutation, Output):
             data_request_instance.status = data_request.status
             data_request_instance.remark = data_request.remark
         data_request_instance.save()
-        resource = data_request_instance.resource[0]
-        api_resource = data_request_instance.api_resource[0]
+        resource = data_request_instance.resource.all()[0]
+        api_resource = data_request_instance.api_resource.all()[0]
         if api_resource and data_request.status is StatusType.APPROVED:
             url = f"https://pipeline.ndp.civicdatalab.in/transformer/api_source_query?api_source_id={api_resource.id}&request_id={data_request.id}"
             payload = {}
