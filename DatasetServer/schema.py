@@ -42,6 +42,7 @@ class Mutation(graphene.ObjectType):
     create_organization = dataset_api.organization_schema.CreateOrganization.Field()
     data_request = dataset_api.fetch_dataset.DataRequestMutation.Field()
     update_data_request = dataset_api.fetch_dataset.DataRequestUpdateMutation.Field()
+    approve_reject_data_request = dataset_api.fetch_dataset.ApproveRejectDataRequest.Field()
 
 
 schema = graphene.Schema(query=Query, mutation=Mutation, auto_camelcase=False)
