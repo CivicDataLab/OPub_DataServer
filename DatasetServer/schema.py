@@ -16,7 +16,7 @@ import dataset_api.fetch_dataset
 class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Query, dataset_api.catalog_schema.Query,
             dataset_api.resource_schema.Query, dataset_api.tag_schema.Query, dataset_api.geography_schema.Query,
             dataset_api.api_source_schema.Query, dataset_api.api_resource_schema.Query, dataset_api.rating_schema.Query,
-            dataset_api.sector_schema.Query, dataset_api.additional_info_schema.Query,
+            dataset_api.sector_schema.Query, dataset_api.additional_info_schema.Query, dataset_api.fetch_dataset.Query,
             graphene.ObjectType):
     pass
 
@@ -42,6 +42,7 @@ class Mutation(graphene.ObjectType):
     create_organization = dataset_api.organization_schema.CreateOrganization.Field()
     data_request = dataset_api.fetch_dataset.DataRequestMutation.Field()
     update_data_request = dataset_api.fetch_dataset.DataRequestUpdateMutation.Field()
+    approve_reject_data_request = dataset_api.fetch_dataset.ApproveRejectDataRequest.Field()
 
 
 schema = graphene.Schema(query=Query, mutation=Mutation, auto_camelcase=False)

@@ -25,15 +25,13 @@ def _info_directory_path(info, filename):
     _, extension = os.path.splitext(filename)
     return f"info/{dataset_name}/{resource_name}/{extension[1:]}/{filename}"
 
-def _data_request_directory_path(resource, filename):
+def _data_request_directory_path(request, filename):
     """
     Create a directory path to receive the request data.
 
     """
-    dataset_name = resource.dataset.title
-    resource_name = resource.title
     _, extension = os.path.splitext(filename)
-    return f"request/{dataset_name}/{resource_name}/{extension[1:]}/{filename}"
+    return f"request/{request.id}/{extension[1:]}/{filename}"
 
 class Organization(models.Model):
     title = models.CharField(max_length=100)
@@ -152,10 +150,12 @@ class AdditionalInfo(models.Model):
     type = models.CharField(max_length=50)
     file = models.FileField(upload_to=_info_directory_path, blank=True)
 
+
 class DataRequest(models.Model):
     status = models.CharField(max_length=20)
     description = models.CharField(max_length=500)
     remark = models.CharField(max_length=500, blank=True)
     purpose = models.CharField(max_length=500, default="")
     resource = models.ManyToManyField(Resource)
+    api_resource = models.ManyToManyField(APIResource)
     file = models.FileField(upload_to=_data_request_directory_path, blank=True, null=True)

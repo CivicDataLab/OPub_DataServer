@@ -12,4 +12,6 @@ def download(request, resource_id):
         mime_type = mimetypes.guess_type(file_path)[0]
         response = HttpResponse(resource.file, content_type=mime_type)
         response['Content-Disposition'] = 'attachment; filename="{}"'.format(os.path.basename(file_path))
-        return response
+    else:
+        response = HttpResponse("file doesnt exist", content_type='text/plain')
+    return response
