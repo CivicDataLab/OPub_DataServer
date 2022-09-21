@@ -47,6 +47,7 @@ def index_data(data_obj):
         "resource_status": data_obj.status,
         "dataset_title": dataset_instance.title,
         "dataset_description": dataset_instance.description,
+        "dataset_id": dataset_id,
         "license": dataset_instance.License,
         "geography": dataset_geography,
         "dataset_issued": dataset_instance.issued,
@@ -221,7 +222,7 @@ def delete_data(id):
 
 def facets(request, query_string="None"):
     # response = []
-
+    
     agg = {
         "license": {"terms": {"field": "license.keyword"}},
         "geography": {"terms": {"field": "geography.keyword"}},
@@ -246,7 +247,6 @@ def facets(request, query_string="None"):
     }
 
     if request.GET["query_string"] != "":
-        print("Here")
         resp = es_client.search(
             index="dataset",
             aggs=agg,
@@ -254,10 +254,10 @@ def facets(request, query_string="None"):
         )
     else:
         resp = es_client.search(
-            index="dataset",
-            aggs=agg,
-            size=0,
-        )
+                index="dataset",
+                aggs=agg,
+                size=0,
+            )
 
     # response.append({"license": resp["aggregations"]["license"]["buckets"]})
     # response.append({"geography": resp["aggregations"]["geography"]["buckets"]})
@@ -282,7 +282,7 @@ def search(request):
 
     resp = es_client.search(index="dataset", query=query, size=size, from_=frm)
     # print(resp)
-    return HttpResponse(json.dumps(resp["hits"]["hits"]))
+    return HttpResponse(json.dumps(resp["hits"]))
 
 
 def reindex_data():
@@ -346,6 +346,7 @@ def reindex_data():
             "resource_status": resources.status,
             "dataset_title": dataset_instance.title,
             "dataset_description": dataset_instance.description,
+            "dataset_id": resources.dataset_id,
             "license": dataset_instance.License,
             "geography": dataset_geography,
             "dataset_issued": dataset_instance.issued,

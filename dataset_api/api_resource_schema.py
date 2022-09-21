@@ -25,6 +25,7 @@ class APIResourceType(DjangoObjectType):
 class Query(graphene.ObjectType):
     all_api_resources = graphene.List(APIResourceType)
     api_resource = graphene.Field(APIResourceType, api_resource_id=graphene.Int())
+    api_resource_dataset = graphene.Field(APIResourceType, dataset_id=graphene.Int())
 
     def resolve_all_api_resources(self, info, **kwargs):
         return APIResource.objects.all()
@@ -32,6 +33,8 @@ class Query(graphene.ObjectType):
     def resolve_api_resource(self, info, api_resource_id):
         return APIResource.objects.get(pk=api_resource_id)
 
+    def resolve_api_resource_dataset(self, info, dataset_id):
+        return APIResource.objects.get(dataset=dataset_id)
 
 class ResponseType(graphene.Enum):
     JSON = "JSON"
