@@ -335,33 +335,35 @@ def reindex_data():
             api_resource_obj = APIResource.objects.filter(
                 dataset_id=resources.dataset_id
             )
-            print(api_resource_obj)
-            api_source_obj = APISource.objects.get(id=api_resource_obj[0].api_source_id)
-            api_resource_title = api_resource_obj[0].title
-            api_resource_description = api_resource_obj[0].description
-            api_resource_status = api_resource_obj[0].status
-            api_resource_urlpath = api_resource_obj[0].url_path
-            api_resource_auth_req = api_resource_obj[0].auth_required
-            api_resource_response_type = api_resource_obj[0].response_type
-            api_source_title = api_source_obj.title
-            api_source_description = api_source_obj.description
-            api_source_baseurl = api_source_obj.base_url
-            api_source_version = api_source_obj.api_version
-            api_source_auth_loc = api_source_obj.auth_loc
-            api_source_auth_type = api_source_obj.auth_type
+            api_resource_title = []
+            api_resource_description = []
+            api_resource_status = []
+            api_resource_urlpath = []
+            api_resource_auth_req = []
+            api_resource_response_type = []
+            api_source_title = []
+            api_source_description = []
+            api_source_baseurl = []
+            api_source_version = []
+            api_source_auth_loc = []
+            api_source_auth_type = []
+            
+            for api_resources in api_resource_obj:
+                api_source_obj = APISource.objects.get(id=api_resources.api_source_id)
+                api_resource_title.append(api_resources.title)
+                api_resource_description.append(api_resources.description)
+                api_resource_status.append(api_resources.status)
+                api_resource_urlpath.append(api_resources.url_path)
+                api_resource_auth_req.append(api_resources.auth_required)
+                api_resource_response_type.append(api_resources.response_type)
+                api_source_title.append(api_source_obj.title)
+                api_source_description.append(api_source_obj.description)
+                api_source_baseurl.append(api_source_obj.base_url)
+                api_source_version.append(api_source_obj.api_version)
+                api_source_auth_loc.append(api_source_obj.auth_loc)
+                api_source_auth_type.append(api_source_obj.auth_type)
         except (APIResource.DoesNotExist, IndexError) as e:
-            api_resource_title = ""
-            api_resource_description = ""
-            api_resource_status = ""
-            api_resource_urlpath = ""
-            api_resource_auth_req = ""
-            api_resource_response_type = ""
-            api_source_title = ""
-            api_source_description = ""
-            api_source_baseurl = ""
-            api_source_version = ""
-            api_source_auth_loc = ""
-            api_source_auth_type = ""
+            print(e)
         catalog_instance = Catalog.objects.get(id=dataset_instance.catalog_id)
         org_instance = Organization.objects.get(id=catalog_instance.organization_id)
 
