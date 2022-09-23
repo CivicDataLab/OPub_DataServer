@@ -2,6 +2,7 @@ from django.conf import settings
 from elasticsearch import Elasticsearch
 from django.http import HttpResponse
 import json
+from django.utils.datastructures import MultiValueDictKeyError
 
 # import warnings
 # warnings.filterwarnings("ignore")
@@ -220,9 +221,7 @@ def delete_data(id):
     print(resp["result"])
 
 
-def facets(request, query_string="None"):
-    # response = []
-    
+def facets(request):
     agg = {
         "license": {"terms": {"field": "license.keyword"}},
         "geography": {"terms": {"field": "geography.keyword"}},
@@ -231,42 +230,64 @@ def facets(request, query_string="None"):
         "status": {"terms": {"field": "status.keyword"}},
         "rating": {"terms": {"field": "rating.keyword"}},
     }
+    try:
 
-    query = {
-        "bool": {
-            "should": [
-                {"match": {"license": request.GET["license"]}},
-                {"match": {"geography": request.GET["geography"]}},
-                {"match": {"sector": request.GET["sector"]}},
-                {"match": {"format": request.GET["format"]}},
-                {"match": {"status": request.GET["status"]}},
-                {"match": {"rating": request.GET["rating"]}},
-                {"match": {"resource_title": request.GET["query_string"]}},
-            ]
-        }
-    }
-
-    if request.GET["query_string"] != "":
-        resp = es_client.search(
-            index="dataset",
-            aggs=agg,
-            query=query,
-        )
-    else:
-        resp = es_client.search(
+        if request.GET["query_string"] == "":
+            # For filter search
+            if len(request.GET.keys()) >= 2:
+                # Delete title match from the query
+                query = {
+                    "bool": {
+                        "should": [
+                            {"match": {"license": request.GET["license"]}},
+                            {"match": {"geography": request.GET["geography"]}},
+                            {"match": {"sector": request.GET["sector"]}},
+                            {"match": {"format": request.GET["format"]}},
+                            {"match": {"status": request.GET["status"]}},
+                            {"match": {"rating": request.GET["rating"]}},
+                            {"match": {"resource_title": request.GET["query_string"]}},
+                        ]
+                    }
+                }
+                del query["bool"]["should"][3]
+                resp = es_client.search(
+                    index="dataset",
+                    aggs=agg,
+                    query=query,
+                )
+                return HttpResponse(json.dumps(resp))
+            else:
+                # For getting facets.
+                resp = es_client.search(
+                    index="dataset",
+                    aggs=agg,
+                    size=0,
+                )
+                return HttpResponse(json.dumps(resp))
+        else:
+            # For faceted search with query string.
+            query = {
+                "bool": {
+                    "should": [
+                        {"match": {"license": request.GET["license"]}},
+                        {"match": {"geography": request.GET["geography"]}},
+                        {"match": {"sector": request.GET["sector"]}},
+                        {"match": {"format": request.GET["format"]}},
+                        {"match": {"status": request.GET["status"]}},
+                        {"match": {"rating": request.GET["rating"]}},
+                        {"match": {"resource_title": request.GET["query_string"]}},
+                    ]
+                }
+            }
+            resp = es_client.search(
                 index="dataset",
                 aggs=agg,
-                size=0,
+                query=query,
             )
-
-    # response.append({"license": resp["aggregations"]["license"]["buckets"]})
-    # response.append({"geography": resp["aggregations"]["geography"]["buckets"]})
-    # response.append({"sector": resp["aggregations"]["sector"]["buckets"]})
-    # response.append({"format": resp["aggregations"]["format"]["buckets"]})
-    # response.append({"status": resp["aggregations"]["status"]["buckets"]})
-    # response.append({"rating": resp["aggregations"]["rating"]["buckets"]})
-
-    return HttpResponse(json.dumps(resp))
+            return HttpResponse(json.dumps(resp))
+    except MultiValueDictKeyError as e:
+        pass
+        #return HttpResponse(json.dumps("Please pass" + str(e) + "in the query"))
 
 
 def search(request):
@@ -297,10 +318,12 @@ def reindex_data():
         # print(sector)
         dataset_geography = []
         dataset_sector = []
-        for geo in geography:
-            dataset_geography.append(geo.name)
-        for sec in sector:
-            dataset_sector.append(sec.name)
+        if geography.exists():
+            for geo in geography:
+                dataset_geography.append(geo.name)
+        if sector.exists():
+            for sec in sector:
+                dataset_sector.append(sec.name)
         dataset_rating = DatasetRatings.objects.filter(dataset_id=resources.dataset_id)
         # print(dataset_rating)
         if dataset_rating.exists():
@@ -309,33 +332,38 @@ def reindex_data():
             rating = ""
         # print(resources.dataset_id)
         try:
-            api_resource_obj = APIResource.objects.get(dataset_id=resources.dataset_id)
-            api_source_obj = APISource.objects.get(id=api_resource_obj.api_source_id)
-            api_resource_title = api_resource_obj.title
-            api_resource_description = api_resource_obj.description
-            api_resource_status = api_resource_obj.status
-            api_resource_urlpath = api_resource_obj.url_path
-            api_resource_auth_req = api_resource_obj.auth_required
-            api_resource_response_type = api_resource_obj.response_type
-            api_source_title = api_source_obj.title
-            api_source_description = api_source_obj.description
-            api_source_baseurl = api_source_obj.base_url
-            api_source_version = api_source_obj.api_version
-            api_source_auth_loc = api_source_obj.auth_loc
-            api_source_auth_type = api_source_obj.auth_type
-        except APIResource.DoesNotExist as e:
-            api_resource_title = ""
-            api_resource_description = ""
-            api_resource_status = ""
-            api_resource_urlpath = ""
-            api_resource_auth_req = ""
-            api_resource_response_type = ""
-            api_source_title = ""
-            api_source_description = ""
-            api_source_baseurl = ""
-            api_source_version = ""
-            api_source_auth_loc = ""
-            api_source_auth_type = ""
+            api_resource_obj = APIResource.objects.filter(
+                dataset_id=resources.dataset_id
+            )
+            api_resource_title = []
+            api_resource_description = []
+            api_resource_status = []
+            api_resource_urlpath = []
+            api_resource_auth_req = []
+            api_resource_response_type = []
+            api_source_title = []
+            api_source_description = []
+            api_source_baseurl = []
+            api_source_version = []
+            api_source_auth_loc = []
+            api_source_auth_type = []
+            
+            for api_resources in api_resource_obj:
+                api_source_obj = APISource.objects.get(id=api_resources.api_source_id)
+                api_resource_title.append(api_resources.title)
+                api_resource_description.append(api_resources.description)
+                api_resource_status.append(api_resources.status)
+                api_resource_urlpath.append(api_resources.url_path)
+                api_resource_auth_req.append(api_resources.auth_required)
+                api_resource_response_type.append(api_resources.response_type)
+                api_source_title.append(api_source_obj.title)
+                api_source_description.append(api_source_obj.description)
+                api_source_baseurl.append(api_source_obj.base_url)
+                api_source_version.append(api_source_obj.api_version)
+                api_source_auth_loc.append(api_source_obj.auth_loc)
+                api_source_auth_type.append(api_source_obj.auth_type)
+        except (APIResource.DoesNotExist, IndexError) as e:
+            print(e)
         catalog_instance = Catalog.objects.get(id=dataset_instance.catalog_id)
         org_instance = Organization.objects.get(id=catalog_instance.organization_id)
 
