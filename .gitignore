@@ -145,3 +145,4 @@ cython_debug/
 #Resources upload folder
 resources/
 info/
+request/
