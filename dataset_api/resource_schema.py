@@ -18,7 +18,9 @@ class ResourceSchemaInputType(graphene.InputObjectType):
     id = graphene.ID(required=False)
     key = graphene.String()
     format = graphene.String()
-    description = graphene.String()
+    description = graphene.String(required=False)
+    parent = graphene.String(required=False)
+    array_field = graphene.String(required=False)
 
 
 class ResourceSchemaType(DjangoObjectType):
@@ -93,7 +95,7 @@ def _remove_masked_fields(resource_instance):
     resource_instance.save()
 
 
-def _create_update_schema(resource_data, resource_instance):
+def _create_update_schema(resource_data: ResourceInput, resource_instance):
     for schema in resource_data.schema:
         try:
             if schema.id:
@@ -101,12 +103,23 @@ def _create_update_schema(resource_data, resource_instance):
                 schema_instance.key = schema.key
                 schema_instance.format = schema.format
                 schema_instance.description = schema.description
+                schema_instance.resource = resource_instance
                 schema_instance.save()
             else:
-                _create_resource_schema_instance(resource_instance, schema)
+                schema_instance = _create_resource_schema_instance(resource_instance, schema)
 
         except ResourceSchema.DoesNotExist as e:
-            _create_resource_schema_instance(resource_instance, schema)
+            schema_instance = _create_resource_schema_instance(resource_instance, schema)
+
+    for schema in resource_data.schema:
+        schema_instance = ResourceSchema.objects.get(resource=resource_instance, key=schema.key)
+        if schema.parent != "":
+            parent_instance = ResourceSchema.objects.get(resource=resource_instance, key=schema.parent)
+            schema_instance.parent = parent_instance
+        if schema.array_field != "":
+            array_field_instance = ResourceSchema.objects.get(resource=resource_instance, key=schema.array_field)
+            schema_instance.parent = array_field_instance
+        schema_instance.save()
 
 
 def _create_resource_schema_instance(resource_instance, schema):
@@ -117,6 +130,7 @@ def _create_resource_schema_instance(resource_instance, schema):
         resource=resource_instance,
     )
     schema_instance.save()
+    return schema_instance
 
 
 class CreateResource(graphene.Mutation, Output):
