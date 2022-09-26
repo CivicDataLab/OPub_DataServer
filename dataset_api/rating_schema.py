@@ -4,6 +4,7 @@ from graphene_django import DjangoObjectType
 from .models import DatasetRatings, Dataset
 from .search import update_rating
 
+
 class DatasetRatingType(DjangoObjectType):
     class Meta:
         model = DatasetRatings
@@ -19,7 +20,7 @@ class Query(graphene.ObjectType):
         return DatasetRatings.objects.all()
 
     def resolve_dataset_rating(self, info, dataset_id):
-        return DatasetRatings.objects.filter(dataset_id=dataset_id)
+        return DatasetRatings.objects.filter(dataset=dataset_id)
 
     def resolve_rating(self, info, rating_id):
         return DatasetRatings.objects.get(pk=rating_id)
