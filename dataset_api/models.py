@@ -25,6 +25,7 @@ def _info_directory_path(info, filename):
     _, extension = os.path.splitext(filename)
     return f"info/{dataset_name}/{resource_name}/{extension[1:]}/{filename}"
 
+
 def _data_request_directory_path(request, filename):
     """
     Create a directory path to receive the request data.
@@ -32,6 +33,7 @@ def _data_request_directory_path(request, filename):
     """
     _, extension = os.path.splitext(filename)
     return f"request/{request.id}/{extension[1:]}/{filename}"
+
 
 class Organization(models.Model):
     title = models.CharField(max_length=100)
@@ -102,6 +104,10 @@ class ResourceSchema(models.Model):
     format = models.CharField(max_length=100)
     description = models.CharField(max_length=500)
     resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
+    parent = models.OneToOneField('self', unique=False, blank=True, null=True, on_delete=models.CASCADE,
+                                  related_name="parent_field")
+    array_field = models.OneToOneField('self', unique=False, blank=True, null=True, on_delete=models.CASCADE,
+                                       related_name="array_item")
 
 
 class APISource(models.Model):
