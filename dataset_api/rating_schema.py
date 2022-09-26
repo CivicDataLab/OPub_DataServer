@@ -13,8 +13,8 @@ class DatasetRatingType(DjangoObjectType):
 
 class Query(graphene.ObjectType):
     all_dataset_ratings = graphene.List(DatasetRatingType)
-    dataset_rating = graphene.Field(DatasetRatingType, dataset_id=graphene.Int())
-    rating = graphene.List(DatasetRatingType, dataset_rating_id=graphene.Int())
+    dataset_rating = graphene.List(DatasetRatingType, dataset_id=graphene.Int())
+    rating = graphene.Field(DatasetRatingType, dataset_rating_id=graphene.Int())
 
     def resolve_all_dataset_ratings(self, info, **kwargs):
         return DatasetRatings.objects.all()
