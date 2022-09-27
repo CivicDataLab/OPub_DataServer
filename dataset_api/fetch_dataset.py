@@ -5,6 +5,7 @@ from graphql_auth.bases import Output
 from graphene_file_upload.scalars import Upload
 
 from .models import Resource, DataRequest, APIResource
+from .decorators import validate_token
 
 
 class DataRequestType(DjangoObjectType):
@@ -38,6 +39,10 @@ class Query(graphene.ObjectType):
     def resolve_data_request(self, info, data_request_id):
         return DataRequest.objects.get(pk=data_request_id)
 
+    @validate_token
+    def resolve_data_request_user(self, info, username, **kwargs):
+        return DataRequest.objects.get(user=username)
+
 
 class DataRequestInput(graphene.InputObjectType):
     id = graphene.ID()
@@ -64,14 +69,16 @@ class DataRequestMutation(graphene.Mutation, Output):
     data_request = graphene.Field(DataRequestType)
 
     @staticmethod
-    def mutate(root, info, data_request: DataRequestInput = None):
-
+    @validate_token
+    def mutate(root, info, data_request: DataRequestInput = None, username=None):
+        print(root, info)
         # To do: Check if resource id's provided exists!!
         data_request_instance = DataRequest(
             status=data_request.status,
             description=data_request.description,
             remark=data_request.remark,
             purpose=data_request.purpose,
+            user=username,
             file=data_request.file
         )
         data_request_instance.save()
