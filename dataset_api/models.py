@@ -75,15 +75,18 @@ class Dataset(models.Model):
     update_frequency = models.CharField(max_length=50, blank=True, null=True)
     modified = models.DateTimeField(auto_now=True)
     sector = models.ManyToManyField(Sector, blank=True)
-    status = models.CharField(max_length=50, default='Draft')
-    remark = models.CharField(max_length=200, default='Please follow creation instructions')
-    funnel = models.CharField(max_length=50, default='upload')
-    action = models.CharField(max_length=50, default='create data')
-    access_type = models.CharField(max_length=50, default='open')
+    status = models.CharField(max_length=50, default="Draft")
+    remark = models.CharField(
+        max_length=200, default="Please follow creation instructions"
+    )
+    funnel = models.CharField(max_length=50, default="upload")
+    action = models.CharField(max_length=50, default="create data")
+    access_type = models.CharField(max_length=50, default="open")
     geography = models.ManyToManyField(Geography, blank=True)
-    License = models.CharField(max_length=100, default='not_specified')
+    License = models.CharField(max_length=100, default="not_specified")
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE)
     tags = models.ManyToManyField(Tag, blank=True)
+    dataset_type = models.CharField(max_length=500, default="")
 
 
 class Resource(models.Model):
@@ -91,8 +94,10 @@ class Resource(models.Model):
     description = models.CharField(max_length=500)
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    status = models.CharField(max_length=50, default='Draft')
-    masked_fields = ArrayField(models.CharField(max_length=10, blank=True), blank=True, null=True)
+    status = models.CharField(max_length=50, default="Draft")
+    masked_fields = ArrayField(
+        models.CharField(max_length=10, blank=True), blank=True, null=True
+    )
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
     remote_url = models.URLField(blank=True)
     format = models.CharField(max_length=15)
@@ -104,10 +109,22 @@ class ResourceSchema(models.Model):
     format = models.CharField(max_length=100)
     description = models.CharField(max_length=500)
     resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
-    parent = models.OneToOneField('self', unique=False, blank=True, null=True, on_delete=models.CASCADE,
-                                  related_name="parent_field")
-    array_field = models.OneToOneField('self', unique=False, blank=True, null=True, on_delete=models.CASCADE,
-                                       related_name="array_item")
+    parent = models.OneToOneField(
+        "self",
+        unique=False,
+        blank=True,
+        null=True,
+        on_delete=models.CASCADE,
+        related_name="parent_field",
+    )
+    array_field = models.OneToOneField(
+        "self",
+        unique=False,
+        blank=True,
+        null=True,
+        on_delete=models.CASCADE,
+        related_name="array_item",
+    )
 
 
 class APISource(models.Model):
@@ -127,8 +144,10 @@ class APIResource(models.Model):
     description = models.CharField(max_length=500)
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    status = models.CharField(max_length=50, default='Draft')
-    masked_fields = ArrayField(models.CharField(max_length=10, blank=True), blank=True, null=True)
+    status = models.CharField(max_length=50, default="Draft")
+    masked_fields = ArrayField(
+        models.CharField(max_length=10, blank=True), blank=True, null=True
+    )
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
     url_path = models.URLField(null=False, blank=False)
     api_source = models.ForeignKey(APISource, on_delete=models.CASCADE)
@@ -140,7 +159,9 @@ class DatasetRatings(models.Model):
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
     review = models.CharField(max_length=500)
     # overall = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
-    data_quality = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
+    data_quality = models.FloatField(
+        validators=[MinValueValidator(0.0), MaxValueValidator(5.0)]
+    )
     # data_standards = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
     # coverage = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
 
@@ -164,4 +185,8 @@ class DataRequest(models.Model):
     purpose = models.CharField(max_length=500, default="")
     resource = models.ManyToManyField(Resource)
     api_resource = models.ManyToManyField(APIResource)
-    file = models.FileField(upload_to=_data_request_directory_path, blank=True, null=True)
+    file = models.FileField(
+        upload_to=_data_request_directory_path, blank=True, null=True
+    )
+    creation_date = models.DateTimeField(auto_now_add=True, null=True)
+    reject_reason = models.CharField(max_length=500, blank=True)

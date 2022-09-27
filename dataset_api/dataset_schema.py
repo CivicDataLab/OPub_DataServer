@@ -9,6 +9,10 @@ class DatasetType(DjangoObjectType):
         model = Dataset
         fields = "__all__"
 
+class DataType(graphene.Enum):
+    API = "API"
+    FILE = "FILE"
+    DATASET = "DATASET"
 
 def _add_update_attributes_to_dataset(dataset_instance, object_field, attribute_list, attribute_type):
     dataset_attribute = getattr(dataset_instance, object_field)
@@ -45,6 +49,7 @@ class DatasetInput(graphene.InputObjectType):
     period_from = graphene.Date()
     period_to = graphene.Date()
     update_frequency = graphene.String()
+    dataset_type = DataType(required=True)
     funnel = graphene.String(required=False, default_value='upload')
     action = graphene.String(required=False, default_value='create data')
     status = graphene.String(required=True)
@@ -77,7 +82,8 @@ class CreateDataset(graphene.Mutation):
             catalog=catalog,
             period_to=dataset_data.period_to,
             period_from=dataset_data.period_from,
-            update_frequency=dataset_data.update_frequency
+            update_frequency=dataset_data.update_frequency,
+            dataset_type = dataset_data.dataset_type
         )
         dataset_instance.save()
         _add_update_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
@@ -109,6 +115,8 @@ class UpdateDataset(graphene.Mutation):
             dataset_instance.catalog = catalog
             dataset_instance.period_to = dataset_data.period_to
             dataset_instance.period_from = dataset_data.period_from
+            dataset_instance.dataset_type = dataset_data.dataset_type
+
             dataset_instance.save()
             _add_update_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
             _add_update_attributes_to_dataset(dataset_instance, "geography", dataset_data.geo_list, Geography)

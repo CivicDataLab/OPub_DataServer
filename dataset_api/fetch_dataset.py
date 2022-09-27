@@ -47,6 +47,7 @@ class DataRequestInput(graphene.InputObjectType):
     remark = graphene.String(required=False)
     file = Upload(required=False)
     resource_list = graphene.List(of_type=graphene.String, required=True)
+    reject_reason = graphene.String(required=False)
 
 
 class DataRequestUpdateInput(graphene.InputObjectType):
