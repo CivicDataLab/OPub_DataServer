@@ -190,3 +190,4 @@ class DataRequest(models.Model):
     )
     creation_date = models.DateTimeField(auto_now_add=True, null=True)
     reject_reason = models.CharField(max_length=500, blank=True)
+    user = models.CharField(max_length=50)
