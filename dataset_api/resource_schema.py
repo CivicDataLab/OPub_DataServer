@@ -110,13 +110,12 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
 
         except ResourceSchema.DoesNotExist as e:
             schema_instance = _create_resource_schema_instance(resource_instance, schema)
-
     for schema in resource_data.schema:
-        schema_instance = ResourceSchema.objects.get(resource=resource_instance.id, key=schema.key)
-        if schema.parent != "":
-            parent_instance = ResourceSchema.objects.get(resource=resource_instance.id, key=schema.parent)
+        schema_instance = ResourceSchema.objects.get(resource_id=resource_instance.id, key=schema.key)
+        if schema.parent and schema.parent != "":
+            parent_instance = ResourceSchema.objects.get(resource_id=resource_instance.id, key=schema.parent)
             schema_instance.parent = parent_instance
-        if schema.array_field != "":
+        if schema.array_field and schema.array_field != "":
             array_field_instance = ResourceSchema.objects.get(resource=resource_instance.id, key=schema.array_field)
             schema_instance.parent = array_field_instance
         schema_instance.save()
