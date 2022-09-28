@@ -223,7 +223,7 @@ def delete_data(id):
 
 def facets(request):
     size = request.GET["size"]
-    frm = request.GET["from"]
+    paginate_from = request.GET["from"]
     agg = {
         "license": {"terms": {"field": "license.keyword"}},
         "geography": {"terms": {"field": "geography.keyword"}},
@@ -237,32 +237,37 @@ def facets(request):
         if request.GET["q"] == "":
             # For filter search
             if len(request.GET.keys()) >= 2:
-                # Delete title match from the query
+                
+                license = request.GET["license"]
+                geography = request.GET["geography"]
+                sector = request.GET["sector"]
+                format = request.GET["format"]
+                status = request.GET["status"]
+                rating = request.GET["rating"]
+                
                 query = {
                     "bool": {
                         "should": [
-                            {"match": {"license": request.GET["license"]}},
-                            {"match": {"geography": request.GET["geography"]}},
-                            {"match": {"sector": request.GET["sector"]}},
-                            {"match": {"format": request.GET["format"]}},
-                            {"match": {"status": request.GET["status"]}},
-                            {"match": {"rating": request.GET["rating"]}},
-                            {"match": {"resource_title": request.GET["q"]}},
+                            {"match": {"license": license}},
+                            {"match": {"geography": geography}},
+                            {"match": {"sector": sector}},
+                            {"match": {"format": format}},
+                            {"match": {"status": status}},
+                            {"match": {"rating": rating}}
                         ]
                     }
                 }
-                del query["bool"]["should"][6]
+
                 resp = es_client.search(
                     index="dataset",
                     aggs=agg,
                     query=query,
                     size=size,
-                    from_=frm
+                    from_=paginate_from
                 )
                 return HttpResponse(json.dumps(resp))
             else:
                 # For getting facets.
-                print("Here")
                 resp = es_client.search(
                     index="dataset",
                     aggs=agg,
@@ -270,16 +275,24 @@ def facets(request):
                 return HttpResponse(json.dumps(resp))
         else:
             # For faceted search with query string.
+            license = request.GET["license"]
+            geography = request.GET["geography"]
+            sector = request.GET["sector"]
+            format = request.GET["format"]
+            status = request.GET["status"]
+            rating = request.GET["rating"]
+            query_string = request.GET["q"]
+                
             query = {
                 "bool": {
                     "should": [
-                        {"match": {"license": request.GET["license"]}},
-                        {"match": {"geography": request.GET["geography"]}},
-                        {"match": {"sector": request.GET["sector"]}},
-                        {"match": {"format": request.GET["format"]}},
-                        {"match": {"status": request.GET["status"]}},
-                        {"match": {"rating": request.GET["rating"]}},
-                        {"match": {"resource_title": request.GET["q"]}},
+                        {"match": {"license": license}},
+                        {"match": {"geography": geography}},
+                        {"match": {"sector": sector}},
+                        {"match": {"format": format}},
+                        {"match": {"status": status}},
+                        {"match": {"rating": rating}},
+                        {"match": {"dataset_title": query_string}},
                     ]
                 }
             }
@@ -288,7 +301,7 @@ def facets(request):
                 aggs=agg,
                 query=query,
                 size=size,
-                from_=frm
+                from_=paginate_from
             )
             return HttpResponse(json.dumps(resp))
     except MultiValueDictKeyError as e:
@@ -305,7 +318,6 @@ def search(request):
     if query_string != "":
         query = {"multi_match": {"query": query_string, "operator": "and"}}
     else:
-        print("here")
         query = {"match_all": {}}
 
     resp = es_client.search(index="dataset", query=query, size=size, from_=frm)
