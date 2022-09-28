@@ -222,6 +222,8 @@ def delete_data(id):
 
 
 def facets(request):
+    size = request.GET["size"]
+    frm = request.GET["from"]
     agg = {
         "license": {"terms": {"field": "license.keyword"}},
         "geography": {"terms": {"field": "geography.keyword"}},
@@ -232,7 +234,7 @@ def facets(request):
     }
     try:
 
-        if request.GET["query_string"] == "":
+        if request.GET["q"] == "":
             # For filter search
             if len(request.GET.keys()) >= 2:
                 # Delete title match from the query
@@ -245,23 +247,25 @@ def facets(request):
                             {"match": {"format": request.GET["format"]}},
                             {"match": {"status": request.GET["status"]}},
                             {"match": {"rating": request.GET["rating"]}},
-                            {"match": {"resource_title": request.GET["query_string"]}},
+                            {"match": {"resource_title": request.GET["q"]}},
                         ]
                     }
                 }
-                del query["bool"]["should"][3]
+                del query["bool"]["should"][6]
                 resp = es_client.search(
                     index="dataset",
                     aggs=agg,
                     query=query,
+                    size=size,
+                    from_=frm
                 )
                 return HttpResponse(json.dumps(resp))
             else:
                 # For getting facets.
+                print("Here")
                 resp = es_client.search(
                     index="dataset",
                     aggs=agg,
-                    size=0,
                 )
                 return HttpResponse(json.dumps(resp))
         else:
@@ -275,7 +279,7 @@ def facets(request):
                         {"match": {"format": request.GET["format"]}},
                         {"match": {"status": request.GET["status"]}},
                         {"match": {"rating": request.GET["rating"]}},
-                        {"match": {"resource_title": request.GET["query_string"]}},
+                        {"match": {"resource_title": request.GET["q"]}},
                     ]
                 }
             }
@@ -283,11 +287,13 @@ def facets(request):
                 index="dataset",
                 aggs=agg,
                 query=query,
+                size=size,
+                from_=frm
             )
             return HttpResponse(json.dumps(resp))
     except MultiValueDictKeyError as e:
         pass
-        #return HttpResponse(json.dumps("Please pass" + str(e) + "in the query"))
+        # return HttpResponse(json.dumps("Please pass" + str(e) + "in the query"))
 
 
 def search(request):
@@ -296,13 +302,14 @@ def search(request):
     size = request.GET["size"]
     frm = request.GET["from"]
 
-    if query_string:
+    if query_string != "":
         query = {"multi_match": {"query": query_string, "operator": "and"}}
     else:
+        print("here")
         query = {"match_all": {}}
 
     resp = es_client.search(index="dataset", query=query, size=size, from_=frm)
-    # print(resp)
+    print(resp)
     return HttpResponse(json.dumps(resp["hits"]))
 
 
@@ -347,7 +354,7 @@ def reindex_data():
             api_source_version = []
             api_source_auth_loc = []
             api_source_auth_type = []
-            
+
             for api_resources in api_resource_obj:
                 api_source_obj = APISource.objects.get(id=api_resources.api_source_id)
                 api_resource_title.append(api_resources.title)
@@ -412,8 +419,8 @@ def reindex_data():
             "api_source_auth_type": api_source_auth_type,
         }
         print("Resource_id --", resources.id)
-        if es_client.exists(index="dataset", id=resources.id):
-            pass
-        else:
-            resp = es_client.index(index="dataset", id=resources.id, document=doc)
-            print("Index --", resp["result"])
+        # if es_client.exists(index="dataset", id=resources.id):
+        #     pass
+        # else:
+        resp = es_client.index(index="dataset", id=resources.id, document=doc)
+        print("Index --", resp["result"])
