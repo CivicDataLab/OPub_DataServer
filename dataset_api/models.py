@@ -138,7 +138,7 @@ class APISource(models.Model):
 
 class APIDetails(models.Model):
     resource = models.OneToOneField(Resource, on_delete=models.CASCADE, primary_key=True)
-    # api_source = models.ForeignKey(APISource, on_delete=models.CASCADE)
+    api_source = models.ForeignKey(APISource, on_delete=models.CASCADE)
     auth_required = models.BooleanField()
     response_type = models.CharField(max_length=20)
 
@@ -160,7 +160,7 @@ class APIResource(models.Model):
     url_path = models.URLField(null=False, blank=False)
     api_source = models.ForeignKey(APISource, on_delete=models.CASCADE)
     auth_required = models.BooleanField()
-    response_type = models.CharField(max_length=20)
+    #response_type = models.CharField(max_length=20)
 
 
 class DatasetRatings(models.Model):
