@@ -240,40 +240,10 @@ def facets(request):
         "status": {"terms": {"field": "status.keyword"}},
         "rating": {"terms": {"field": "rating.keyword"}},
     }
-    try:
 
-        if query_string == "":
-            # For filter search
-            if len(request.GET.keys()) >= 2:
-                query = {
-                    "bool": {
-                        "should": [
-                            {"match": {"license": license}},
-                            {"match": {"geography": geography}},
-                            {"match": {"sector": sector}},
-                            {"match": {"format": format}},
-                            {"match": {"status": status}},
-                            {"match": {"rating": rating}}
-                        ]
-                    }
-                }
-                resp = es_client.search(
-                    index="dataset",
-                    aggs=agg,
-                    query=query,
-                    size=size,
-                    from_=paginate_from
-                )
-                return HttpResponse(json.dumps(resp))
-            else:
-                # For getting facets.
-                resp = es_client.search(
-                    index="dataset",
-                    aggs=agg,
-                )
-                return HttpResponse(json.dumps(resp))
-        else:
-            # For faceted search with query string.
+    if query_string == "":
+        # For filter search
+        if len(request.GET.keys()) >= 1:
             query = {
                 "bool": {
                     "should": [
@@ -282,8 +252,7 @@ def facets(request):
                         {"match": {"sector": sector}},
                         {"match": {"format": format}},
                         {"match": {"status": status}},
-                        {"match": {"rating": rating}},
-                        {"match": {"dataset_title": query_string}},
+                        {"match": {"rating": rating}}
                     ]
                 }
             }
@@ -295,9 +264,37 @@ def facets(request):
                 from_=paginate_from
             )
             return HttpResponse(json.dumps(resp))
-    except MultiValueDictKeyError as e:
-        pass
-        # return HttpResponse(json.dumps("Please pass" + str(e) + "in the query"))
+        else:
+            # For getting facets.
+            resp = es_client.search(
+                index="dataset",
+                aggs=agg,
+                size=0
+            )
+            return HttpResponse(json.dumps(resp))
+    else:
+        # For faceted search with query string.
+        query = {
+            "bool": {
+                "should": [
+                    {"match": {"license": license}},
+                    {"match": {"geography": geography}},
+                    {"match": {"sector": sector}},
+                    {"match": {"format": format}},
+                    {"match": {"status": status}},
+                    {"match": {"rating": rating}},
+                    {"match": {"dataset_title": query_string}},
+                ]
+            }
+        }
+        resp = es_client.search(
+            index="dataset",
+            aggs=agg,
+            query=query,
+            size=size,
+            from_=paginate_from
+        )
+        return HttpResponse(json.dumps(resp))
 
 
 def search(request):
