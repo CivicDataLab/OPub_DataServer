@@ -222,8 +222,16 @@ def delete_data(id):
 
 
 def facets(request):
-    size = request.GET["size"]
-    paginate_from = request.GET["from"]
+    size = request.GET.get("size", "10")
+    paginate_from = request.GET.get("from", "0")
+    license = request.GET.get("license", "")
+    geography = request.GET.get("geography", "")
+    sector = request.GET.get("sector", "")
+    format = request.GET.get("format", "")
+    status = request.GET.get("status", "")
+    rating = request.GET.get("rating", "")
+    query_string = request.GET.get("q", "")
+    
     agg = {
         "license": {"terms": {"field": "license.keyword"}},
         "geography": {"terms": {"field": "geography.keyword"}},
@@ -234,17 +242,9 @@ def facets(request):
     }
     try:
 
-        if request.GET["q"] == "":
+        if query_string == "":
             # For filter search
             if len(request.GET.keys()) >= 2:
-                
-                license = request.GET["license"]
-                geography = request.GET["geography"]
-                sector = request.GET["sector"]
-                format = request.GET["format"]
-                status = request.GET["status"]
-                rating = request.GET["rating"]
-                
                 query = {
                     "bool": {
                         "should": [
@@ -257,7 +257,6 @@ def facets(request):
                         ]
                     }
                 }
-
                 resp = es_client.search(
                     index="dataset",
                     aggs=agg,
@@ -275,14 +274,6 @@ def facets(request):
                 return HttpResponse(json.dumps(resp))
         else:
             # For faceted search with query string.
-            license = request.GET["license"]
-            geography = request.GET["geography"]
-            sector = request.GET["sector"]
-            format = request.GET["format"]
-            status = request.GET["status"]
-            rating = request.GET["rating"]
-            query_string = request.GET["q"]
-                
             query = {
                 "bool": {
                     "should": [
