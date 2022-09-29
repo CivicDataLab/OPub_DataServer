@@ -222,6 +222,16 @@ def delete_data(id):
 
 
 def facets(request):
+    size = request.GET.get("size", "10")
+    paginate_from = request.GET.get("from", "0")
+    license = request.GET.get("license", "")
+    geography = request.GET.get("geography", "")
+    sector = request.GET.get("sector", "")
+    format = request.GET.get("format", "")
+    status = request.GET.get("status", "")
+    rating = request.GET.get("rating", "")
+    query_string = request.GET.get("q", "")
+    
     agg = {
         "license": {"terms": {"field": "license.keyword"}},
         "geography": {"terms": {"field": "geography.keyword"}},
@@ -230,52 +240,19 @@ def facets(request):
         "status": {"terms": {"field": "status.keyword"}},
         "rating": {"terms": {"field": "rating.keyword"}},
     }
-    try:
 
-        if request.GET["query_string"] == "":
-            # For filter search
-            if len(request.GET.keys()) >= 2:
-                # Delete title match from the query
-                query = {
-                    "bool": {
-                        "should": [
-                            {"match": {"license": request.GET["license"]}},
-                            {"match": {"geography": request.GET["geography"]}},
-                            {"match": {"sector": request.GET["sector"]}},
-                            {"match": {"format": request.GET["format"]}},
-                            {"match": {"status": request.GET["status"]}},
-                            {"match": {"rating": request.GET["rating"]}},
-                            {"match": {"resource_title": request.GET["query_string"]}},
-                        ]
-                    }
-                }
-                del query["bool"]["should"][3]
-                resp = es_client.search(
-                    index="dataset",
-                    aggs=agg,
-                    query=query,
-                )
-                return HttpResponse(json.dumps(resp))
-            else:
-                # For getting facets.
-                resp = es_client.search(
-                    index="dataset",
-                    aggs=agg,
-                    size=0,
-                )
-                return HttpResponse(json.dumps(resp))
-        else:
-            # For faceted search with query string.
+    if query_string == "":
+        # For filter search
+        if len(request.GET.keys()) >= 1:
             query = {
                 "bool": {
                     "should": [
-                        {"match": {"license": request.GET["license"]}},
-                        {"match": {"geography": request.GET["geography"]}},
-                        {"match": {"sector": request.GET["sector"]}},
-                        {"match": {"format": request.GET["format"]}},
-                        {"match": {"status": request.GET["status"]}},
-                        {"match": {"rating": request.GET["rating"]}},
-                        {"match": {"resource_title": request.GET["query_string"]}},
+                        {"match": {"license": license}},
+                        {"match": {"geography": geography}},
+                        {"match": {"sector": sector}},
+                        {"match": {"format": format}},
+                        {"match": {"status": status}},
+                        {"match": {"rating": rating}}
                     ]
                 }
             }
@@ -283,11 +260,41 @@ def facets(request):
                 index="dataset",
                 aggs=agg,
                 query=query,
+                size=size,
+                from_=paginate_from
             )
             return HttpResponse(json.dumps(resp))
-    except MultiValueDictKeyError as e:
-        pass
-        #return HttpResponse(json.dumps("Please pass" + str(e) + "in the query"))
+        else:
+            # For getting facets.
+            resp = es_client.search(
+                index="dataset",
+                aggs=agg,
+                size=0
+            )
+            return HttpResponse(json.dumps(resp))
+    else:
+        # For faceted search with query string.
+        query = {
+            "bool": {
+                "should": [
+                    {"match": {"license": license}},
+                    {"match": {"geography": geography}},
+                    {"match": {"sector": sector}},
+                    {"match": {"format": format}},
+                    {"match": {"status": status}},
+                    {"match": {"rating": rating}},
+                    {"match": {"dataset_title": query_string}},
+                ]
+            }
+        }
+        resp = es_client.search(
+            index="dataset",
+            aggs=agg,
+            query=query,
+            size=size,
+            from_=paginate_from
+        )
+        return HttpResponse(json.dumps(resp))
 
 
 def search(request):
@@ -296,13 +303,13 @@ def search(request):
     size = request.GET["size"]
     frm = request.GET["from"]
 
-    if query_string:
+    if query_string != "":
         query = {"multi_match": {"query": query_string, "operator": "and"}}
     else:
         query = {"match_all": {}}
 
     resp = es_client.search(index="dataset", query=query, size=size, from_=frm)
-    # print(resp)
+    print(resp)
     return HttpResponse(json.dumps(resp["hits"]))
 
 
@@ -347,7 +354,7 @@ def reindex_data():
             api_source_version = []
             api_source_auth_loc = []
             api_source_auth_type = []
-            
+
             for api_resources in api_resource_obj:
                 api_source_obj = APISource.objects.get(id=api_resources.api_source_id)
                 api_resource_title.append(api_resources.title)
@@ -412,8 +419,8 @@ def reindex_data():
             "api_source_auth_type": api_source_auth_type,
         }
         print("Resource_id --", resources.id)
-        if es_client.exists(index="dataset", id=resources.id):
-            pass
-        else:
-            resp = es_client.index(index="dataset", id=resources.id, document=doc)
-            print("Index --", resp["result"])
+        # if es_client.exists(index="dataset", id=resources.id):
+        #     pass
+        # else:
+        resp = es_client.index(index="dataset", id=resources.id, document=doc)
+        print("Index --", resp["result"])
