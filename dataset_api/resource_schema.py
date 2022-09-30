@@ -83,6 +83,7 @@ class ResponseType(graphene.Enum):
 class ApiInputType(graphene.InputObjectType):
     api_source = graphene.String(required=True)
     auth_required = graphene.Boolean(required=True)
+    url_path = graphene.String(required=True)
     response_type = ResponseType()
 
 
@@ -175,6 +176,7 @@ def _add_update_attributes_to_api_detail(resource_instance, attribute):
             resource=resource_instance,
             api_source=api_source_instance,
             auth_required=attribute.auth_required,
+            url_path=attribute.url_path,
             response_type=attribute.response_type,
         )
         api_detail_object.save()
