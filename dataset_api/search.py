@@ -44,7 +44,7 @@ def index_data(data_obj):
     doc = {
         "resource_title": data_obj.title,
         "resource_description": data_obj.description,
-        "format": data_obj.format,
+        "format": data_obj.filedetails.format,
         "resource_status": data_obj.status,
         "dataset_title": dataset_instance.title,
         "dataset_description": dataset_instance.description,
@@ -88,7 +88,7 @@ def update_data(data_obj):
     doc = {
         "resource_title": data_obj.title,
         "resource_description": data_obj.description,
-        "format": data_obj.format,
+        "format": data_obj.filedetails.format,
         "resource_status": data_obj.status,
     }
 
