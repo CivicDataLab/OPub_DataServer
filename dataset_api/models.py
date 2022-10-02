@@ -4,13 +4,13 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 
-def _resource_directory_path(resource, filename):
+def _resource_directory_path(file_details, filename):
     """
     Create a directory path to upload the resources.
 
     """
-    dataset_name = resource.dataset.title
-    resource_name = resource.title
+    dataset_name = file_details.resource.dataset.title
+    resource_name = file_details.resource.title
     _, extension = os.path.splitext(filename)
     return f"resources/{dataset_name}/{resource_name}/{extension[1:]}/{filename}"
 
@@ -88,6 +88,7 @@ class Dataset(models.Model):
     tags = models.ManyToManyField(Tag, blank=True)
     dataset_type = models.CharField(max_length=500, default="")
 
+
 class Resource(models.Model):
     title = models.CharField(max_length=100)
     description = models.CharField(max_length=500)
@@ -98,9 +99,7 @@ class Resource(models.Model):
         models.CharField(max_length=10, blank=True), blank=True, null=True
     )
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
-    # remote_url = models.URLField(blank=True)
-    # format = models.CharField(max_length=15)
-    # file = models.FileField(upload_to=_resource_directory_path, blank=True)
+
 
 class ResourceSchema(models.Model):
     key = models.CharField(max_length=100)
@@ -136,6 +135,7 @@ class APISource(models.Model):
     auth_credentials = models.JSONField(blank=True, null=True)
     auth_token = models.CharField(blank=True, null=True, max_length=200)
 
+
 class APIDetails(models.Model):
     resource = models.OneToOneField(Resource, on_delete=models.CASCADE, primary_key=True)
     api_source = models.ForeignKey(APISource, on_delete=models.CASCADE)
@@ -143,10 +143,13 @@ class APIDetails(models.Model):
     url_path = models.URLField(null=False, blank=False, default="")
     response_type = models.CharField(max_length=20)
 
+
 class FileDetails(models.Model):
     resource = models.OneToOneField(Resource, on_delete=models.CASCADE, primary_key=True)
     format = models.CharField(max_length=15)
     file = models.FileField(upload_to=_resource_directory_path, blank=True)
+    remote_url = models.URLField(blank=True)
+
 
 class APIResource(models.Model):
     title = models.CharField(max_length=100)
@@ -161,7 +164,7 @@ class APIResource(models.Model):
     url_path = models.URLField(null=False, blank=False)
     api_source = models.ForeignKey(APISource, on_delete=models.CASCADE)
     auth_required = models.BooleanField()
-    #response_type = models.CharField(max_length=20)
+    # response_type = models.CharField(max_length=20)
 
 
 class DatasetRatings(models.Model):
