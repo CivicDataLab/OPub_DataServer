@@ -2,15 +2,14 @@ import mimetypes
 import os
 
 import graphene
+import pandas as pd
 from django.core.files.base import ContentFile
 from graphene import List
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
-import pandas as pd
 
 from .models import (
-    APIDetails,
     APISource,
     Resource,
     Dataset,
@@ -66,11 +65,11 @@ class Query(graphene.ObjectType):
     def resolve_resource_columns(self, info, resource_id):
         resource = Resource.objects.get(pk=resource_id)
         if (
-            resource.file
-            and len(resource.file.path)
-            and "csv" in resource.format.lower()
+                resource.filedetails.file
+                and len(resource.filedetails.file.path)
+                and "csv" in resource.filedetails.format.lower()
         ):
-            file = pd.read_csv(resource.file.path)
+            file = pd.read_csv(resource.filedetails.file.path)
             return file.columns.tolist()
 
 
@@ -88,8 +87,10 @@ class ApiInputType(graphene.InputObjectType):
 
 
 class FileInputType(graphene.InputObjectType):
+    # TODO: Add file format enum
     format = graphene.String(required=False)
     file = Upload(required=True)
+    remote_url = graphene.String(required=False)
 
 
 class ResourceInput(graphene.InputObjectType):
@@ -100,22 +101,22 @@ class ResourceInput(graphene.InputObjectType):
     status = graphene.String(required=True)
     schema: List = graphene.List(of_type=ResourceSchemaInputType, required=False)
     masked_fields = graphene.List(of_type=graphene.String, default=[], required=False)
-    api_details = graphene.Field(ApiInputType, required=False)
-    file_details = graphene.Field(FileInputType, required=False)
+    api_details: ApiInputType = graphene.Field(ApiInputType, required=False)
+    file_details: FileInputType = graphene.Field(FileInputType, required=False)
 
 
-def _remove_masked_fields(resource_instance):
+def _remove_masked_fields(resource_instance: Resource):
     if (
-        resource_instance.masked_fields
-        and len(resource_instance.file.path)
-        and "csv" in resource_instance.format.lower()
+            resource_instance.masked_fields
+            and len(resource_instance.filedetails.file.path)
+            and "csv" in resource_instance.filedetails.format.lower()
     ):
-        df = pd.read_csv(resource_instance.file.path)
+        df = pd.read_csv(resource_instance.filedetails.file.path)
         df = df.drop(columns=resource_instance.masked_fields)
         data = df.to_csv(index=False)
         temp_file = ContentFile(data.encode("utf-8"))
-        resource_instance.file.save(
-            os.path.basename(resource_instance.file.path), temp_file
+        resource_instance.filedetails.file.save(
+            os.path.basename(resource_instance.filedetails.file.path), temp_file
         )
     resource_instance.save()
 
@@ -167,7 +168,7 @@ def _create_resource_schema_instance(resource_instance, schema):
     return schema_instance
 
 
-def _add_update_attributes_to_api_detail(resource_instance, attribute):
+def _create_update_api_details(resource_instance, attribute):
     api_source_instance = APISource.objects.get(id=attribute.api_source)
     try:
         api_detail_object = APIDetails.objects.get(resource=resource_instance)
@@ -182,21 +183,20 @@ def _add_update_attributes_to_api_detail(resource_instance, attribute):
         api_detail_object.save()
 
 
-def _add_update_attributes_to_file_detail(resource_instance, attribute):
+def _create_update_file_details(resource_instance, attribute):
     try:
         file_detail_object = FileDetails.objects.get(resource=resource_instance)
     except FileDetails.DoesNotExist as e:
-        file_detail_object = FileDetails(
-            resource=resource_instance,
-            format=format,
-            file=attribute.file,
-        )
-        file_detail_object.save()
-        if attribute.format == "":
-            format = FORMAT_MAPPING[
-                mimetypes.guess_type(file_detail_object.file.path)[0]
-            ]
-            file_detail_object.save()
+        file_detail_object = FileDetails(resource=resource_instance)
+    file_detail_object.file = attribute.file
+    file_detail_object.save()
+    file_format = attribute.format
+    if attribute.format and attribute.format == "":
+        file_format = FORMAT_MAPPING[
+            mimetypes.guess_type(file_detail_object.file.path)[0]
+        ]
+    file_detail_object.format = file_format
+    file_detail_object.save()
 
 
 class CreateResource(graphene.Mutation, Output):
@@ -222,21 +222,21 @@ class CreateResource(graphene.Mutation, Output):
             masked_fields=masked_fields,
         )
         resource_instance.save()
-        _remove_masked_fields(resource_instance)
-        _create_update_schema(resource_data, resource_instance)
 
-        # create either api or file object.
+        # Create either api or file object.
         if dataset.dataset_type == "API":
-            _add_update_attributes_to_api_detail(
+            _create_update_api_details(
                 resource_instance=resource_instance,
                 attribute=resource_data.api_details,
             )
         else:
-            _add_update_attributes_to_file_detail(
+            _create_update_file_details(
                 resource_instance=resource_instance,
                 attribute=resource_data.file_details,
             )
 
+        _remove_masked_fields(resource_instance)
+        _create_update_schema(resource_data, resource_instance)
         # For indexing data in elasticsearch.
         index_data(resource_instance)
         return CreateResource(success=True, resource=resource_instance)
@@ -256,18 +256,15 @@ class UpdateResource(graphene.Mutation, Output):
             resource_instance.title = resource_data.title
             resource_instance.description = resource_data.description
             resource_instance.dataset = dataset
-            resource_instance.format = resource_data.format
-            resource_instance.remote_url = resource_data.remote_url
-            resource_instance.file = resource_data.file
             resource_instance.status = resource_data.status
             resource_instance.masked_fields = resource_data.masked_fields
-            if resource_data.format == "":
-                resource_instance.format = FORMAT_MAPPING[
-                    mimetypes.guess_type(resource_instance.file.path)[0]
-                ]
             resource_instance.save()
             _remove_masked_fields(resource_instance)
             _create_update_schema(resource_data, resource_instance)
+            if dataset.dataset_type == "API":
+                _create_update_api_details(resource_instance=resource_instance, attribute=resource_data.api_details)
+            else:
+                _create_update_file_details(resource_instance=resource_instance, attribute=resource_data.file_details)
 
             # For updating indexed data in elasticsearch.
             update_data(resource_instance)
@@ -281,6 +278,7 @@ class DeleteResource(graphene.Mutation):
         id = graphene.ID()
 
     success = graphene.String()
+
     # resource = graphene.Field(ResourceType)
 
     @staticmethod
