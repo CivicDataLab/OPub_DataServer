@@ -36,10 +36,10 @@ class Query(graphene.ObjectType):
     def resolve_api_resource_dataset(self, info, dataset_id):
         return APIResource.objects.get(dataset=dataset_id)
 
-class ResponseType(graphene.Enum):
-    JSON = "JSON"
-    XML = "XML"
-    CSV = "CSV"
+# class ResponseType(graphene.Enum):
+#     JSON = "JSON"
+#     XML = "XML"
+#     CSV = "CSV"
 
 
 class APIResourceInput(graphene.InputObjectType):
@@ -53,7 +53,7 @@ class APIResourceInput(graphene.InputObjectType):
     url_path = graphene.String(required=True)
     api_source = graphene.String(required=True)
     auth_required = graphene.Boolean(required=True)
-    response_type = ResponseType()
+    # response_type = ResponseType()
 
 
 class CreateAPIResource(graphene.Mutation, Output):
@@ -76,7 +76,7 @@ class CreateAPIResource(graphene.Mutation, Output):
             masked_fields=masked_fields,
             api_source=api_source,
             auth_required=api_resource_data.auth_required,
-            response_type=api_resource_data.response_type,
+            # response_type=api_resource_data.response_type,
             url_path=api_resource_data.url_path,
         )
         api_resource_instance.save()
