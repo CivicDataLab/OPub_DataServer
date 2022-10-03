@@ -2,7 +2,7 @@ from django.conf import settings
 from elasticsearch import Elasticsearch
 from django.http import HttpResponse
 import json
-from django.utils.datastructures import MultiValueDictKeyError
+# from django.utils.datastructures import MultiValueDictKeyError
 
 # import warnings
 # warnings.filterwarnings("ignore")
@@ -222,16 +222,24 @@ def delete_data(id):
 
 
 def facets(request):
+    filters = []  # List of queries for elasticsearch to filter up on.
+    facet = [
+        "license",
+        "geography",
+        "sector",
+        "format",
+        "status",
+        "rating",
+        "query_string",
+    ]
     size = request.GET.get("size", "10")
     paginate_from = request.GET.get("from", "0")
-    license = request.GET.get("license", "")
-    geography = request.GET.get("geography", "")
-    sector = request.GET.get("sector", "")
-    format = request.GET.get("format", "")
-    status = request.GET.get("status", "")
-    rating = request.GET.get("rating", "")
-    query_string = request.GET.get("q", "")
-    
+    query_string = request.GET.get("q")
+
+    for value in facet:
+        if request.GET.get(value):
+            filters.append({"match": {f"{value}": request.GET.get(value)}})
+
     agg = {
         "license": {"terms": {"field": "license.keyword"}},
         "geography": {"terms": {"field": "geography.keyword"}},
@@ -241,75 +249,40 @@ def facets(request):
         "rating": {"terms": {"field": "rating.keyword"}},
     }
 
-    if query_string == "":
+    if not query_string:
         # For filter search
         if len(request.GET.keys()) >= 1:
-            query = {
-                "bool": {
-                    "should": [
-                        {"match": {"license": license}},
-                        {"match": {"geography": geography}},
-                        {"match": {"sector": sector}},
-                        {"match": {"format": format}},
-                        {"match": {"status": status}},
-                        {"match": {"rating": rating}}
-                    ]
-                }
-            }
+            query = {"bool": {"must": filters}}
             resp = es_client.search(
-                index="dataset",
-                aggs=agg,
-                query=query,
-                size=size,
-                from_=paginate_from
+                index="dataset", aggs=agg, query=query, size=size, from_=paginate_from
             )
             return HttpResponse(json.dumps(resp))
         else:
             # For getting facets.
-            resp = es_client.search(
-                index="dataset",
-                aggs=agg,
-                size=0
-            )
+            resp = es_client.search(index="dataset", aggs=agg, size=0)
             return HttpResponse(json.dumps(resp))
     else:
         # For faceted search with query string.
-        query = {
-            "bool": {
-                "should": [
-                    {"match": {"license": license}},
-                    {"match": {"geography": geography}},
-                    {"match": {"sector": sector}},
-                    {"match": {"format": format}},
-                    {"match": {"status": status}},
-                    {"match": {"rating": rating}},
-                    {"match": {"dataset_title": query_string}},
-                ]
-            }
-        }
+        query = {"bool": {"must": filters}}
         resp = es_client.search(
-            index="dataset",
-            aggs=agg,
-            query=query,
-            size=size,
-            from_=paginate_from
+            index="dataset", aggs=agg, query=query, size=size, from_=paginate_from
         )
         return HttpResponse(json.dumps(resp))
 
 
 def search(request):
-    print(request.GET)
-    query_string = request.GET["q"]
-    size = request.GET["size"]
-    frm = request.GET["from"]
+    query_string = request.GET.get("q", "")
+    size = request.GET.get("size", "10")
+    paginate_from = request.GET.get("from", "0")
 
     if query_string != "":
-        query = {"multi_match": {"query": query_string, "operator": "and"}}
+        query = {"match": {"dataset_title": {"query": query_string, "operator": "AND"}}}
     else:
         query = {"match_all": {}}
 
-    resp = es_client.search(index="dataset", query=query, size=size, from_=frm)
-    print(resp)
+    resp = es_client.search(
+        index="dataset", query=query, size=size, from_=paginate_from
+    )
     return HttpResponse(json.dumps(resp["hits"]))
 
 
