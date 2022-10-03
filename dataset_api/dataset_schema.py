@@ -4,15 +4,18 @@ from graphene_django import DjangoObjectType
 from .models import Dataset, Catalog, Tag, Geography, Sector
 from .search import update_dataset
 
+
 class DatasetType(DjangoObjectType):
     class Meta:
         model = Dataset
         fields = "__all__"
 
+
 class DataType(graphene.Enum):
     API = "API"
     FILE = "FILE"
     DATASET = "DATASET"
+
 
 def _add_update_attributes_to_dataset(dataset_instance, object_field, attribute_list, attribute_type):
     dataset_attribute = getattr(dataset_instance, object_field)
@@ -83,7 +86,7 @@ class CreateDataset(graphene.Mutation):
             period_to=dataset_data.period_to,
             period_from=dataset_data.period_from,
             update_frequency=dataset_data.update_frequency,
-            dataset_type = dataset_data.dataset_type
+            dataset_type=dataset_data.dataset_type
         )
         dataset_instance.save()
         _add_update_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
@@ -121,9 +124,9 @@ class UpdateDataset(graphene.Mutation):
             _add_update_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
             _add_update_attributes_to_dataset(dataset_instance, "geography", dataset_data.geo_list, Geography)
             _add_update_attributes_to_dataset(dataset_instance, "sector", dataset_data.sector_list, Sector)
-            
+
             # For updating indexed data in elasticsearch.
             update_dataset(dataset_instance)
-            
+
             return UpdateDataset(dataset=dataset_instance)
         return UpdateDataset(dataset=None)
