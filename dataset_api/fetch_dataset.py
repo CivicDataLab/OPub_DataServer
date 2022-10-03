@@ -149,7 +149,7 @@ class ApproveRejectDataRequest(graphene.Mutation, Output):
             response = requests.request("GET", url, headers=headers, data=payload)
             print(response.text)
         elif resource and data_request.status is StatusType.APPROVED:
-            data_request_instance.file = resource.file
+            data_request_instance.file = resource.filedetails.file
             data_request_instance.status = StatusType.FETCHED
         data_request_instance.save()
         return DataRequestUpdateMutation(data_request=data_request_instance)
