@@ -36,8 +36,22 @@ class ResourceSchemaType(DjangoObjectType):
         fields = "__all__"
 
 
+class FileDetailsType(DjangoObjectType):
+    class Meta:
+        model = FileDetails
+        fields = "__all__"
+
+
+class ApiDetailsType(DjangoObjectType):
+    class Meta:
+        model = APIDetails
+        fields = "__all__"
+
+
 class ResourceType(DjangoObjectType):
     schema = graphene.List(ResourceSchemaType)
+    file_details = graphene.Field(FileDetailsType)
+    api_details = graphene.Field(ApiDetailsType)
 
     class Meta:
         model = Resource
@@ -49,6 +63,20 @@ class ResourceType(DjangoObjectType):
             return schema
         except ResourceSchema.DoesNotExist as e:
             return []
+
+    def resolve_file_details(self, info):
+        try:
+            file_details = FileDetails.objects.get(resource=self)
+            return file_details
+        except FileDetails.DoesNotExist as e:
+            return None
+
+    def resolve_api_details(self, info):
+        try:
+            api_details = APIDetails.objects.get(resource=self)
+            return api_details
+        except APIDetails.DoesNotExist as e:
+            return None
 
 
 class Query(graphene.ObjectType):
