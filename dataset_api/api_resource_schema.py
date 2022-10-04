@@ -25,7 +25,7 @@ class APIResourceType(DjangoObjectType):
 class Query(graphene.ObjectType):
     all_api_resources = graphene.List(APIResourceType)
     api_resource = graphene.Field(APIResourceType, api_resource_id=graphene.Int())
-    api_resource_dataset = graphene.Field(APIResourceType, dataset_id=graphene.Int())
+    api_resource_dataset = graphene.List(APIResourceType, dataset_id=graphene.Int())
 
     def resolve_all_api_resources(self, info, **kwargs):
         return APIResource.objects.all()
@@ -43,7 +43,7 @@ class Query(graphene.ObjectType):
 
 
 class APIResourceInput(graphene.InputObjectType):
-    id: str = graphene.ID()
+    id = graphene.ID()
     title = graphene.String(required=True)
     description = graphene.String(required=False)
     dataset = graphene.String(required=True)
