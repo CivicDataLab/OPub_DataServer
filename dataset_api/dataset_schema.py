@@ -17,6 +17,15 @@ class DataType(graphene.Enum):
     DATASET = "DATASET"
 
 
+class DatasetStatus(graphene.Enum):
+    DRAFT = "DRAFT"
+    UNDERREVIEW = "UNDERREVIEW"
+    PUBLISHED = "PUBLISHED"
+    UNDERMODERATION = "UNDERMODERATION"
+    READYTOPUBLISH = "READYTOPUBLISH"
+    TRANSFORMATIONINPROGRESS = "TRANSFORMATIONINPROGRESS"
+
+
 def _add_update_attributes_to_dataset(dataset_instance, object_field, attribute_list, attribute_type):
     dataset_attribute = getattr(dataset_instance, object_field)
     dataset_attribute.clear()
