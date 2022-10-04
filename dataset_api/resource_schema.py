@@ -83,6 +83,7 @@ class Query(graphene.ObjectType):
     all_resources = graphene.List(ResourceType)
     resource = graphene.Field(ResourceType, resource_id=graphene.Int())
     resource_columns = graphene.List(graphene.String, resource_id=graphene.Int())
+    resource_dataset = graphene.List(ResourceType, dataset_id=graphene.Int())
 
     def resolve_all_resources(self, info, **kwargs):
         return Resource.objects.all()
@@ -99,6 +100,9 @@ class Query(graphene.ObjectType):
         ):
             file = pd.read_csv(resource.filedetails.file.path)
             return file.columns.tolist()
+
+    def resolve_resource_dataset(self, info, dataset_id):
+        return Resource.objects.get(dataset=dataset_id)
 
 
 class ResponseType(graphene.Enum):
