@@ -15,6 +15,7 @@ from .models import (
     DatasetRatings,
     APISource,
     APIResource,
+    FileDetails
 )
 
 es_client = Elasticsearch(settings.ELASTICSEARCH)
@@ -40,11 +41,14 @@ def index_data(data_obj):
         rating = ""
     catalog_instance = Catalog.objects.get(id=dataset_instance.catalog_id)
     org_instance = Organization.objects.get(id=catalog_instance.organization_id)
-
+    if FileDetails.objects.filter(resource_id=data_obj.id).exists():
+        format = data_obj.filedetails.format
+    else:
+        format = ""
     doc = {
         "resource_title": data_obj.title,
         "resource_description": data_obj.description,
-        "format": data_obj.filedetails.format,
+        "format": format,
         "resource_status": data_obj.status,
         "dataset_title": dataset_instance.title,
         "dataset_description": dataset_instance.description,
