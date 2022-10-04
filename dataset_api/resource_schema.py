@@ -102,7 +102,7 @@ class Query(graphene.ObjectType):
             return file.columns.tolist()
 
     def resolve_resource_dataset(self, info, dataset_id):
-        return Resource.objects.get(dataset=dataset_id)
+        return Resource.objects.filter(dataset=dataset_id)
 
 
 class ResponseType(graphene.Enum):
@@ -261,7 +261,7 @@ class CreateResource(graphene.Mutation, Output):
                 resource_instance=resource_instance,
                 attribute=resource_data.api_details,
             )
-        else:
+        elif dataset.dataset_type == "FILE":
             _create_update_file_details(
                 resource_instance=resource_instance,
                 attribute=resource_data.file_details,
