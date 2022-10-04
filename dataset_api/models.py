@@ -3,6 +3,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
+
 # TODO: Add choices to choice fields
 
 def _resource_directory_path(file_details, filename):
@@ -226,6 +227,17 @@ class DataRequest(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True, null=True)
     reject_reason = models.CharField(max_length=500, blank=True)
     user = models.CharField(max_length=50)
+
+
+class ModerationRequest(models.Model):
+    status = models.CharField(max_length=20)
+    description = models.CharField(max_length=500)
+    remark = models.CharField(max_length=500, blank=True)
+    dataset = models.ForeignKey(Dataset, blank=False, null=False, on_delete=models.CASCADE)
+    creation_date = models.DateTimeField(auto_now_add=True, null=False)
+    modified_date = models.DateTimeField(auto_now=True, null=False)
+    reject_reason = models.CharField(max_length=500, blank=True)
+    user = models.CharField(max_length=50, blank=False, null=False)
 
 
 class License(models.Model):
