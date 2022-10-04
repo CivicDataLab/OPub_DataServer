@@ -94,9 +94,9 @@ class Query(graphene.ObjectType):
     def resolve_resource_columns(self, info, resource_id):
         resource = Resource.objects.get(pk=resource_id)
         if (
-                resource.filedetails.file
-                and len(resource.filedetails.file.path)
-                and "csv" in resource.filedetails.format.lower()
+            resource.filedetails.file
+            and len(resource.filedetails.file.path)
+            and "csv" in resource.filedetails.format.lower()
         ):
             file = pd.read_csv(resource.filedetails.file.path)
             return file.columns.tolist()
@@ -139,9 +139,9 @@ class ResourceInput(graphene.InputObjectType):
 
 def _remove_masked_fields(resource_instance: Resource):
     if (
-            resource_instance.masked_fields
-            and len(resource_instance.filedetails.file.path)
-            and "csv" in resource_instance.filedetails.format.lower()
+        resource_instance.masked_fields
+        and len(resource_instance.filedetails.file.path)
+        and "csv" in resource_instance.filedetails.format.lower()
     ):
         df = pd.read_csv(resource_instance.filedetails.file.path)
         df = df.drop(columns=resource_instance.masked_fields)
@@ -154,8 +154,14 @@ def _remove_masked_fields(resource_instance: Resource):
 
 
 def _create_update_schema(resource_data: ResourceInput, resource_instance):
+    schema_ids = []  # List of schemas that already exists.
+    resource_schema_instance = ResourceSchema.objects.filter(resource=resource_data.id)
+    for schemas in resource_schema_instance:
+        schema_ids.append(schemas.id)
+
     for schema in resource_data.schema:
         try:
+            # Update existing schema
             if schema.id:
                 schema_instance = ResourceSchema.objects.get(id=int(schema.id))
                 schema_instance.key = schema.key
@@ -163,15 +169,21 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
                 schema_instance.description = schema.description
                 schema_instance.resource = resource_instance
                 schema_instance.save()
+                schema_ids.remove(int(schema.id))  # Remove id from the list
             else:
+                # Add new schema
                 schema_instance = _create_resource_schema_instance(
                     resource_instance, schema
                 )
-
         except ResourceSchema.DoesNotExist as e:
             schema_instance = _create_resource_schema_instance(
                 resource_instance, schema
             )
+    # Delete schema which were not updated or created.
+    if schema_ids:
+        for ids in schema_ids:
+            schema_obj = ResourceSchema.objects.get(id=ids)
+            schema_obj.delete()
     for schema in resource_data.schema:
         schema_instance = ResourceSchema.objects.get(
             resource_id=resource_instance.id, key=schema.key
@@ -294,9 +306,15 @@ class UpdateResource(graphene.Mutation, Output):
             _remove_masked_fields(resource_instance)
             _create_update_schema(resource_data, resource_instance)
             if dataset.dataset_type == "API":
-                _create_update_api_details(resource_instance=resource_instance, attribute=resource_data.api_details)
+                _create_update_api_details(
+                    resource_instance=resource_instance,
+                    attribute=resource_data.api_details,
+                )
             else:
-                _create_update_file_details(resource_instance=resource_instance, attribute=resource_data.file_details)
+                _create_update_file_details(
+                    resource_instance=resource_instance,
+                    attribute=resource_data.file_details,
+                )
 
             # For updating indexed data in elasticsearch.
             update_data(resource_instance)
