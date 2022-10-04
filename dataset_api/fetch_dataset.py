@@ -32,6 +32,7 @@ class PurposeType(graphene.Enum):
 class Query(graphene.ObjectType):
     all_data_requests = graphene.List(DataRequestType)
     data_request = graphene.Field(DataRequestType, data_request_id=graphene.Int())
+    data_request_user = graphene.Field(DataRequestType)
 
     def resolve_all_data_requests(self, info, **kwargs):
         return DataRequest.objects.all()
@@ -134,21 +135,19 @@ class ApproveRejectDataRequest(graphene.Mutation, Output):
             data_request_instance.status = data_request.status
             data_request_instance.remark = data_request.remark
         data_request_instance.save()
-        try:
-            resource = data_request_instance.resource.all()[0]
-        except IndexError:
-            resource = None
+        resource = data_request_instance.resource.all()[0]
+        dataset = resource.dataset
         try:
             api_resource = data_request_instance.api_resource.all()[0]
         except IndexError:
             api_resource = None
-        if api_resource and data_request.status is StatusType.APPROVED:
-            url = f"https://pipeline.ndp.civicdatalab.in/transformer/api_source_query?api_source_id={api_resource.id}&request_id={data_request.id}"
+        if resource and dataset.dataset_type is "API" and data_request.status is StatusType.APPROVED:
+            url = f"https://pipeline.ndp.civicdatalab.in/transformer/api_source_query?api_source_id={resource.id}&request_id={data_request.id}"
             payload = {}
             headers = {}
             response = requests.request("GET", url, headers=headers, data=payload)
             print(response.text)
-        elif resource and data_request.status is StatusType.APPROVED:
+        elif resource and dataset.dataset_type is "FILE" and data_request.status is StatusType.APPROVED:
             data_request_instance.file = resource.filedetails.file
             data_request_instance.status = StatusType.FETCHED
         data_request_instance.save()
