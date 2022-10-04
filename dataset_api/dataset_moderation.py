@@ -86,7 +86,7 @@ class ApproveRejectModerationRequest(graphene.Mutation, Output):
             if moderation_request.remark:
                 moderation_request_instance.remark = moderation_request.remark
         #     TODO: FIX magic strings
-        if moderation_request.status is "APPROVED":
+        if moderation_request.status == "APPROVED":
             dataset = moderation_request_instance.dataset
             dataset.status = "READYTOPUBLISH"
             dataset.save()

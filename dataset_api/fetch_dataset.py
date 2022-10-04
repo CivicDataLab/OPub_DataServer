@@ -142,13 +142,13 @@ class ApproveRejectDataRequest(graphene.Mutation, Output):
         except IndexError:
             api_resource = None
         #     TODO: FIX magic strings
-        if resource and dataset.dataset_type is "API" and data_request.status is "APPROVED":
+        if resource and dataset.dataset_type == "API" and data_request.status == "APPROVED":
             url = f"https://pipeline.ndp.civicdatalab.in/transformer/api_source_query?api_source_id={resource.id}&request_id={data_request.id}"
             payload = {}
             headers = {}
             response = requests.request("GET", url, headers=headers, data=payload)
             print(response.text)
-        elif resource and dataset.dataset_type is "FILE" and data_request.status is "APPROVED":
+        elif resource and dataset.dataset_type == "FILE" and data_request.status == "APPROVED":
             data_request_instance.file = resource.filedetails.file
             data_request_instance.status = StatusType.FETCHED
         data_request_instance.save()
