@@ -52,26 +52,26 @@ class ModerationRequestUpdateInput(graphene.InputObjectType):
 
 class ModerationRequestMutation(graphene.Mutation, Output):
     class Arguments:
-        data_request = ModerationRequestInput()
+        moderation_request = ModerationRequestInput()
 
     moderation_request = graphene.Field(ModerationRequestType)
 
     @staticmethod
     @validate_token
-    def mutate(root, info, data_request: ModerationRequestInput = None, username=None):
+    def mutate(root, info, moderation_request: ModerationRequestInput = None, username=""):
         moderation_request_instance = ModerationRequest(
-            status=data_request.status,
-            description=data_request.description,
-            remark=data_request.remark,
+            status=moderation_request.status,
+            description=moderation_request.description,
+            remark=moderation_request.remark,
             user=username,
         )
-        dataset = Dataset.objects.get(id=data_request.dataset)
+        dataset = Dataset.objects.get(id=moderation_request.dataset)
         moderation_request_instance.dataset = dataset
         moderation_request_instance.save()
         # TODO: fix magic string
         dataset.status = "UNDERMODERATION"
         dataset.save()
-        return ModerationRequestMutation(data_request=moderation_request_instance)
+        return ModerationRequestMutation(moderation_request=moderation_request_instance)
 
 
 class ApproveRejectModerationRequest(graphene.Mutation, Output):
