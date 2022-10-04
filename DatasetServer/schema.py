@@ -18,7 +18,7 @@ class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Qu
             dataset_api.resource_schema.Query, dataset_api.tag_schema.Query, dataset_api.geography_schema.Query,
             dataset_api.api_source_schema.Query, dataset_api.api_resource_schema.Query, dataset_api.rating_schema.Query,
             dataset_api.sector_schema.Query, dataset_api.additional_info_schema.Query, dataset_api.fetch_dataset.Query,
-            dataset_api.dataset_schema.Query, graphene.ObjectType):
+            dataset_api.data_access_model_schema.Query, graphene.ObjectType):
     pass
 
 
