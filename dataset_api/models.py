@@ -26,6 +26,28 @@ def _info_directory_path(info, filename):
     return f"info/{dataset_name}/{resource_name}/{extension[1:]}/{filename}"
 
 
+def _contract_directory_path(dam, filename):
+    """
+    Create a directory path to upload DAM contract files.
+
+    """
+    dataset_name = dam.dataset.title
+    dam_name = dam.title
+    _, extension = os.path.splitext(filename)
+    return f"info/{dataset_name}/{dam_name}/{extension[1:]}/{filename}"
+
+
+def _license_directory_path(license, filename):
+    """
+    Create a directory path to upload license files.
+
+    """
+    org_name = license.organization.title
+    license_name = license.title
+    _, extension = os.path.splitext(filename)
+    return f"info/{org_name}/{license_name}/{extension[1:]}/{filename}"
+
+
 def _data_request_directory_path(request, filename):
     """
     Create a directory path to receive the request data.
@@ -203,3 +225,31 @@ class DataRequest(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True, null=True)
     reject_reason = models.CharField(max_length=500, blank=True)
     user = models.CharField(max_length=50)
+
+
+class License(models.Model):
+    title = models.CharField(max_length=100)
+    description = models.CharField(max_length=500)
+    issued = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, blank=False, null=False)
+    remote_url = models.URLField(blank=True)
+    file = models.FileField(upload_to=_contract_directory_path, blank=True)
+
+
+class DataAccessModel(models.Model):
+    title = models.CharField(max_length=100)
+    type = models.CharField(max_length=100, default="OPEN")
+    description = models.CharField(max_length=500)
+    issued = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
+    contract_url = models.URLField(blank=True)
+    contract = models.FileField(upload_to=_contract_directory_path, blank=True)
+    # license = models.ForeignKey(License, on_delete=models.CASCADE, blank=False, null=False)
+    license = models.CharField(max_length=100, default="not_specified")
+    quota_limit = models.IntegerField()
+    quota_limit_unit = models.CharField(blank=False)
+    rate_limit = models.IntegerField()
+    rate_limit_unit = models.CharField()
+    resources = models.ManyToManyField(Resource)

@@ -117,7 +117,7 @@ class ApiInputType(graphene.InputObjectType):
 class FileInputType(graphene.InputObjectType):
     # TODO: Add file format enum
     format = graphene.String(required=False)
-    file = Upload(required=True)
+    file = Upload(required=False)
     remote_url = graphene.String(required=False)
 
 
