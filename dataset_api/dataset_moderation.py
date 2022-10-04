@@ -68,6 +68,9 @@ class ModerationRequestMutation(graphene.Mutation, Output):
         dataset = Dataset.objects.get(id=data_request.dataset)
         moderation_request_instance.dataset = dataset
         moderation_request_instance.save()
+        # TODO: fix magic string
+        dataset.status = "UNDERMODERATION"
+        dataset.save()
         return ModerationRequestMutation(data_request=moderation_request_instance)
 
 
