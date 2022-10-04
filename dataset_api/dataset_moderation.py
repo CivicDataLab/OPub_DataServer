@@ -13,7 +13,7 @@ class ModerationRequestType(DjangoObjectType):
         fields = "__all__"
 
 
-class StatusType(graphene.Enum):
+class ModerationStatusType(graphene.Enum):
     REQUESTED = "REQUESTED"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
@@ -37,7 +37,7 @@ class Query(graphene.ObjectType):
 
 class ModerationRequestInput(graphene.InputObjectType):
     id = graphene.ID()
-    status = StatusType()
+    status = ModerationStatusType()
     description = graphene.String(required=True)
     dataset = graphene.String(required=True)
     remark = graphene.String(required=False)
@@ -46,7 +46,7 @@ class ModerationRequestInput(graphene.InputObjectType):
 
 class ModerationRequestUpdateInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
-    status = StatusType()
+    status = ModerationStatusType()
     remark = graphene.String(required=False)
 
 
