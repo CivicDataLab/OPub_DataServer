@@ -70,7 +70,7 @@ class CreateDataAccessModel(graphene.Mutation):
         data_access_model_data = DataAccessModelInput()
 
     data_access_model = graphene.Field(DataAccessModelType)
-
+    # TODO: Reject if no resources passed
     @staticmethod
     def mutate(root, info, data_access_model_data: DataAccessModelInput):
         dataset = Dataset.objects.get(id=data_access_model_data.dataset)
