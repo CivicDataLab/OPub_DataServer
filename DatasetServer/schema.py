@@ -13,13 +13,15 @@ import dataset_api.rating_schema
 import dataset_api.fetch_dataset
 import dataset_api.data_access_model_schema
 import dataset_api.dataset_moderation
+import dataset_api.data_access_model_request_schema
 
 
 class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Query, dataset_api.catalog_schema.Query,
             dataset_api.resource_schema.Query, dataset_api.tag_schema.Query, dataset_api.geography_schema.Query,
             dataset_api.api_source_schema.Query, dataset_api.api_resource_schema.Query, dataset_api.rating_schema.Query,
             dataset_api.sector_schema.Query, dataset_api.additional_info_schema.Query, dataset_api.fetch_dataset.Query,
-            dataset_api.data_access_model_schema.Query, dataset_api.dataset_moderation.Query, graphene.ObjectType):
+            dataset_api.data_access_model_schema.Query, dataset_api.dataset_moderation.Query,
+            dataset_api.data_access_model_request_schema.Query, graphene.ObjectType):
     pass
 
 
@@ -47,6 +49,8 @@ class Mutation(graphene.ObjectType):
     approve_reject_data_request = dataset_api.fetch_dataset.ApproveRejectDataRequest.Field()
     moderation_request = dataset_api.dataset_moderation.ModerationRequestMutation.Field()
     approve_reject_moderation_request = dataset_api.dataset_moderation.ApproveRejectModerationRequest.Field()
+    data_access_model_request = dataset_api.data_access_model_request_schema.DataAccessModelRequestMutation.Field()
+    approve_reject_data_access_model_request = dataset_api.data_access_model_request_schema.ApproveRejectDataAccessModelRequest.Field()
     create_data_access_model = dataset_api.data_access_model_schema.CreateDataAccessModel.Field()
 
 
