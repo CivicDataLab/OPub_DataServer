@@ -93,5 +93,9 @@ class ApproveRejectModerationRequest(graphene.Mutation, Output):
             dataset = moderation_request_instance.dataset
             dataset.status = "READYTOPUBLISH"
             dataset.save()
+        if moderation_request.status == "REJECTED":
+            dataset = moderation_request_instance.dataset
+            dataset.status = "DRAFT"
+            dataset.save()
         moderation_request_instance.save()
         return ApproveRejectModerationRequest(moderation_request=moderation_request_instance)
