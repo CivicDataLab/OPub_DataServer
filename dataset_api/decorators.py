@@ -9,15 +9,15 @@ def validate_token(func):
         user_token = args[1].context.META.get('HTTP_AUTHORIZATION')
         if user_token == "":
             print("Whoops! Empty user")
-            return {"Success": False, "error": "Empty user", "error_description": "Empty user"}
+            return {"success": False, "errors": {"user": [{"message": "Empty User", "code": "no_user"}]}}
 
         headers = {}
         body = json.dumps({"access_token": user_token.replace("Bearer ", "")})
         response = requests.request("POST", auth_url, data=body, headers=headers)
         response_json = json.loads(response.text)
         if not response_json['success']:
-            return {"Success": False, "error": response_json['error'],
-                    "error_description": response_json['error_description']}
+            return {"success": False, "errors": {
+                "user": [{"message": response_json['error_description'], "code": response_json['error']}]}}
 
         kwargs['username'] = response_json['preferred_username']
         return func(*args, **kwargs)
