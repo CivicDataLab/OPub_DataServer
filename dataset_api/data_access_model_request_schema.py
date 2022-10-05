@@ -64,7 +64,7 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
             purpose=data_access_model_request.purpose,
             description=data_access_model_request.description,
             user=username,
-            data_access_model_id=data_access_model_request.data_access_model
+            data_access_model_id=data_access_model
         )
         data_access_model_request_instance.save()
         data_access_model.save()
