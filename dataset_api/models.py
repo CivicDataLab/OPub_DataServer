@@ -266,3 +266,14 @@ class DataAccessModel(models.Model):
     rate_limit = models.IntegerField(blank=False)
     rate_limit_unit = models.CharField(blank=False, max_length=100)
     resources = models.ManyToManyField(Resource)
+
+
+class DataAccessModelRequest(models.Model):
+    data_access_model_id = models.ForeignKey(DataAccessModel, blank=False, null=False, on_delete=models.CASCADE)
+    user = models.CharField(max_length=50, blank=False, null=False)
+    status = models.CharField(max_length=20)
+    description = models.CharField(max_length=500)
+    remark = models.CharField(max_length=500, blank=True, null=True)
+    purpose = models.CharField(max_length=500, default="")
+    issued = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
