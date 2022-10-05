@@ -1,10 +1,9 @@
 import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
-from graphene_file_upload.scalars import Upload
 
-from .models import Resource, ModerationRequest, Dataset
 from .decorators import validate_token
+from .models import ModerationRequest, Dataset
 
 
 class ModerationRequestType(DjangoObjectType):
@@ -22,7 +21,7 @@ class ModerationStatusType(graphene.Enum):
 class Query(graphene.ObjectType):
     all_moderation_requests = graphene.List(ModerationRequestType)
     moderation_request = graphene.Field(ModerationRequestType, moderation_request_id=graphene.Int())
-    moderation_request_user = graphene.Field(ModerationRequestType)
+    moderation_request_user = graphene.List(ModerationRequestType)
 
     def resolve_all_moderation_requests(self, info, **kwargs):
         return ModerationRequest.objects.all()
@@ -32,7 +31,7 @@ class Query(graphene.ObjectType):
 
     @validate_token
     def resolve_moderation_request_user(self, info, username, **kwargs):
-        return ModerationRequest.objects.get(user=username)
+        return ModerationRequest.objects.filter(user=username)
 
 
 class ModerationRequestInput(graphene.InputObjectType):
