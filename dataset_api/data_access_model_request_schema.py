@@ -32,7 +32,7 @@ class Query(graphene.ObjectType):
 
     @validate_token
     def resolve_data_access_model_request_user(self, info, username, **kwargs):
-        return DataAccessModel.objects.filter(user=username)
+        return DataAccessModelRequest.objects.filter(user=username)
 
 
 class DataAccessModelRequestInput(graphene.InputObjectType):
