@@ -87,6 +87,8 @@ class CreateDataAccessModel(graphene.Mutation):
             rate_limit=data_access_model_data.rate_limit,
             rate_limit_unit=data_access_model_data.rate_limit_unit,
         )
+
+        data_access_model_instance.save()
         for resource_id in data_access_model_data.resources:
             try:
                 resource = Resource.objects.get(id=int(resource_id))
@@ -95,5 +97,5 @@ class CreateDataAccessModel(graphene.Mutation):
                 pass
         data_access_model_instance.save()
         # Update rating in elasticsearch
-        update_rating(data_access_model_instance)
-        return CreateDataAccessModel(dataset_rating=data_access_model_instance)
+        # update_rating(data_access_model_instance)
+        return CreateDataAccessModel(data_access_model=data_access_model_instance)

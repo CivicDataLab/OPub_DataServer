@@ -257,7 +257,7 @@ class DataAccessModel(models.Model):
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
-    contract_url = models.URLField(blank=True)
+    contract_url = models.URLField(blank=True, null=True)
     contract = models.FileField(upload_to=_contract_directory_path, blank=True)
     # license = models.ForeignKey(License, on_delete=models.CASCADE, blank=False, null=False)
     license = models.CharField(max_length=100, default="not_specified")
