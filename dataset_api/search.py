@@ -233,8 +233,7 @@ def facets(request):
         "sector",
         "format",
         "status",
-        "rating",
-        "query_string",
+        "rating"
     ]
     size = request.GET.get("size", "10")
     paginate_from = request.GET.get("from", "0")
@@ -252,7 +251,7 @@ def facets(request):
         "status": {"terms": {"field": "status.keyword"}},
         "rating": {"terms": {"field": "rating.keyword"}},
     }
-
+    
     if not query_string:
         # For filter search
         if len(request.GET.keys()) >= 1:
@@ -267,6 +266,7 @@ def facets(request):
             return HttpResponse(json.dumps(resp))
     else:
         # For faceted search with query string.
+        filters.append({"match": {"dataset_title": query_string}})
         query = {"bool": {"must": filters}}
         resp = es_client.search(
             index="dataset", aggs=agg, query=query, size=size, from_=paginate_from
