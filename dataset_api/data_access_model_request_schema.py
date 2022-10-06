@@ -3,7 +3,6 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
 from .decorators import validate_token
-from .fetch_dataset import PurposeType
 from .models import DataAccessModel, DataAccessModelRequest
 
 
@@ -17,6 +16,13 @@ class DataAccessModelRequestStatusType(graphene.Enum):
     REQUESTED = "REQUESTED"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+
+
+class PurposeType(graphene.Enum):
+    EDUCATION = "EDUCATION"
+    RESEARCH = "RESEARCH"
+    PERSONAL = "PERSONAL"
+    OTHERS = "OTHERS"
 
 
 class Query(graphene.ObjectType):

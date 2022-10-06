@@ -22,13 +22,6 @@ class StatusType(graphene.Enum):
     FETCHED = "FETCHED"
 
 
-class PurposeType(graphene.Enum):
-    EDUCATION = "EDUCATION"
-    RESEARCH = "RESEARCH"
-    PERSONAL = "PERSONAL"
-    OTHERS = "OTHERS"
-
-
 class Query(graphene.ObjectType):
     all_data_requests = graphene.List(DataRequestType)
     data_request = graphene.Field(DataRequestType, data_request_id=graphene.Int())
