@@ -31,14 +31,14 @@ class Query(graphene.ObjectType):
     data_access_model_request_user = graphene.List(DataAccessModelRequestType)
 
     def resolve_all_data_access_model_requests(self, info, **kwargs):
-        return DataAccessModelRequest.objects.all()
+        return DataAccessModelRequest.objects.all().order_by("-modified")
 
     def resolve_data_access_model_request(self, info, data_access_model_request_id):
         return DataAccessModelRequest.objects.get(pk=data_access_model_request_id)
 
     @validate_token
     def resolve_data_access_model_request_user(self, info, username, **kwargs):
-        return DataAccessModelRequest.objects.filter(user=username)
+        return DataAccessModelRequest.objects.filter(user=username).order_by("-modified")
 
 
 class DataAccessModelRequestInput(graphene.InputObjectType):

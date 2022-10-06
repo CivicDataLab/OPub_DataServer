@@ -18,10 +18,10 @@ class Query(graphene.ObjectType):
     data_access_model = graphene.Field(DataAccessModelType, data_access_model_id=graphene.Int())
 
     def resolve_all_data_access_models(self, info, **kwargs):
-        return DataAccessModel.objects.all()
+        return DataAccessModel.objects.all().order_by("-modified")
 
     def resolve_dataset_data_access_models(self, info, dataset_id):
-        return DataAccessModel.objects.filter(dataset=dataset_id)
+        return DataAccessModel.objects.filter(dataset=dataset_id).order_by("-modified")
 
     def resolve_data_access_model(self, info, data_access_model_id):
         return DataAccessModel.objects.get(pk=data_access_model_id)

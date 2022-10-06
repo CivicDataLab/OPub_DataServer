@@ -15,7 +15,7 @@ class Query(graphene.ObjectType):
     organization = graphene.Field(OrganizationType, organization_id=graphene.Int())
 
     def resolve_all_organizations(self, info, **kwargs):
-        return Organization.objects.all()
+        return Organization.objects.all().order_by("-modified")
 
     def resolve_organizaiton(self, info, organizaiton_id):
         return Organization.objects.get(pk=organizaiton_id)

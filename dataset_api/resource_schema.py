@@ -86,7 +86,7 @@ class Query(graphene.ObjectType):
     resource_dataset = graphene.List(ResourceType, dataset_id=graphene.Int())
 
     def resolve_all_resources(self, info, **kwargs):
-        return Resource.objects.all()
+        return Resource.objects.all().order_by("-modified")
 
     def resolve_resource(self, info, resource_id):
         return Resource.objects.get(pk=resource_id)
@@ -102,7 +102,7 @@ class Query(graphene.ObjectType):
             return file.columns.tolist()
 
     def resolve_resource_dataset(self, info, dataset_id):
-        return Resource.objects.filter(dataset=dataset_id)
+        return Resource.objects.filter(dataset=dataset_id).order_by("-modified")
 
 
 class ResponseType(graphene.Enum):
