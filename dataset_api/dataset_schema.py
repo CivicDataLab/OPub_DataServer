@@ -44,7 +44,7 @@ class Query(graphene.ObjectType):
     dataset = graphene.Field(DatasetType, dataset_id=graphene.Int())
 
     def resolve_all_datasets(self, info, **kwargs):
-        return Dataset.objects.all()
+        return Dataset.objects.all().order_by("-modified")
 
     def resolve_dataset(self, info, dataset_id):
         return Dataset.objects.get(pk=dataset_id)

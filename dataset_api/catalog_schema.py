@@ -15,7 +15,7 @@ class Query(graphene.ObjectType):
     catalog = graphene.Field(CatalogType, catalog_id=graphene.Int())
 
     def resolve_all_catalog(self, info, **kwargs):
-        return Catalog.objects.all()
+        return Catalog.objects.all().order_by("-modified")
 
     def resolve_catalog(self, info, catalog_id):
         return Catalog.objects.get(pk=catalog_id)
