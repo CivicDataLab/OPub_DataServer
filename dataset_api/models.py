@@ -214,21 +214,6 @@ class AdditionalInfo(models.Model):
     file = models.FileField(upload_to=_info_directory_path, blank=True)
 
 
-class DataRequest(models.Model):
-    status = models.CharField(max_length=20)
-    description = models.CharField(max_length=500)
-    remark = models.CharField(max_length=500, blank=True)
-    purpose = models.CharField(max_length=500, default="")
-    resource = models.ManyToManyField(Resource)
-    api_resource = models.ManyToManyField(APIResource)
-    file = models.FileField(
-        upload_to=_data_request_directory_path, blank=True, null=True
-    )
-    creation_date = models.DateTimeField(auto_now_add=True, null=True)
-    reject_reason = models.CharField(max_length=500, blank=True)
-    user = models.CharField(max_length=50)
-
-
 class ModerationRequest(models.Model):
     status = models.CharField(max_length=20)
     description = models.CharField(max_length=500)
@@ -277,3 +262,15 @@ class DataAccessModelRequest(models.Model):
     purpose = models.CharField(max_length=500, default="")
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
+
+
+class DataRequest(models.Model):
+    status = models.CharField(max_length=20)
+    resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
+    file = models.FileField(
+        upload_to=_data_request_directory_path, blank=True, null=True
+    )
+    creation_date = models.DateTimeField(auto_now_add=True, null=True)
+    reject_reason = models.CharField(max_length=500, blank=True)
+    data_access_model_request = models.ForeignKey(DataAccessModelRequest, on_delete=models.CASCADE)
+    user = models.CharField(max_length=50)

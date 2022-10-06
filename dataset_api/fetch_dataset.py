@@ -4,7 +4,7 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from graphene_file_upload.scalars import Upload
 
-from .models import Resource, DataRequest, APIResource
+from .models import Resource, DataRequest, APIResource, DataAccessModelRequest
 from .decorators import validate_token
 
 
@@ -16,8 +16,6 @@ class DataRequestType(DjangoObjectType):
 
 class StatusType(graphene.Enum):
     REQUESTED = "REQUESTED"
-    APPROVED = "APPROVED"
-    REJECTED = "REJECTED"
     FULFILLED = "FULFILLED"
     FETCHED = "FETCHED"
 
@@ -39,20 +37,13 @@ class Query(graphene.ObjectType):
 
 
 class DataRequestInput(graphene.InputObjectType):
-    id = graphene.ID()
-    status = StatusType()
-    purpose = PurposeType()
-    description = graphene.String(required=True)
-    remark = graphene.String(required=False)
-    file = Upload(required=False)
-    resource_list = graphene.List(of_type=graphene.String, required=True)
-    reject_reason = graphene.String(required=False)
+    data_access_model_request = graphene.ID(required=True)
+    resource = graphene.ID(required=True)
 
 
 class DataRequestUpdateInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
     status = StatusType()
-    remark = graphene.String(required=False)
     file = Upload(required=False)
 
 
@@ -63,31 +54,35 @@ class DataRequestMutation(graphene.Mutation, Output):
     data_request = graphene.Field(DataRequestType)
 
     @staticmethod
-    @validate_token
-    def mutate(root, info, data_request: DataRequestInput = None, username=None):
-        print(root, info)
-        # To do: Check if resource id's provided exists!!
+    # @validate_token
+    def mutate(root, info, data_request: DataRequestInput = None, username="abhinav"):
+        # TODO: Check if resource id's provided exists!!
+        try:
+            resource = Resource.objects.get(id=data_request.resource)
+            dam_request = DataAccessModelRequest(id=data_request.data_access_model_request)
+        except (Resource.DoesNotExist, DataAccessModelRequest.DoesNotExist) as e:
+            return {"success": False,
+                    "errors": {
+                        "id": [{"message": "Data Access Model or resource with given id not found", "code": "404"}]}}
         data_request_instance = DataRequest(
-            status=data_request.status,
-            description=data_request.description,
-            remark=data_request.remark,
-            purpose=data_request.purpose,
+            status="REQUESTED",
             user=username,
-            file=data_request.file
+            resource=resource,
+            data_access_model_request=dam_request
         )
         data_request_instance.save()
-        for resource_id in data_request.resource_list:
-            try:
-                resource = Resource.objects.get(id=int(resource_id))
-                data_request_instance.resource.add(resource)
-            except Resource.DoesNotExist as e:
-                pass
-            try:
-                resource = APIResource.objects.get(id=int(resource_id))
-                data_request_instance.api_resource.add(resource)
-            except APIResource.DoesNotExist as e:
-                pass
-
+        # TODO: fix magic strings
+        # TODO: Move pipeline url to config
+        if resource and resource.dataset.dataset_type == "API":
+            url = f"https://pipeline.ndp.civicdatalab.in/transformer/api_source_query?api_source_id={resource.id}&request_id={data_request.id}"
+            payload = {}
+            headers = {}
+            response = requests.request("GET", url, headers=headers, data=payload)
+            print(response.text)
+        elif resource and resource.dataset.dataset_type == "FILE":
+            data_request_instance.file = resource.filedetails.file
+            data_request_instance.status = "FETCHED"
+        data_request_instance.save()
         return DataRequestMutation(data_request=data_request_instance)
 
 
@@ -102,8 +97,6 @@ class DataRequestUpdateMutation(graphene.Mutation, Output):
         data_request_instance = DataRequest.objects.get(id=data_request.id)
         if data_request_instance:
             data_request_instance.status = data_request.status
-            if data_request.remark:
-                data_request_instance.remark = data_request.remark
             data_request_instance.file = data_request.file
         data_request_instance.save()
         return DataRequestUpdateMutation(data_request=data_request_instance)
