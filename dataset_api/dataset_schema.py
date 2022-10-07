@@ -3,7 +3,7 @@ from graphene_django import DjangoObjectType
 
 from .models import Dataset, Catalog, Tag, Geography, Sector
 from .search import update_dataset
-
+from .decorators import validate_token
 
 class DatasetType(DjangoObjectType):
     class Meta:
@@ -139,3 +139,25 @@ class UpdateDataset(graphene.Mutation):
 
             return UpdateDataset(dataset=dataset_instance)
         return UpdateDataset(dataset=None)
+
+class PatchDataset(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+        funnel = graphene.String()
+        status = graphene.String()
+    
+    success = graphene.Boolean()
+    dataset = graphene.Field(DatasetType)
+    
+    @validate_token
+    def mutate(root, info, username, id, funnel=None, status=None):
+        try:
+            dataset_instance = Dataset.objects.get(id=id)
+        except Dataset.DoesNotExist as e:
+            return {"success": False, "errors": {"id": [{"message": "Dataset with given id not found", "code": "404"}]}}
+        if status:
+            dataset_instance.status = status
+        if funnel:
+            dataset_instance.funnel = funnel
+        dataset_instance.save()
+        return PatchDataset(success=True, dataset=dataset_instance)
