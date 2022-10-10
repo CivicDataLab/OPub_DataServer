@@ -3,7 +3,6 @@ from graphene_django import DjangoObjectType
 
 from .models import Organization
 
-
 class OrganizationType(DjangoObjectType):
     class Meta:
         model = Organization
@@ -17,8 +16,8 @@ class Query(graphene.ObjectType):
     def resolve_all_organizations(self, info, **kwargs):
         return Organization.objects.all().order_by("-modified")
 
-    def resolve_organizaiton(self, info, organizaiton_id):
-        return Organization.objects.get(pk=organizaiton_id)
+    def resolve_organization(self, info, organization_id):
+        return Organization.objects.get(pk=organization_id)
 
 
 class OrganizationInput(graphene.InputObjectType):

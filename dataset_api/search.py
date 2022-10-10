@@ -2,6 +2,7 @@ from django.conf import settings
 from elasticsearch import Elasticsearch
 from django.http import HttpResponse
 import json
+
 # from django.utils.datastructures import MultiValueDictKeyError
 
 # import warnings
@@ -15,7 +16,7 @@ from .models import (
     DatasetRatings,
     APISource,
     APIResource,
-    FileDetails
+    FileDetails,
 )
 
 es_client = Elasticsearch(settings.ELASTICSEARCH)
@@ -238,11 +239,25 @@ def facets(request):
     size = request.GET.get("size", "10")
     paginate_from = request.GET.get("from", "0")
     query_string = request.GET.get("q")
-
+    sort_order = request.GET.get("sort", "")
+    org = request.GET.get("organization", "")
+    
+    if sort_order:
+        if sort_order == "last_modified":
+            sort_mapping = {"dataset_modified": {"order": "desc"}}
+        else:
+            sort_mapping = {"resource_title.keyword": {"order": sort_order}}
+    else:
+        sort_mapping = {}
+    
+    # Creating query for faceted search (filters).
     for value in facet:
         if request.GET.get(value):
             filters.append({"match": {f"{value}": request.GET.get(value)}})
+    if org:
+        filters.append({"match": {"org_title": org}})
 
+    # Query for aggregations (facets).
     agg = {
         "license": {"terms": {"field": "license.keyword"}},
         "geography": {"terms": {"field": "geography.keyword"}},
@@ -250,14 +265,20 @@ def facets(request):
         "format": {"terms": {"field": "format.keyword"}},
         "status": {"terms": {"field": "status.keyword"}},
         "rating": {"terms": {"field": "rating.keyword"}},
+        "org": {"terms": {"field": "org_title.keyword"}}
     }
-    
+
     if not query_string:
         # For filter search
         if len(request.GET.keys()) >= 1:
             query = {"bool": {"must": filters}}
             resp = es_client.search(
-                index="dataset", aggs=agg, query=query, size=size, from_=paginate_from
+                index="dataset",
+                aggs=agg,
+                query=query,
+                size=size,
+                from_=paginate_from,
+                sort=sort_mapping,
             )
             return HttpResponse(json.dumps(resp))
         else:
@@ -269,7 +290,12 @@ def facets(request):
         filters.append({"match": {"dataset_title": query_string}})
         query = {"bool": {"must": filters}}
         resp = es_client.search(
-            index="dataset", aggs=agg, query=query, size=size, from_=paginate_from
+            index="dataset",
+            aggs=agg,
+            query=query,
+            size=size,
+            from_=paginate_from,
+            sort=sort_mapping,
         )
         return HttpResponse(json.dumps(resp))
 
@@ -278,6 +304,15 @@ def search(request):
     query_string = request.GET.get("q", "")
     size = request.GET.get("size", "10")
     paginate_from = request.GET.get("from", "0")
+    sort_order = request.GET.get("sort", "")
+
+    if sort_order:
+        if sort_order == "last_modified":
+            sort_mapping = {"dataset_modified": {"order": "desc"}}
+        else:
+            sort_mapping = {"resource_title.keyword": {"order": sort_order}}
+    else:
+        sort_mapping = {}
 
     if query_string != "":
         query = {"match": {"dataset_title": {"query": query_string, "operator": "AND"}}}
@@ -285,9 +320,23 @@ def search(request):
         query = {"match_all": {}}
 
     resp = es_client.search(
-        index="dataset", query=query, size=size, from_=paginate_from
+        index="dataset", query=query, size=size, from_=paginate_from, sort=sort_mapping
     )
     return HttpResponse(json.dumps(resp["hits"]))
+
+
+def more_like_this(request):
+    id = request.GET.get("q", "")
+    if id:
+        query = {
+            "more_like_this": {
+                "like": [{"_index": "dataset", "_id": f"{id}"}],
+                "min_term_freq": 1,
+                "max_query_terms": 10,
+            }
+        }
+        resp = es_client.search(index="dataset", query=query)
+        return HttpResponse(json.dumps(resp["hits"]))
 
 
 def reindex_data():
