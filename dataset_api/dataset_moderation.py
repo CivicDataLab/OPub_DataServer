@@ -24,14 +24,14 @@ class Query(graphene.ObjectType):
     moderation_request_user = graphene.List(ModerationRequestType)
 
     def resolve_all_moderation_requests(self, info, **kwargs):
-        return ModerationRequest.objects.all()
+        return ModerationRequest.objects.all().order_by("-modified_date")
 
     def resolve_moderation_request(self, info, moderation_request_id):
         return ModerationRequest.objects.get(pk=moderation_request_id)
 
     @validate_token
     def resolve_moderation_request_user(self, info, username, **kwargs):
-        return ModerationRequest.objects.filter(user=username)
+        return ModerationRequest.objects.filter(user=username).order_by("-modified_date")
 
 
 class ModerationRequestInput(graphene.InputObjectType):
