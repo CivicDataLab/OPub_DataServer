@@ -146,3 +146,6 @@ cython_debug/
 resources/
 info/
 request/
+
+#environment
+.env
