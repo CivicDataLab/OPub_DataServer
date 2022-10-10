@@ -1,7 +1,7 @@
 import requests
 import json
 
-auth_url = 'https://auth.idp.civicdatalab.in/users/verify_token'
+auth_url = 'https://auth.idp.civicdatalab.in/users/verify_user_token'
 
 
 def validate_token(func):
