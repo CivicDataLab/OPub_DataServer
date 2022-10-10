@@ -5,6 +5,7 @@ backports.zoneinfo==0.2.1;python_version<"3.9"
 certifi==2022.6.15
 Django==4.0.7
 django-cors-headers==3.13.0
+django-environ==0.9.0
 django-filter==22.1
 django-graphiql==0.4.4
 django-graphql-auth==0.3.16
