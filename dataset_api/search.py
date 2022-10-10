@@ -234,13 +234,14 @@ def facets(request):
         "sector",
         "format",
         "status",
-        "rating",
+        "rating"
     ]
     size = request.GET.get("size", "10")
     paginate_from = request.GET.get("from", "0")
     query_string = request.GET.get("q")
     sort_order = request.GET.get("sort", "")
-
+    org = request.GET.get("organization", "")
+    
     if sort_order:
         if sort_order == "last_modified":
             sort_mapping = {"dataset_modified": {"order": "desc"}}
@@ -248,13 +249,15 @@ def facets(request):
             sort_mapping = {"resource_title.keyword": {"order": sort_order}}
     else:
         sort_mapping = {}
-
-    print(sort_mapping)
-
+    
+    # Creating query for faceted search (filters).
     for value in facet:
         if request.GET.get(value):
             filters.append({"match": {f"{value}": request.GET.get(value)}})
+    if org:
+        filters.append({"match": {"org_title": org}})
 
+    # Query for aggregations (facets).
     agg = {
         "license": {"terms": {"field": "license.keyword"}},
         "geography": {"terms": {"field": "geography.keyword"}},
@@ -262,6 +265,7 @@ def facets(request):
         "format": {"terms": {"field": "format.keyword"}},
         "status": {"terms": {"field": "status.keyword"}},
         "rating": {"terms": {"field": "rating.keyword"}},
+        "org": {"terms": {"field": "org_title.keyword"}}
     }
 
     if not query_string:
