@@ -1,7 +1,7 @@
 import graphene
 from graphene_django import DjangoObjectType
 
-from .models import Dataset, Catalog, Tag, Geography, Sector
+from .models import Dataset, Catalog, Tag, Geography, Sector, Organization
 from .search import update_dataset
 from .decorators import validate_token
 
@@ -56,7 +56,7 @@ class DatasetInput(graphene.InputObjectType):
     id = graphene.ID()
     title = graphene.String(required=True)
     description = graphene.String(required=True)
-    catalog = graphene.ID(required=True)
+    organization = graphene.ID(required=True)
     remote_issued = graphene.DateTime(required=False)
     remote_modified = graphene.DateTime(required=False)
     period_from = graphene.Date()
@@ -79,7 +79,9 @@ class CreateDataset(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, dataset_data: DatasetInput = None):
-        catalog = Catalog.objects.get(id=dataset_data.catalog)
+        organization = Organization.objects.get(id=dataset_data.organization)
+        catalog = Catalog.objects.filter(organization=organization)[0]
+        # catalog = organization.objects.select_related('catalog').all(0)
         # print(dataset_data)
         dataset_instance = Dataset(
             title=dataset_data.title,
@@ -107,11 +109,11 @@ class UpdateDataset(graphene.Mutation):
         dataset_data = DatasetInput()
 
     dataset = graphene.Field(DatasetType)
-
     @staticmethod
     def mutate(root, info, dataset_data: DatasetInput = None):
         dataset_instance = Dataset.objects.get(id=dataset_data.id)
-        catalog = Catalog.objects.get(id=dataset_data.catalog)
+        organization = Organization.objects.get(id=dataset_data.organization)
+        catalog = Catalog.objects.filter(organization=organization)[0]
         if dataset_instance:
             dataset_instance.title = dataset_data.title
             dataset_instance.description = dataset_data.description
