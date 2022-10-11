@@ -27,6 +27,8 @@ class DatasetStatus(graphene.Enum):
 
 
 def _add_update_attributes_to_dataset(dataset_instance, object_field, attribute_list, attribute_type):
+    if not attribute_list:
+        return
     dataset_attribute = getattr(dataset_instance, object_field)
     dataset_attribute.clear()
     for attribute in attribute_list:
@@ -54,8 +56,7 @@ class DatasetInput(graphene.InputObjectType):
     id = graphene.ID()
     title = graphene.String(required=True)
     description = graphene.String(required=True)
-    catalog = graphene.String(required=True)
-    license = graphene.String(required=True)
+    catalog = graphene.ID(required=True)
     remote_issued = graphene.DateTime(required=False)
     remote_modified = graphene.DateTime(required=False)
     period_from = graphene.Date()
@@ -65,7 +66,6 @@ class DatasetInput(graphene.InputObjectType):
     funnel = graphene.String(required=False, default_value='upload')
     action = graphene.String(required=False, default_value='create data')
     status = graphene.String(required=True)
-    access_type = graphene.String(required=True)
     tags_list = graphene.List(of_type=graphene.String, default=[], required=False)
     geo_list = graphene.List(of_type=graphene.String, default=[], required=False)
     sector_list = graphene.List(of_type=graphene.String, default=[], required=False)
@@ -84,13 +84,11 @@ class CreateDataset(graphene.Mutation):
         dataset_instance = Dataset(
             title=dataset_data.title,
             description=dataset_data.description,
-            License=dataset_data.license,
             remote_issued=dataset_data.remote_issued,
             remote_modified=dataset_data.remote_modified,
             funnel=dataset_data.funnel,
             action=dataset_data.action,
             status=dataset_data.status,
-            access_type=dataset_data.access_type,
             catalog=catalog,
             period_to=dataset_data.period_to,
             period_from=dataset_data.period_from,
@@ -117,13 +115,11 @@ class UpdateDataset(graphene.Mutation):
         if dataset_instance:
             dataset_instance.title = dataset_data.title
             dataset_instance.description = dataset_data.description
-            dataset_instance.License = dataset_data.license
             dataset_instance.remote_issued = dataset_data.remote_issued
             dataset_instance.remote_modified = dataset_data.remote_modified
             dataset_instance.funnel = dataset_data.funnel
             dataset_instance.action = dataset_data.action
             dataset_instance.status = dataset_data.status
-            dataset_instance.access_type = dataset_data.access_type
             dataset_instance.catalog = catalog
             dataset_instance.period_to = dataset_data.period_to
             dataset_instance.period_from = dataset_data.period_from
