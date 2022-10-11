@@ -252,6 +252,10 @@ class DataAccessModel(models.Model):
     rate_limit_unit = models.CharField(blank=False, max_length=100)
     resources = models.ManyToManyField(Resource)
 
+class AccessModelResource(models.Model):
+    resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
+    fields = ArrayField(models.CharField(max_length=25, blank=False), blank=False, null=False)
+    data_access_model_id = models.ForeignKey(DataAccessModel, on_delete=models.CASCADE)
 
 class DataAccessModelRequest(models.Model):
     data_access_model_id = models.ForeignKey(DataAccessModel, blank=False, null=False, on_delete=models.CASCADE)
