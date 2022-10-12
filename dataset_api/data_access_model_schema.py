@@ -120,13 +120,16 @@ class CreateAccessModelResource(graphene.Mutation):
         try:
             data_access_instance = DataAccessModel.objects.get(id=access_model_resource_data.access_model_id)
             resource_instance = Resource.objects.get(id=access_model_resource_data.resource_id)
-        except (Resource.DoesNotExist, DataAccessModel.DoesNotExist) as e:
-            pass
-        access_model_resource_instance = AccessModelResource(
-            resource_id = resource_instance.id,
-            fields = access_model_resource_data.fields,
-            data_access_model_id = data_access_instance
-        )
+        
+            access_model_resource_instance = AccessModelResource(
+                resource_id = resource_instance.id,
+                fields = access_model_resource_data.fields,
+                data_access_model_id = data_access_instance
+            )
+        except Resource.DoesNotExist as e:
+            return {"success": False, "errors": {"id": [{"message": "Resource id not found", "code": "404"}]}}
+        except DataAccessModel.DoesNotExist as e:
+            return {"success": False, "errors": {"id": [{"message": "Access Model id not found", "code": "404"}]}}
         
         access_model_resource_instance.save()
         return CreateAccessModelResource(access_model_resource=access_model_resource_instance)
