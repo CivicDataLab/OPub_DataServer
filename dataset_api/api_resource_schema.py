@@ -7,6 +7,7 @@ from .models import Dataset, ResourceSchema, APIResource, APISource
 from .resource_schema import ResourceSchemaType, ResourceSchemaInputType
 from .search import index_api_resource, update_api_resource, delete_api_resource
 
+
 class APIResourceType(DjangoObjectType):
     schema = graphene.List(ResourceSchemaType)
 
@@ -35,6 +36,7 @@ class Query(graphene.ObjectType):
 
     def resolve_api_resource_dataset(self, info, dataset_id):
         return APIResource.objects.get(dataset=dataset_id)
+
 
 # class ResponseType(graphene.Enum):
 #     JSON = "JSON"
@@ -80,7 +82,7 @@ class CreateAPIResource(graphene.Mutation, Output):
             url_path=api_resource_data.url_path,
         )
         api_resource_instance.save()
-        
+
         for schema in api_resource_data.schema:
             schema_instance = ResourceSchema(
                 key=schema.key,
@@ -134,7 +136,7 @@ class UpdateAPIResource(graphene.Mutation, Output):
                     UpdateAPIResource.create_resource_schema_instance(
                         api_resource_instance, schema
                     )
-            
+
             # Update data in Elasticsearch
             update_api_resource(api_resource_instance)
             return UpdateAPIResource(success=True, api_resource=api_resource_instance)
@@ -157,7 +159,7 @@ class DeleteAPIResource(graphene.Mutation):
 
     # resource = graphene.Field(APIResourceType)
     success = graphene.String()
-    
+
     @staticmethod
     def mutate(root, info, id):
         resource_instance = APIResource.objects.get(id=id)

@@ -5,6 +5,7 @@ from .models import Dataset, Catalog, Tag, Geography, Sector
 from .search import update_dataset
 from .decorators import validate_token
 
+
 class DatasetType(DjangoObjectType):
     class Meta:
         model = Dataset
@@ -136,15 +137,16 @@ class UpdateDataset(graphene.Mutation):
             return UpdateDataset(dataset=dataset_instance)
         return UpdateDataset(dataset=None)
 
+
 class PatchDataset(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
         funnel = graphene.String()
         status = graphene.String()
-    
+
     success = graphene.Boolean()
     dataset = graphene.Field(DatasetType)
-    
+
     @validate_token
     def mutate(root, info, username, id, funnel=None, status=None):
         try:
