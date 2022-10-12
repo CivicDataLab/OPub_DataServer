@@ -104,7 +104,6 @@ class CreateDataset(graphene.Mutation):
         return CreateDataset(dataset=dataset_instance)
 
 
-
 class UpdateDataset(graphene.Mutation):
     class Arguments:
         dataset_data = DatasetInput()
