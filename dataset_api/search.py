@@ -224,20 +224,15 @@ def delete_data(id):
 
 def facets(request):
     filters = []  # List of queries for elasticsearch to filter up on.
-    facet = [
-        "license",
-        "geography",
-        "sector",
-        "format",
-        "status",
-        "rating"
-    ]
+    facet = ["license", "geography", "sector", "format", "status", "rating"]
     size = request.GET.get("size", "10")
     paginate_from = request.GET.get("from", "0")
     query_string = request.GET.get("q")
-    sort_order = request.GET.get("sort", "")
-    org = request.GET.get("organization", "")
-    
+    sort_order = request.GET.get("sort", None)
+    org = request.GET.get("organization", None)
+    start_date = request.GET.get("start_date", None)
+    end_date = request.GET.get("end_date", None)
+
     if sort_order:
         if sort_order == "last_modified":
             sort_mapping = {"dataset_modified": {"order": "desc"}}
@@ -245,13 +240,24 @@ def facets(request):
             sort_mapping = {"resource_title.keyword": {"order": sort_order}}
     else:
         sort_mapping = {}
-    
+
     # Creating query for faceted search (filters).
     for value in facet:
         if request.GET.get(value):
             filters.append({"match": {f"{value}": request.GET.get(value)}})
     if org:
-        filters.append({"match": {"org_title": org}})
+        filters.append({"match": {"org_title": {"query": org, "operator": "AND"}}})
+    if start_date and end_date:
+        filters.append(
+            {
+                "bool": {
+                    "must_not": [
+                        {"range": {"period_to": {"lte": start_date}}},
+                        {"range": {"period_from": {"gte": end_date}}},
+                    ]
+                }
+            }
+        )
 
     # Query for aggregations (facets).
     agg = {
@@ -261,7 +267,7 @@ def facets(request):
         "format": {"terms": {"field": "format.keyword"}},
         "status": {"terms": {"field": "status.keyword"}},
         "rating": {"terms": {"field": "rating.keyword"}},
-        "org": {"terms": {"field": "org_title.keyword"}}
+        "organization": {"terms": {"field": "org_title.keyword"}},
     }
 
     if not query_string:
@@ -283,7 +289,9 @@ def facets(request):
             return HttpResponse(json.dumps(resp))
     else:
         # For faceted search with query string.
-        filters.append({"match": {"dataset_title": query_string}})
+        filters.append(
+            {"match": {"dataset_title": {"query": query_string, "operator": "AND"}}}
+        )
         query = {"bool": {"must": filters}}
         resp = es_client.search(
             index="dataset",
@@ -297,10 +305,10 @@ def facets(request):
 
 
 def search(request):
-    query_string = request.GET.get("q", "")
+    query_string = request.GET.get("q", None)
     size = request.GET.get("size", "10")
     paginate_from = request.GET.get("from", "0")
-    sort_order = request.GET.get("sort", "")
+    sort_order = request.GET.get("sort", None)
 
     if sort_order:
         if sort_order == "last_modified":
@@ -310,7 +318,7 @@ def search(request):
     else:
         sort_mapping = {}
 
-    if query_string != "":
+    if query_string:
         query = {"match": {"dataset_title": {"query": query_string, "operator": "AND"}}}
     else:
         query = {"match_all": {}}
@@ -322,11 +330,11 @@ def search(request):
 
 
 def more_like_this(request):
-    id = request.GET.get("q", "")
+    id = request.GET.get("q", None)
     if id:
         query = {
             "more_like_this": {
-                "like": [{"_index": "dataset", "_id": f"{id}"}],
+                "like": [{"_index": "dataset", "_id": id}],
                 "min_term_freq": 1,
                 "max_query_terms": 10,
             }
