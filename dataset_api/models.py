@@ -60,7 +60,7 @@ def _data_request_directory_path(request, filename):
 
 
 class Organization(models.Model):
-    title = models.CharField(max_length=100)
+    title = models.CharField(max_length=100, unique=True)
     description = models.CharField(max_length=500)
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
