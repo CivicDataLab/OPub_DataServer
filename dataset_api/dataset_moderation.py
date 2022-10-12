@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
@@ -43,8 +45,8 @@ class ModerationRequestInput(graphene.InputObjectType):
     reject_reason = graphene.String(required=False)
 
 
-class ModerationRequestUpdateInput(graphene.InputObjectType):
-    id = graphene.ID(required=True)
+class ModerationRequestsApproveRejectInput(graphene.InputObjectType):
+    ids: Iterable = graphene.List(graphene.ID, required=True)
     status = ModerationStatusType()
     remark = graphene.String(required=False)
 
@@ -73,28 +75,40 @@ class ModerationRequestMutation(graphene.Mutation, Output):
         return ModerationRequestMutation(moderation_request=moderation_request_instance)
 
 
-class ApproveRejectModerationRequest(graphene.Mutation, Output):
+class ApproveRejectModerationRequests(graphene.Mutation, Output):
     class Arguments:
-        moderation_request = ModerationRequestUpdateInput()
+        moderation_request = ModerationRequestsApproveRejectInput()
 
-    moderation_request = graphene.Field(ModerationRequestType)
+    moderation_requests = graphene.List(of_type=ModerationRequestType)
 
     @staticmethod
-    def mutate(root, info, moderation_request: ModerationRequestUpdateInput = None):
-        moderation_request_instance = ModerationRequest.objects.get(id=moderation_request.id)
-        # TODO: change to try except
-        if moderation_request_instance:
-            moderation_request_instance.status = moderation_request.status
-            if moderation_request.remark:
-                moderation_request_instance.remark = moderation_request.remark
-        #     TODO: FIX magic strings
-        if moderation_request.status == "APPROVED":
-            dataset = moderation_request_instance.dataset
-            dataset.status = "PUBLISHED"
-            dataset.save()
-        if moderation_request.status == "REJECTED":
-            dataset = moderation_request_instance.dataset
-            dataset.status = "DRAFT"
-            dataset.save()
-        moderation_request_instance.save()
-        return ApproveRejectModerationRequest(moderation_request=moderation_request_instance)
+    def mutate(root, info, moderation_request: ModerationRequestsApproveRejectInput = None):
+        errors = []
+        moderation_requests = []
+        for id in moderation_request.ids:
+            try:
+                moderation_request_instance = ModerationRequest.objects.get(id=id)
+            except ModerationRequest.DoesNotExist as e:
+                errors.append({"message": f"Moderation request with id {id} does not exist", "code": "404"})
+                continue
+
+            if moderation_request_instance:
+                moderation_request_instance.status = moderation_request.status
+                if moderation_request.remark:
+                    moderation_request_instance.remark = moderation_request.remark
+            #     TODO: FIX magic strings
+            if moderation_request.status == "APPROVED":
+                dataset = moderation_request_instance.dataset
+                dataset.status = "PUBLISHED"
+                dataset.save()
+            if moderation_request.status == "REJECTED":
+                dataset = moderation_request_instance.dataset
+                dataset.status = "DRAFT"
+                dataset.save()
+            moderation_request_instance.save()
+            moderation_requests.append(moderation_request_instance)
+        if errors:
+            return {"success": False,
+                    "errors": {"ids": errors}}
+
+        return ApproveRejectModerationRequests(moderation_requests=moderation_requests)
