@@ -13,7 +13,7 @@ class OrganizationType(DjangoObjectType):
 class Query(graphene.ObjectType):
     all_organizations = graphene.List(OrganizationType)
     organization = graphene.Field(OrganizationType, organization_id=graphene.Int())
-    organization_by_title = graphene.Field(OrganizationType, organization_title=graphene.Int())
+    organization_by_title = graphene.Field(OrganizationType, organization_title=graphene.String())
 
     def resolve_all_organizations(self, info, **kwargs):
         return Organization.objects.all().order_by("-modified")
@@ -22,7 +22,7 @@ class Query(graphene.ObjectType):
         return Organization.objects.get(pk=organization_id)
 
     def resolve_organization_by_title(self, info, organization_title):
-        return Organization.objects.get(title=organization_title)
+        return Organization.objects.get(title__iexact=organization_title)
 
 
 class OrganizationInput(graphene.InputObjectType):
