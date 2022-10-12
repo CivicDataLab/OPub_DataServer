@@ -22,8 +22,10 @@ class Query(graphene.ObjectType):
 
 class OrganizationInput(graphene.InputObjectType):
     id = graphene.ID()
-    title = graphene.String()
-    description = graphene.String()
+    title = graphene.String(required=True)
+    description = graphene.String(required=True)
+    homepage = graphene.String(required=False)
+    contact = graphene.String(required=False)
 
 
 class CreateOrganization(graphene.Mutation):
@@ -33,10 +35,12 @@ class CreateOrganization(graphene.Mutation):
     organization = graphene.Field(OrganizationType)
 
     @staticmethod
-    def mutate(root, info, organization_data=None):
+    def mutate(root, info, organization_data: OrganizationInput = None):
         organization_instance = Organization(
             title=organization_data.title,
             description=organization_data.description,
+            contact_email=organization_data.contact,
+            homepage=organization_data.homepage
         )
         organization_instance.save()
         return CreateOrganization(organization=organization_instance)
