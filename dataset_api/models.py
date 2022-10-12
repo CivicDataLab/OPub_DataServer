@@ -5,6 +5,8 @@ from django.db import models
 
 
 # TODO: Add choices to choice fields
+from dataset_api.enums import RatingStatus
+
 
 def _resource_directory_path(file_details, filename):
     """
@@ -196,6 +198,7 @@ class DatasetRatings(models.Model):
     data_quality = models.FloatField(
         validators=[MinValueValidator(0.0), MaxValueValidator(5.0)]
     )
+    status = models.CharField(max_length=50, choices=[(tag, tag.value) for tag in RatingStatus])
     # data_standards = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
     # coverage = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
 
