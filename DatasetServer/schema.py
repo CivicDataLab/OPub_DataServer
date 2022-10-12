@@ -25,6 +25,7 @@ class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Qu
     pass
 
 
+# TODO: Create sub classes for schema level mutations
 class Mutation(graphene.ObjectType):
     create_dataset = dataset_api.dataset_schema.CreateDataset.Field()
     update_dataset = dataset_api.dataset_schema.UpdateDataset.Field()
@@ -36,9 +37,6 @@ class Mutation(graphene.ObjectType):
     create_geography = dataset_api.geography_schema.CreateGeography.Field()
     create_sector = dataset_api.sector_schema.CreateSector.Field()
     create_api_source = dataset_api.api_source_schema.CreateAPISource.Field()
-    # create_api_resource = dataset_api.api_resource_schema.CreateAPIResource.Field()
-    # update_api_resource = dataset_api.api_resource_schema.UpdateAPIResource.Field()
-    # delete_api_resource = dataset_api.api_resource_schema.DeleteAPIResource.Field()
     create_additional_info = dataset_api.additional_info_schema.CreateAdditionInfo.Field()
     update_additional_info = dataset_api.additional_info_schema.UpdateAdditionalInfo.Field()
     delete_additional_info = dataset_api.additional_info_schema.DeleteAdditionalInfo.Field()
