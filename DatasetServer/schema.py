@@ -14,6 +14,7 @@ import dataset_api.fetch_dataset
 import dataset_api.data_access_model_schema
 import dataset_api.dataset_moderation
 import dataset_api.data_access_model_request_schema
+import dataset_api.access_model_resource_schema
 
 
 class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Query, dataset_api.catalog_schema.Query,
@@ -51,6 +52,7 @@ class Mutation(graphene.ObjectType):
     approve_reject_data_access_model_request = dataset_api.data_access_model_request_schema.ApproveRejectDataAccessModelRequest.Field()
     create_data_access_model = dataset_api.data_access_model_schema.CreateDataAccessModel.Field()
     patch_dataset = dataset_api.dataset_schema.PatchDataset.Field()
+    access_model_resource = dataset_api.access_model_resource_schema.CreateAccessModelResource.Field()
 
 
 schema = graphene.Schema(query=Query, mutation=Mutation, auto_camelcase=False)

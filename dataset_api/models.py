@@ -252,7 +252,8 @@ class DataAccessModel(models.Model):
     description = models.CharField(max_length=500)
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
+    #dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, default="")
     contract_url = models.URLField(blank=True, null=True)
     contract = models.FileField(upload_to=_contract_directory_path, blank=True)
     # license = models.ForeignKey(License, on_delete=models.CASCADE, blank=False, null=False)
@@ -261,8 +262,16 @@ class DataAccessModel(models.Model):
     quota_limit_unit = models.CharField(blank=False, max_length=100)
     rate_limit = models.IntegerField(blank=False)
     rate_limit_unit = models.CharField(blank=False, max_length=100)
-    resources = models.ManyToManyField(Resource)
+    #resources = models.ManyToManyField(Resource)
 
+class DatasetAccessModelMap(models.Model):
+    data_access_model = models.ForeignKey(DataAccessModel, on_delete=models.CASCADE)
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
+
+class AccessModelResource(models.Model):
+    resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
+    fields = ArrayField(models.CharField(max_length=25, blank=False), blank=False, null=False)
+    dataset_access_map = models.ForeignKey(DatasetAccessModelMap, on_delete=models.CASCADE, default="")
 
 class DataAccessModelRequest(models.Model):
     data_access_model_id = models.ForeignKey(DataAccessModel, blank=False, null=False, on_delete=models.CASCADE)

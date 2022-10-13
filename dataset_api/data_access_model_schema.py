@@ -2,7 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 
-from .models import DataAccessModel, Dataset, Resource
+from .models import DataAccessModel, Organization
 from .search import update_rating
 
 
@@ -10,7 +10,6 @@ class DataAccessModelType(DjangoObjectType):
     class Meta:
         model = DataAccessModel
         fields = "__all__"
-
 
 class Query(graphene.ObjectType):
     all_data_access_models = graphene.List(DataAccessModelType)
@@ -54,7 +53,7 @@ class DataAccessModelInput(graphene.InputObjectType):
     title = graphene.String(required=True)
     type = AccessTypes(required=True)
     description = graphene.String(required=True)
-    dataset = graphene.String(required=True)
+    organization = graphene.String(required=True)
     contract_url = graphene.String(required=False)
     contract = Upload(required=False)
     license = graphene.String(required=True)
@@ -62,8 +61,7 @@ class DataAccessModelInput(graphene.InputObjectType):
     quota_limit_unit = QuotaUnits(required=True)
     rate_limit = graphene.Int(required=True)
     rate_limit_unit = RateLimitUnits(required=True)
-    resources = graphene.List(of_type=graphene.String, required=True)
-
+    # resources = graphene.List(of_type=graphene.String, required=True)
 
 class CreateDataAccessModel(graphene.Mutation):
     class Arguments:
@@ -73,12 +71,12 @@ class CreateDataAccessModel(graphene.Mutation):
     # TODO: Reject if no resources passed
     @staticmethod
     def mutate(root, info, data_access_model_data: DataAccessModelInput):
-        dataset = Dataset.objects.get(id=data_access_model_data.dataset)
+        org_instance = Organization.objects.get(id=data_access_model_data.organization)
         data_access_model_instance = DataAccessModel(
             title=data_access_model_data.title,
             type=data_access_model_data.type,
             description=data_access_model_data.description,
-            dataset=dataset,
+            organization=org_instance,
             contract_url=data_access_model_data.contract_url,
             contract=data_access_model_data.contract,
             license=data_access_model_data.license,
@@ -89,13 +87,13 @@ class CreateDataAccessModel(graphene.Mutation):
         )
 
         data_access_model_instance.save()
-        for resource_id in data_access_model_data.resources:
-            try:
-                resource = Resource.objects.get(id=int(resource_id))
-                data_access_model_instance.resources.add(resource)
-            except Resource.DoesNotExist as e:
-                pass
-        data_access_model_instance.save()
+        # for resource_id in data_access_model_data.resources:
+        #     try:
+        #         resource = Resource.objects.get(id=int(resource_id))
+        #         data_access_model_instance.resources.add(resource)
+        #     except Resource.DoesNotExist as e:
+        #         pass
+        # data_access_model_instance.save()
         # Update rating in elasticsearch
         # update_rating(data_access_model_instance)
         return CreateDataAccessModel(data_access_model=data_access_model_instance)
