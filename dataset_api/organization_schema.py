@@ -1,5 +1,6 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphene_file_upload.scalars import Upload
 
 from .models import Organization
 
@@ -29,6 +30,7 @@ class OrganizationInput(graphene.InputObjectType):
     id = graphene.ID()
     title = graphene.String(required=True)
     description = graphene.String(required=True)
+    logo = Upload(required=False, description="Logo for the Company")
     homepage = graphene.String(required=False)
     contact = graphene.String(required=False)
 
@@ -44,6 +46,7 @@ class CreateOrganization(graphene.Mutation):
         organization_instance = Organization(
             title=organization_data.title,
             description=organization_data.description,
+            logo=organization_data.logo,
             contact_email=organization_data.contact,
             homepage=organization_data.homepage
         )
