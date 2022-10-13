@@ -3,9 +3,18 @@ from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
-
 # TODO: Add choices to choice fields
 from dataset_api.enums import RatingStatus
+
+
+def _organization_directory_path(org, filename):
+    """
+    Create a directory path to upload the organization logo
+
+    """
+    org_name = org.title
+    _, extension = os.path.splitext(filename)
+    return f"resources/{org_name}/{extension[1:]}/{filename}"
 
 
 def _resource_directory_path(file_details, filename):
@@ -64,7 +73,7 @@ def _data_request_directory_path(request, filename):
 class Organization(models.Model):
     title = models.CharField(max_length=100, unique=True)
     description = models.CharField(max_length=500)
-    logo = models.ImageField()
+    logo = models.ImageField(upload_to=_organization_directory_path, blank=True)
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     homepage = models.URLField(blank=True)

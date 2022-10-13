@@ -30,7 +30,7 @@ class OrganizationInput(graphene.InputObjectType):
     id = graphene.ID()
     title = graphene.String(required=True)
     description = graphene.String(required=True)
-    logo = Upload(required=False, description="Logo for the Company")
+    logo = Upload(required=False, description="Logo for the Company.")
     homepage = graphene.String(required=False)
     contact = graphene.String(required=False)
 
