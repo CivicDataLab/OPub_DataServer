@@ -58,7 +58,7 @@ class DatasetInput(graphene.InputObjectType):
     title = graphene.String(required=True)
     description = graphene.String(required=True)
     organization = graphene.ID(required=True)
-    remote_issued = graphene.DateTime(required=False)
+    remote_issued = graphene.Date(required=False)
     remote_modified = graphene.DateTime(required=False)
     period_from = graphene.Date()
     period_to = graphene.Date()
