@@ -85,11 +85,11 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
     def mutate(root, info, moderation_request: ModerationRequestsApproveRejectInput = None):
         errors = []
         moderation_requests = []
-        for id in moderation_request.ids:
+        for request_id in moderation_request.ids:
             try:
-                moderation_request_instance = ModerationRequest.objects.get(id=id)
+                moderation_request_instance = ModerationRequest.objects.get(id=request_id)
             except ModerationRequest.DoesNotExist as e:
-                errors.append({"message": f"Moderation request with id {id} does not exist", "code": "404"})
+                errors.append({"message": f"Moderation request with id {request_id} does not exist", "code": "404"})
                 continue
 
             if moderation_request_instance:
