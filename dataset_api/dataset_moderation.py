@@ -6,7 +6,7 @@ from graphql_auth.bases import Output
 
 from .decorators import validate_token
 from .models import ModerationRequest, Dataset
-
+from .search import index_data
 
 class ModerationRequestType(DjangoObjectType):
     class Meta:
@@ -101,6 +101,8 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
                 dataset = moderation_request_instance.dataset
                 dataset.status = "PUBLISHED"
                 dataset.save()
+                # Index data in Elasticsearch
+                index_data(dataset)
             if moderation_request.status == "REJECTED":
                 dataset = moderation_request_instance.dataset
                 dataset.status = "DRAFT"

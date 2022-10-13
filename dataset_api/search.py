@@ -11,210 +11,83 @@ import json
 from .models import (
     Catalog,
     Organization,
-    Dataset,
     Resource,
-    DatasetRatings,
-    APISource,
-    APIResource,
     FileDetails,
+    APIDetails,
 )
 
 es_client = Elasticsearch(settings.ELASTICSEARCH)
 # print(es_client.info())
 
+# TODO: New flow for rating, only update will be there.
+def index_data(dataset_obj):
+    doc = {
+        "dataset_title": dataset_obj.title,
+        "dataset_description": dataset_obj.description,
+        "dataset_id": dataset_obj.id,
+        "action": dataset_obj.action,
+        "funnel": dataset_obj.funnel,
+        "status": dataset_obj.status,
+        "period_from": dataset_obj.period_from,
+        "period_to": dataset_obj.period_to,
+        "update_frequency": dataset_obj.update_frequency,
+        "dataset_type": dataset_obj.dataset_type,
+    }
 
-def index_data(data_obj):
-    dataset_id = data_obj.dataset_id
-
-    dataset_instance = Dataset.objects.get(id=dataset_id)
-    geography = dataset_instance.geography.all()
-    sector = dataset_instance.sector.all()
+    geography = dataset_obj.geography.all()
+    sector = dataset_obj.sector.all()
     dataset_geography = []
     dataset_sector = []
     for geo in geography:
         dataset_geography.append(geo.name)
     for sec in sector:
         dataset_sector.append(sec.name)
-    dataset_rating = DatasetRatings.objects.filter(dataset_id=dataset_id)
-    if dataset_rating.exists():
-        rating = dataset_rating[0].data_quality
-    else:
-        rating = ""
-    catalog_instance = Catalog.objects.get(id=dataset_instance.catalog_id)
+    doc["geography"] = dataset_geography
+    doc["sector"] = dataset_sector
+
+    catalog_instance = Catalog.objects.get(id=dataset_obj.catalog_id)
+    doc["catalog_title"] = catalog_instance.title
+    doc["catalog_description"] = catalog_instance.description
+
     org_instance = Organization.objects.get(id=catalog_instance.organization_id)
-    if FileDetails.objects.filter(resource_id=data_obj.id).exists():
-        format = data_obj.filedetails.format
-    else:
-        format = ""
-    doc = {
-        "resource_title": data_obj.title,
-        "resource_description": data_obj.description,
-        "format": format,
-        "resource_status": data_obj.status,
-        "dataset_title": dataset_instance.title,
-        "dataset_description": dataset_instance.description,
-        "dataset_id": dataset_id,
-        "geography": dataset_geography,
-        "dataset_issued": dataset_instance.issued,
-        "dataset_modified": dataset_instance.modified,
-        "sector": dataset_sector,
-        "action": dataset_instance.action,
-        "funnel": dataset_instance.funnel,
-        "remote_issued": dataset_instance.remote_issued,
-        "remote_modified": dataset_instance.remote_modified,
-        "status": dataset_instance.status,
-        "period_from": dataset_instance.period_from,
-        "period_to": dataset_instance.period_to,
-        "update_frequency": dataset_instance.update_frequency,
-        "rating": rating,
-        "catalog_title": catalog_instance.title,
-        "catalog_description": catalog_instance.description,
-        "catalog_issued": catalog_instance.issued,
-        "catalog_modified": catalog_instance.modified,
-        "org_title": org_instance.title,
-        "org_description": org_instance.description,
-        "org_issued": org_instance.issued,
-        "org_modified": org_instance.modified,
-    }
-    resp = es_client.index(index="dataset", id=data_obj.id, document=doc)
-    print(resp["result"])
+    doc["org_title"] = org_instance.title
+    doc["org_description"] = org_instance.description
+
+    resource_instance = Resource.objects.filter(dataset_id=dataset_obj.id)
+    for resources in resource_instance:
+        doc["resource_title"] = resources.title
+        doc["resource_description"] = resources.description
+        doc["resource_status"] = resources.status
+        # Checks based on datasets_type.
+        if dataset_obj.dataset_type == "API":
+            try:
+                api_details_obj = APIDetails.objects.get(resource_id=resources.id)
+                doc["auth_required"] = api_details_obj.auth_required
+                doc["auth_type"] = api_details_obj.api_source.auth_type
+            except APIDetails.DoesNotExist as e:
+                pass
+        else:
+            try:
+                file_details_obj = FileDetails.objects.get(resource_id=resources.id)
+                doc["format"] = file_details_obj.format
+            except FileDetails.DoesNotExist as e:
+                pass
+
+        # Check if Resource already exists.
+        resp = es_client.exists(index="dataset", id=resources.id)
+        if resp:
+            # Delete the Resource.
+            resp = es_client.delete(index="dataset", id=resources.id)
+            print(resp["result"])
+        # Index the Resource.
+        resp = es_client.index(index="dataset", id=resources.id, document=doc)
+        print(resp["result"])
 
 
 # def get_doc(doc_id):
 #     resp = es_client.get(index="dataset", id=doc_id)
 #     #print(resp)
 #     print(resp['_source'])
-
-
-def update_data(data_obj):
-
-    doc = {
-        "resource_title": data_obj.title,
-        "resource_description": data_obj.description,
-        "format": data_obj.filedetails.format,
-        "resource_status": data_obj.status,
-    }
-
-    resp = es_client.update(index="dataset", id=data_obj.id, doc=doc)
-    print(resp["result"])
-
-
-def update_dataset(dataset_obj):
-    # Find all related resources.
-    resource_obj = Resource.objects.filter(dataset_id=dataset_obj.id)
-    for resources in resource_obj:
-        geography = dataset_obj.geography.all()
-        sector = dataset_obj.sector.all()
-        dataset_geography = []
-        dataset_sector = []
-        for geo in geography:
-            dataset_geography.append(geo.name)
-        for sec in sector:
-            dataset_sector.append(sec.name)
-        doc = {
-            "dataset_title": dataset_obj.title,
-            "dataset_description": dataset_obj.description,
-            "geography": dataset_geography,
-            "dataset_issued": dataset_obj.issued,
-            "dataset_modified": dataset_obj.modified,
-            "sector": dataset_sector,
-            "action": dataset_obj.action,
-            "funnel": dataset_obj.funnel,
-            "remote_issued": dataset_obj.remote_issued,
-            "remote_modified": dataset_obj.remote_modified,
-            "status": dataset_obj.status,
-            "period_from": dataset_obj.period_from,
-            "period_to": dataset_obj.period_to,
-            "update_frequency": dataset_obj.update_frequency,
-        }
-        resp = es_client.update(index="dataset", id=resources.id, doc=doc)
-        print(resp["result"])
-
-
-def update_rating(rating_obj):
-    # Find all related resources.
-    dataset_obj = Dataset.objects.get(id=rating_obj.dataset_id)
-    resource_obj = Resource.objects.filter(dataset_id=dataset_obj.id)
-    for resources in resource_obj:
-        print(resources)
-        doc = {
-            "rating": rating_obj.data_quality,
-        }
-        resp = es_client.update(index="dataset", id=resources.id, doc=doc)
-        print(resp["result"])
-
-
-def index_api_resource(api_resource_obj):
-    dataset_obj = Dataset.objects.get(id=api_resource_obj.dataset_id)
-    api_source_obj = APISource.objects.get(id=api_resource_obj.api_source_id)
-    resource_obj = Resource.objects.filter(dataset_id=dataset_obj.id)
-    for resources in resource_obj:
-        doc = {
-            "api_resource_title": api_resource_obj.title,
-            "api_resource_description": api_resource_obj.description,
-            "api_resource_status": api_resource_obj.status,
-            "api_resource_urlpath": api_resource_obj.url_path,
-            "api_resource_auth_req": api_resource_obj.auth_required,
-            "api_resource_response_type": api_resource_obj.response_type,
-            "api_source_title": api_source_obj.title,
-            "api_source_description": api_source_obj.description,
-            "api_source_baseurl": api_source_obj.base_url,
-            "api_source_version": api_source_obj.api_version,
-            "api_source_auth_loc": api_source_obj.auth_loc,
-            "api_source_auth_type": api_source_obj.auth_type,
-        }
-        resp = es_client.update(index="dataset", id=resources.id, doc=doc)
-        print(resp["result"])
-
-
-def update_api_resource(api_resource_obj):
-    dataset_obj = Dataset.objects.get(id=api_resource_obj.dataset_id)
-    resource_obj = Resource.objects.filter(dataset_id=dataset_obj.id)
-    for resources in resource_obj:
-        doc = {
-            "api_resource_title": api_resource_obj.title,
-            "api_resource_description": api_resource_obj.description,
-            "api_resource_status": api_resource_obj.status,
-            "api_resource_urlpath": api_resource_obj.url_path,
-            "api_resource_auth_req": api_resource_obj.auth_required,
-            "api_resource_response_type": api_resource_obj.response_type,
-        }
-        resp = es_client.update(index="dataset", id=resources.id, doc=doc)
-        print(resp["result"])
-
-
-def delete_api_resource(api_resource_obj):
-    dataset_obj = Dataset.objects.get(id=api_resource_obj.dataset_id)
-    resource_obj = Resource.objects.filter(dataset_id=dataset_obj.id)
-    for resources in resource_obj:
-        doc = {
-            "api_resource_title": "",
-            "api_resource_description": "",
-            "api_resource_status": "",
-            "api_resource_urlpath": "",
-            "api_resource_auth_req": "",
-            "api_resource_response_type": "",
-        }
-        resp = es_client.update(index="dataset", id=resources.id, doc=doc)
-        print(resp["result"])
-
-
-# def update_catalog(catalog_obj):
-#     # Find all related resources.
-#     dataset_obj = Dataset.objects.filter(catalog_id=catalog_obj.id)
-#     print(dataset_obj)
-#     for datasets in dataset_obj:
-#         resource_obj = Resource.objects.filter(dataset_id=datasets.id)
-#         print(resource_obj)
-#         for resources in resource_obj:
-#             doc = {
-#                 "catalog_title": resources.title,
-#                 "catalog_description": resources.description,
-#                 "catalog_issued": resources.issued,
-#                 "catalog_modified": resources.modified,
-#             }
-#             resp = es_client.update(index="dataset", id=resources.id, doc=doc)
-#             print(resp["result"])
 
 
 def delete_data(id):
@@ -301,7 +174,7 @@ def facets(request):
             from_=paginate_from,
             sort=sort_mapping,
         )
-        return HttpResponse(json.dumps(resp))
+        return HttpResponse(json.dumps(resp["hits"]))
 
 
 def search(request):
@@ -345,110 +218,60 @@ def more_like_this(request):
 
 def reindex_data():
     resource_obj = Resource.objects.all()
-    # print(resource_obj)
+    doc = {}
     for resources in resource_obj:
-        print("Dataset_id --", resources.dataset_id)
-        dataset_instance = Dataset.objects.get(id=resources.dataset_id)
-        geography = dataset_instance.geography.all()
-        # print(geography)
-        sector = dataset_instance.sector.all()
-        # print(sector)
-        dataset_geography = []
-        dataset_sector = []
-        if geography.exists():
+        if resources.dataset.status == "PUBLISHED":
+            doc["dataset_title"] = resources.dataset.title
+            doc["dataset_description"] = resources.dataset.description
+            doc["dataset_id"] = resources.dataset.id
+            doc["action"] = resources.dataset.action
+            doc["funnel"] = resources.dataset.funnel
+            doc["status"] = resources.dataset.status
+            doc["period_from"] = resources.dataset.period_from
+            doc["period_to"] = resources.dataset.period_to
+            doc["update_frequency"] = resources.dataset.update_frequency
+            doc["dataset_type"] = resources.dataset.dataset_type
+            doc["resource_title"] = resources.title
+            doc["resource_description"] = resources.description
+            doc["resource_status"] = resources.status
+
+            geography = resources.dataset.geography.all()
+            sector = resources.dataset.sector.all()
+            dataset_geography = []
+            dataset_sector = []
             for geo in geography:
                 dataset_geography.append(geo.name)
-        if sector.exists():
             for sec in sector:
                 dataset_sector.append(sec.name)
-        dataset_rating = DatasetRatings.objects.filter(dataset_id=resources.dataset_id)
-        # print(dataset_rating)
-        if dataset_rating.exists():
-            rating = dataset_rating[0].data_quality
-        else:
-            rating = ""
-        # print(resources.dataset_id)
-        try:
-            api_resource_obj = APIResource.objects.filter(
-                dataset_id=resources.dataset_id
-            )
-            api_resource_title = []
-            api_resource_description = []
-            api_resource_status = []
-            api_resource_urlpath = []
-            api_resource_auth_req = []
-            api_resource_response_type = []
-            api_source_title = []
-            api_source_description = []
-            api_source_baseurl = []
-            api_source_version = []
-            api_source_auth_loc = []
-            api_source_auth_type = []
+            doc["geography"] = dataset_geography
+            doc["sector"] = dataset_sector
 
-            for api_resources in api_resource_obj:
-                api_source_obj = APISource.objects.get(id=api_resources.api_source_id)
-                api_resource_title.append(api_resources.title)
-                api_resource_description.append(api_resources.description)
-                api_resource_status.append(api_resources.status)
-                api_resource_urlpath.append(api_resources.url_path)
-                api_resource_auth_req.append(api_resources.auth_required)
-                api_resource_response_type.append(api_resources.response_type)
-                api_source_title.append(api_source_obj.title)
-                api_source_description.append(api_source_obj.description)
-                api_source_baseurl.append(api_source_obj.base_url)
-                api_source_version.append(api_source_obj.api_version)
-                api_source_auth_loc.append(api_source_obj.auth_loc)
-                api_source_auth_type.append(api_source_obj.auth_type)
-        except (APIResource.DoesNotExist, IndexError) as e:
-            print(e)
-        catalog_instance = Catalog.objects.get(id=dataset_instance.catalog_id)
-        org_instance = Organization.objects.get(id=catalog_instance.organization_id)
+            catalog_instance = Catalog.objects.get(id=resources.dataset.catalog_id)
+            doc["catalog_title"] = catalog_instance.title
+            doc["catalog_description"] = catalog_instance.description
 
-        doc = {
-            "resource_title": resources.title,
-            "resource_description": resources.description,
-            "format": resources.format,
-            "resource_status": resources.status,
-            "dataset_title": dataset_instance.title,
-            "dataset_description": dataset_instance.description,
-            "dataset_id": resources.dataset_id,
-            "geography": dataset_geography,
-            "dataset_issued": dataset_instance.issued,
-            "dataset_modified": dataset_instance.modified,
-            "sector": dataset_sector,
-            "action": dataset_instance.action,
-            "funnel": dataset_instance.funnel,
-            "remote_issued": dataset_instance.remote_issued,
-            "remote_modified": dataset_instance.remote_modified,
-            "status": dataset_instance.status,
-            "period_from": dataset_instance.period_from,
-            "period_to": dataset_instance.period_to,
-            "update_frequency": dataset_instance.update_frequency,
-            "rating": rating,
-            "catalog_title": catalog_instance.title,
-            "catalog_description": catalog_instance.description,
-            "catalog_issued": catalog_instance.issued,
-            "catalog_modified": catalog_instance.modified,
-            "org_title": org_instance.title,
-            "org_description": org_instance.description,
-            "org_issued": org_instance.issued,
-            "org_modified": org_instance.modified,
-            "api_resource_title": api_resource_title,
-            "api_resource_description": api_resource_description,
-            "api_resource_status": api_resource_status,
-            "api_resource_urlpath": api_resource_urlpath,
-            "api_resource_auth_req": api_resource_auth_req,
-            "api_resource_response_type": api_resource_response_type,
-            "api_source_title": api_source_title,
-            "api_source_description": api_source_description,
-            "api_source_baseurl": api_source_baseurl,
-            "api_source_version": api_source_version,
-            "api_source_auth_loc": api_source_auth_loc,
-            "api_source_auth_type": api_source_auth_type,
-        }
-        print("Resource_id --", resources.id)
-        # if es_client.exists(index="dataset", id=resources.id):
-        #     pass
-        # else:
-        resp = es_client.index(index="dataset", id=resources.id, document=doc)
-        print("Index --", resp["result"])
+            org_instance = Organization.objects.get(id=catalog_instance.organization_id)
+            doc["org_title"] = org_instance.title
+            doc["org_description"] = org_instance.description
+
+            # Checks based on datasets_type.
+            if resources.dataset.dataset_type == "API":
+                try:
+                    api_details_obj = APIDetails.objects.get(resource_id=resources.id)
+                    doc["auth_required"] = api_details_obj.auth_required
+                    doc["auth_type"] = api_details_obj.api_source.auth_type
+                except APIDetails.DoesNotExist as e:
+                    pass
+            else:
+                try:
+                    file_details_obj = FileDetails.objects.get(resource_id=resources.id)
+                    doc["format"] = file_details_obj.format
+                except FileDetails.DoesNotExist as e:
+                    pass
+
+            print("Resource_id --", resources.id)
+            # if es_client.exists(index="dataset", id=resources.id):
+            #     pass
+            # else:
+            resp = es_client.index(index="dataset", id=resources.id, document=doc)
+            print("Index --", resp["result"])
