@@ -25,6 +25,7 @@ class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Qu
     pass
 
 
+# TODO: Create sub classes for schema level mutations
 class Mutation(graphene.ObjectType):
     create_dataset = dataset_api.dataset_schema.CreateDataset.Field()
     update_dataset = dataset_api.dataset_schema.UpdateDataset.Field()
@@ -36,9 +37,6 @@ class Mutation(graphene.ObjectType):
     create_geography = dataset_api.geography_schema.CreateGeography.Field()
     create_sector = dataset_api.sector_schema.CreateSector.Field()
     create_api_source = dataset_api.api_source_schema.CreateAPISource.Field()
-    # create_api_resource = dataset_api.api_resource_schema.CreateAPIResource.Field()
-    # update_api_resource = dataset_api.api_resource_schema.UpdateAPIResource.Field()
-    # delete_api_resource = dataset_api.api_resource_schema.DeleteAPIResource.Field()
     create_additional_info = dataset_api.additional_info_schema.CreateAdditionInfo.Field()
     update_additional_info = dataset_api.additional_info_schema.UpdateAdditionalInfo.Field()
     delete_additional_info = dataset_api.additional_info_schema.DeleteAdditionalInfo.Field()
@@ -48,7 +46,7 @@ class Mutation(graphene.ObjectType):
     update_data_request = dataset_api.fetch_dataset.DataRequestUpdateMutation.Field()
     approve_reject_data_request = dataset_api.fetch_dataset.ApproveRejectDataRequest.Field()
     moderation_request = dataset_api.dataset_moderation.ModerationRequestMutation.Field()
-    approve_reject_moderation_request = dataset_api.dataset_moderation.ApproveRejectModerationRequest.Field()
+    approve_reject_moderation_requests = dataset_api.dataset_moderation.ApproveRejectModerationRequests.Field()
     data_access_model_request = dataset_api.data_access_model_request_schema.DataAccessModelRequestMutation.Field()
     approve_reject_data_access_model_request = dataset_api.data_access_model_request_schema.ApproveRejectDataAccessModelRequest.Field()
     create_data_access_model = dataset_api.data_access_model_schema.CreateDataAccessModel.Field()
