@@ -25,7 +25,7 @@ class CatalogInput(graphene.InputObjectType):
     id = graphene.ID()
     title = graphene.String()
     description = graphene.String()
-    organization = graphene.String()
+    organization = graphene.String(required=True)
 
 
 class CreateCatalog(graphene.Mutation):

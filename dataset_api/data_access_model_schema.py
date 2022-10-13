@@ -2,7 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 
-from .models import DataAccessModel, Dataset, Resource, AccessModelResource
+from .models import DataAccessModel, Dataset, Organization, Resource, AccessModelResource, DatasetAccessModelMap
 from .search import update_rating
 
 
@@ -59,7 +59,7 @@ class DataAccessModelInput(graphene.InputObjectType):
     title = graphene.String(required=True)
     type = AccessTypes(required=True)
     description = graphene.String(required=True)
-    dataset = graphene.String(required=True)
+    organization = graphene.String(required=True)
     contract_url = graphene.String(required=False)
     contract = Upload(required=False)
     license = graphene.String(required=True)
@@ -67,12 +67,18 @@ class DataAccessModelInput(graphene.InputObjectType):
     quota_limit_unit = QuotaUnits(required=True)
     rate_limit = graphene.Int(required=True)
     rate_limit_unit = RateLimitUnits(required=True)
-    resources = graphene.List(of_type=graphene.String, required=True)
+    # resources = graphene.List(of_type=graphene.String, required=True)
 
+class ResourceFieldInput(graphene.InputObjectType):
+    resource_id = graphene.String(required=True)
+    name = graphene.List(of_type=graphene.String, required=True)
 class AccessModelResourceInput(graphene.InputObjectType):
-    resource_id = graphene.ID(required=True)
-    fields = graphene.List(of_type=graphene.String, required=True)
-    access_model_id = graphene.ID(required=True)
+    id = graphene.ID()
+    # resource_id = graphene.String(required=True)
+    fields = graphene.List(of_type=ResourceFieldInput, required=True)
+    access_model_id = graphene.String(required=True)
+    dataset_id = graphene.String(required=True)
+    # dataset_access_map_id = graphene.String(required=True)
 
 class CreateDataAccessModel(graphene.Mutation):
     class Arguments:
@@ -82,12 +88,12 @@ class CreateDataAccessModel(graphene.Mutation):
     # TODO: Reject if no resources passed
     @staticmethod
     def mutate(root, info, data_access_model_data: DataAccessModelInput):
-        dataset = Dataset.objects.get(id=data_access_model_data.dataset)
+        org_instance = Organization.objects.get(id=data_access_model_data.organization)
         data_access_model_instance = DataAccessModel(
             title=data_access_model_data.title,
             type=data_access_model_data.type,
             description=data_access_model_data.description,
-            dataset=dataset,
+            organization=org_instance,
             contract_url=data_access_model_data.contract_url,
             contract=data_access_model_data.contract,
             license=data_access_model_data.license,
@@ -98,13 +104,13 @@ class CreateDataAccessModel(graphene.Mutation):
         )
 
         data_access_model_instance.save()
-        for resource_id in data_access_model_data.resources:
-            try:
-                resource = Resource.objects.get(id=int(resource_id))
-                data_access_model_instance.resources.add(resource)
-            except Resource.DoesNotExist as e:
-                pass
-        data_access_model_instance.save()
+        # for resource_id in data_access_model_data.resources:
+        #     try:
+        #         resource = Resource.objects.get(id=int(resource_id))
+        #         data_access_model_instance.resources.add(resource)
+        #     except Resource.DoesNotExist as e:
+        #         pass
+        # data_access_model_instance.save()
         # Update rating in elasticsearch
         # update_rating(data_access_model_instance)
         return CreateDataAccessModel(data_access_model=data_access_model_instance)
@@ -118,16 +124,29 @@ class CreateAccessModelResource(graphene.Mutation):
     @staticmethod
     def mutate(root, info, access_model_resource_data: AccessModelResourceInput):
         try:
-            data_access_instance = DataAccessModel.objects.get(id=access_model_resource_data.access_model_id)
-            resource_instance = Resource.objects.get(id=access_model_resource_data.resource_id)
-        
-            access_model_resource_instance = AccessModelResource(
-                resource_id = resource_instance.id,
-                fields = access_model_resource_data.fields,
-                data_access_model_id = data_access_instance
+            data_access_instance = DataAccessModel.objects.get(id=int(access_model_resource_data.access_model_id))
+            dataset_instance = Dataset.objects.get(id=int(access_model_resource_data.dataset_id))
+            
+            dataset_access_map_instance = DatasetAccessModelMap(
+                data_access_model = data_access_instance,
+                dataset = dataset_instance
             )
-        except Resource.DoesNotExist as e:
-            return {"success": False, "errors": {"id": [{"message": "Resource id not found", "code": "404"}]}}
+            dataset_access_map_instance.save()
+            
+            for field in access_model_resource_data.fields:
+                try:
+                    if field.resource_id:
+                        resource_instance = Resource.objects.get(id=int(field.resource_id))
+                        access_model_resource_instance = AccessModelResource(
+                            resource_id = int(field.resource_id),
+                            fields = field.name,
+                            dataset_access_map = dataset_access_map_instance
+                        )
+                        access_model_resource_instance.save()
+                except Resource.DoesNotExist as e:
+                    return {"success": False, "errors": {"id": [{"message": "Resource id not found", "code": "404"}]}}
+        except Dataset.DoesNotExist as e:
+            return {"success": False, "errors": {"id": [{"message": "Dataset id not found", "code": "404"}]}}
         except DataAccessModel.DoesNotExist as e:
             return {"success": False, "errors": {"id": [{"message": "Access Model id not found", "code": "404"}]}}
         
