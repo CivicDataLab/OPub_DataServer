@@ -15,6 +15,7 @@ import dataset_api.data_access_model_schema
 import dataset_api.dataset_moderation
 import dataset_api.data_access_model_request_schema
 import dataset_api.access_model_resource_schema
+import dataset_api.stats_schema
 
 
 class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Query, dataset_api.catalog_schema.Query,
@@ -22,7 +23,7 @@ class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Qu
             dataset_api.api_source_schema.Query, dataset_api.api_resource_schema.Query, dataset_api.rating_schema.Query,
             dataset_api.sector_schema.Query, dataset_api.additional_info_schema.Query, dataset_api.fetch_dataset.Query,
             dataset_api.data_access_model_schema.Query, dataset_api.dataset_moderation.Query,
-            dataset_api.data_access_model_request_schema.Query, graphene.ObjectType):
+            dataset_api.data_access_model_request_schema.Query, dataset_api.stats_schema.Query, graphene.ObjectType):
     pass
 
 
