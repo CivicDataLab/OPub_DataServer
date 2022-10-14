@@ -62,9 +62,7 @@ class UpdateOrganization(graphene.Mutation):
     @staticmethod
     def mutate(root, info, organization_data: OrganizationInput = None):
         organization_instance = Organization.objects.get(id=organization_data.id)
-        print(organization_instance)
         if organization_instance:
-            print(organization_data.title)
             organization_instance.title=organization_data.title
             organization_instance.description=organization_data.description
             organization_instance.logo=organization_data.logo
