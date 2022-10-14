@@ -1,23 +1,33 @@
 import graphene
-from graphene_django import DjangoObjectType
+from django.db.models import Q
 
 from .models import Sector, Geography, Organization, Dataset
 
 
-class Query(graphene.ObjectType):
-    sector_count = graphene.String()
-    geography_count = graphene.String()   
-    organization_count = graphene.String()
-    dataset_count = graphene.String()
+class StatsType(graphene.ObjectType):
+    sector_count = graphene.Int()
+    geography_count = graphene.Int()
+    organization_count = graphene.Int()
+    dataset_count = graphene.Int()
+    api_count = graphene.Int()
 
-    def resolve_sector_count(self, info, **kwargs):
-        return Sector.objects.count()
-    
-    def resolve_geography_count(self, info, **kwargs):
-        return Geography.objects.count()
-    
-    def resolve_organization_count(self, info, **kwargs):
-        return Organization.objects.count()
-    
-    def resolve_dataset_count(self, info, **kwargs):
-        return Dataset.objects.count()
+
+class Query(graphene.ObjectType):
+    stat_count = graphene.Field(StatsType)
+
+    def resolve_stat_count(self, info, **kwargs):
+        sector = Sector.objects.count()
+        geography = Geography.objects.count()
+        organization = Organization.objects.count()
+        dataset = Dataset.objects.count()
+        api = Dataset.objects.filter(
+            Q(dataset_type__exact="API"), Q(status__exact="PUBLISHED")
+        ).count()
+
+        return StatsType(
+            sector_count=sector,
+            geography_count=geography,
+            organization_count=organization,
+            dataset_count=dataset,
+            api_count=api,
+        )
