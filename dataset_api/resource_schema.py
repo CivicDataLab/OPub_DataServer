@@ -17,7 +17,7 @@ from .models import (
     APIDetails,
     FileDetails,
 )
-from .search import delete_data, index_data, update_data
+# from .search import delete_data, index_data, update_data
 from .utils import FORMAT_MAPPING
 
 
@@ -281,8 +281,9 @@ class CreateResource(graphene.Mutation, Output):
 
         _remove_masked_fields(resource_instance)
         _create_update_schema(resource_data, resource_instance)
+        
         # For indexing data in elasticsearch.
-        index_data(resource_instance)
+        # index_data(resource_instance)
         return CreateResource(success=True, resource=resource_instance)
 
 
@@ -317,7 +318,7 @@ class UpdateResource(graphene.Mutation, Output):
                 )
 
             # For updating indexed data in elasticsearch.
-            update_data(resource_instance)
+            # update_data(resource_instance)
             return UpdateResource(success=True, resource=resource_instance)
 
         return UpdateResource(success=False, resource=None)
@@ -336,5 +337,5 @@ class DeleteResource(graphene.Mutation):
         resource_instance = Resource.objects.get(id=id)
         resource_instance.delete()
         # For deleting indexed data in elasticsearch.
-        delete_data(id)
+        # delete_data(id)
         return DeleteResource(success=True)

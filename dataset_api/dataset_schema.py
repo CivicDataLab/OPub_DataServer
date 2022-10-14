@@ -2,7 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 
 from .models import Dataset, Catalog, Tag, Geography, Sector, Organization
-from .search import update_dataset
+# from .search import update_dataset
 from .decorators import validate_token
 
 
@@ -135,7 +135,7 @@ class UpdateDataset(graphene.Mutation):
             _add_update_attributes_to_dataset(dataset_instance, "sector", dataset_data.sector_list, Sector)
 
             # For updating indexed data in elasticsearch.
-            update_dataset(dataset_instance)
+            # update_dataset(dataset_instance)
 
             return UpdateDataset(dataset=dataset_instance)
         return UpdateDataset(dataset=None)

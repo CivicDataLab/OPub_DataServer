@@ -3,7 +3,7 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 
 from .models import DataAccessModel, Organization
-from .search import update_rating
+# from .search import update_rating
 
 
 class DataAccessModelType(DjangoObjectType):

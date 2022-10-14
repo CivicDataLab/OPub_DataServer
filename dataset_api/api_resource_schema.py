@@ -5,7 +5,7 @@ from graphql_auth.bases import Output
 
 from .models import Dataset, ResourceSchema, APIResource, APISource
 from .resource_schema import ResourceSchemaType, ResourceSchemaInputType
-from .search import index_api_resource, update_api_resource, delete_api_resource
+# from .search import index_api_resource, update_api_resource, delete_api_resource
 
 
 class APIResourceType(DjangoObjectType):
@@ -93,7 +93,7 @@ class CreateAPIResource(graphene.Mutation, Output):
             schema_instance.save()
 
         # Index data to Elasticsearch
-        index_api_resource(api_resource_instance)
+        # index_api_resource(api_resource_instance)
         return CreateAPIResource(success=True, API_resource=api_resource_instance)
 
 
@@ -138,7 +138,7 @@ class UpdateAPIResource(graphene.Mutation, Output):
                     )
 
             # Update data in Elasticsearch
-            update_api_resource(api_resource_instance)
+            # update_api_resource(api_resource_instance)
             return UpdateAPIResource(success=True, api_resource=api_resource_instance)
         return UpdateAPIResource(success=False, api_resource=None)
 
@@ -164,6 +164,6 @@ class DeleteAPIResource(graphene.Mutation):
     def mutate(root, info, id):
         resource_instance = APIResource.objects.get(id=id)
         # Delete data in Elasticsearch
-        delete_api_resource(resource_instance)
+        # delete_api_resource(resource_instance)
         resource_instance.delete()
         return DeleteAPIResource(success=True)
