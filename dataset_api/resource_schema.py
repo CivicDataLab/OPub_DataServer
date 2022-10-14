@@ -228,6 +228,8 @@ def _create_update_api_details(resource_instance, attribute):
 
 
 def _create_update_file_details(resource_instance, attribute):
+    if not attribute:
+        return 
     try:
         file_detail_object = FileDetails.objects.get(resource=resource_instance)
     except FileDetails.DoesNotExist as e:
