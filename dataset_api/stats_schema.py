@@ -1,7 +1,7 @@
 import graphene
 from django.db.models import Q
 
-from .models import Sector, Geography, Organization, Dataset
+from .models import Sector, Geography, Organization, Dataset, Resource
 
 
 class StatsType(graphene.ObjectType):
@@ -20,8 +20,8 @@ class Query(graphene.ObjectType):
         geography = Geography.objects.count()
         organization = Organization.objects.count()
         dataset = Dataset.objects.count()
-        api = Dataset.objects.filter(
-            Q(dataset_type__exact="API"), Q(status__exact="PUBLISHED")
+        api = Resource.objects.filter(
+            Q(dataset__dataset_type__exact="API"), Q(dataset__status__exact="PUBLISHED")
         ).count()
 
         return StatsType(
