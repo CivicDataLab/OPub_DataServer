@@ -63,10 +63,10 @@ class UpdateOrganization(graphene.Mutation):
     def mutate(root, info, organization_data: OrganizationInput = None):
         organization_instance = Organization.objects.get(id=organization_data.id)
         if organization_instance:
-            organization_instance.title=organization_data.title,
-            organization_instance.description=organization_data.description,
-            organization_instance.logo=organization_data.logo,
-            organization_instance.contact_email=organization_data.contact,
+            organization_instance.title=organization_data.title
+            organization_instance.description=organization_data.description
+            organization_instance.logo=organization_data.logo
+            organization_instance.contact_email=organization_data.contact
             organization_instance.homepage=organization_data.homepage
             organization_instance.save()
         return CreateOrganization(organization=organization_instance)
