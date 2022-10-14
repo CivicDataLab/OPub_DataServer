@@ -1,7 +1,8 @@
 from enum import Enum
+from django.db import models
 
 
-class RatingStatus(Enum):
+class RatingStatus(models.TextChoices):
     CREATED = "CREATED"
     REJECTED = "REJECTED"
     PUBLISHED = "PUBLISHED"
