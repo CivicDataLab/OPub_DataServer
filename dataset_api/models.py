@@ -2,11 +2,10 @@ import os
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
-
-# TODO: Add choices to choice fields
 from dataset_api.enums import RatingStatus
 
 
+# TODO: Add choices to choice fields
 def _organization_directory_path(org, filename):
     """
     Create a directory path to upload the organization logo

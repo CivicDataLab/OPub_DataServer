@@ -11,6 +11,7 @@ class DataAccessModelType(DjangoObjectType):
         model = DataAccessModel
         fields = "__all__"
 
+
 class Query(graphene.ObjectType):
     all_data_access_models = graphene.List(DataAccessModelType)
     dataset_data_access_models = graphene.List(DataAccessModelType, dataset_id=graphene.Int())
@@ -63,11 +64,13 @@ class DataAccessModelInput(graphene.InputObjectType):
     rate_limit_unit = RateLimitUnits(required=True)
     # resources = graphene.List(of_type=graphene.String, required=True)
 
+
 class CreateDataAccessModel(graphene.Mutation):
     class Arguments:
         data_access_model_data = DataAccessModelInput()
 
     data_access_model = graphene.Field(DataAccessModelType)
+
     # TODO: Reject if no resources passed
     @staticmethod
     def mutate(root, info, data_access_model_data: DataAccessModelInput):
