@@ -1,6 +1,8 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphql_auth.bases import Output
 
+from .enums import RatingStatus
 from .models import DatasetRatings, Dataset
 # from .search import update_rating
 
@@ -28,12 +30,17 @@ class Query(graphene.ObjectType):
 
 class DatasetRatingInput(graphene.InputObjectType):
     id = graphene.ID()
-    dataset = graphene.String()
-    review = graphene.String()
+    dataset = graphene.String(required=True)
+    review = graphene.String(required=True)
     # overall = graphene.Float()
-    data_quality = graphene.Float()
+    data_quality = graphene.Float(required=True)
     # data_standards = graphene.Float()
     # coverage = graphene.Float()
+
+
+class DatasetRatingApproveRejectInput(graphene.InputObjectType):
+    id = graphene.ID(required=True)
+    status = graphene.Enum.from_enum(RatingStatus)(required=True)
 
 
 class CreateDatasetRating(graphene.Mutation):
@@ -51,9 +58,29 @@ class CreateDatasetRating(graphene.Mutation):
             data_quality=rating_data.data_quality,
             # data_standards=rating_data.data_standards,
             # coverage=rating_data.coverage,
+            status=RatingStatus.CREATED.value,
             dataset=dataset
         )
         rating_instance.save()
         # Update rating in elasticsearch
         # update_rating(rating_instance)
         return CreateDatasetRating(dataset_rating=rating_instance)
+
+
+class ApproveRejectRating(graphene.Mutation, Output):
+    class Arguments:
+        rating_data = DatasetRatingApproveRejectInput(required=True)
+
+    dataset_rating = graphene.Field(DatasetRatingType)
+
+    @staticmethod
+    def mutate(root, info, rating_data: DatasetRatingApproveRejectInput):
+        try:
+            rating_instance = DatasetRatings.objects.get(id=rating_data.id)
+        except DatasetRatings.DoesNotExist as e:
+            return {"success": False, "errors": {"id": [{"message": "Dataset with given id not found", "code": "404"}]}}
+        rating_instance.status = rating_data.status
+        rating_instance.save()
+        # Update rating in elasticsearch
+        # update_rating_index(rating_instance)
+        return ApproveRejectRating(dataset_rating=rating_instance)
