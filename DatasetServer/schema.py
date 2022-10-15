@@ -14,12 +14,13 @@ import dataset_api.data_access_model_schema
 import dataset_api.dataset_moderation
 import dataset_api.data_access_model_request_schema
 import dataset_api.access_model_resource_schema
+import dataset_api.license_schema
 import dataset_api.stats_schema
 
 
 class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Query, dataset_api.catalog_schema.Query,
             dataset_api.resource_schema.Query, dataset_api.tag_schema.Query, dataset_api.geography_schema.Query,
-            dataset_api.api_source_schema.Query, dataset_api.rating_schema.Query,
+            dataset_api.api_source_schema.Query, dataset_api.rating_schema.Query, dataset_api.license_schema.Query,
             dataset_api.sector_schema.Query, dataset_api.additional_info_schema.Query, dataset_api.fetch_dataset.Query,
             dataset_api.data_access_model_schema.Query, dataset_api.dataset_moderation.Query,
             dataset_api.data_access_model_request_schema.Query, dataset_api.stats_schema.Query, graphene.ObjectType):
@@ -55,6 +56,8 @@ class Mutation(graphene.ObjectType):
     create_data_access_model = dataset_api.data_access_model_schema.CreateDataAccessModel.Field()
     patch_dataset = dataset_api.dataset_schema.PatchDataset.Field()
     access_model_resource = dataset_api.access_model_resource_schema.CreateAccessModelResource.Field()
+    create_license = dataset_api.license_schema.CreateLicense.Field()
+    update_license = dataset_api.license_schema.UpdateLicense.Field()
 
 
 schema = graphene.Schema(query=Query, mutation=Mutation, auto_camelcase=False)
