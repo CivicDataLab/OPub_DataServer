@@ -94,9 +94,9 @@ class Query(graphene.ObjectType):
     def resolve_resource_columns(self, info, resource_id):
         resource = Resource.objects.get(pk=resource_id)
         if (
-            resource.filedetails.file
-            and len(resource.filedetails.file.path)
-            and "csv" in resource.filedetails.format.lower()
+                resource.filedetails.file
+                and len(resource.filedetails.file.path)
+                and "csv" in resource.filedetails.format.lower()
         ):
             file = pd.read_csv(resource.filedetails.file.path)
             return file.columns.tolist()
@@ -139,9 +139,9 @@ class ResourceInput(graphene.InputObjectType):
 
 def _remove_masked_fields(resource_instance: Resource):
     if (
-        resource_instance.masked_fields
-        and len(resource_instance.filedetails.file.path)
-        and "csv" in resource_instance.filedetails.format.lower()
+            resource_instance.masked_fields
+            and len(resource_instance.filedetails.file.path)
+            and "csv" in resource_instance.filedetails.format.lower()
     ):
         df = pd.read_csv(resource_instance.filedetails.file.path)
         df = df.drop(columns=resource_instance.masked_fields)
@@ -155,9 +155,9 @@ def _remove_masked_fields(resource_instance: Resource):
 
 def _create_update_schema(resource_data: ResourceInput, resource_instance):
     schema_ids = []  # List of schemas that already exists.
-    resource_schema_instance = ResourceSchema.objects.filter(resource=resource_data.id)
-    for schemas in resource_schema_instance:
-        schema_ids.append(schemas.id)
+    resource_schema_instances = ResourceSchema.objects.filter(resource=resource_data.id)
+    for schema in resource_schema_instances:
+        schema_ids.append(schema.id)
 
     for schema in resource_data.schema:
         try:
@@ -229,7 +229,7 @@ def _create_update_api_details(resource_instance, attribute):
 
 def _create_update_file_details(resource_instance, attribute):
     if not attribute:
-        return 
+        return
     try:
         file_detail_object = FileDetails.objects.get(resource=resource_instance)
     except FileDetails.DoesNotExist as e:
@@ -283,7 +283,7 @@ class CreateResource(graphene.Mutation, Output):
 
         _remove_masked_fields(resource_instance)
         _create_update_schema(resource_data, resource_instance)
-        
+
         # For indexing data in elasticsearch.
         # index_data(resource_instance)
         return CreateResource(success=True, resource=resource_instance)
