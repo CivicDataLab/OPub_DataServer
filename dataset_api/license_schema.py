@@ -1,4 +1,5 @@
 import graphene
+from django.db.models import Q
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 
@@ -6,10 +7,24 @@ from .enums import LicenseStatus
 from .models import License, Organization, LicenseAddition
 
 
+class LicenseAdditionType:
+    class Meta:
+        model = LicenseAddition
+        fields = "__all__"
+
+
 class LicenseType(DjangoObjectType):
+    additions = graphene.List(LicenseAdditionType)
+
     class Meta:
         model = License
         fields = "__all__"
+
+    def resolve_additions(self, info):
+        try:
+            return LicenseAddition.objects.filter(Q(license=self) | Q(generic_item=True))
+        except LicenseAddition.DoesNotExist as e:
+            return []
 
 
 class Query(graphene.ObjectType):
