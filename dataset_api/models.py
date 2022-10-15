@@ -236,12 +236,22 @@ class ModerationRequest(models.Model):
 
 class License(models.Model):
     title = models.CharField(max_length=100)
-    description = models.CharField(max_length=500)
+    description = models.CharField(max_length=5000)
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, blank=False, null=False)
+    created_organization = models.ForeignKey(Organization, on_delete=models.CASCADE, blank=True, null=True)
     remote_url = models.URLField(blank=True)
     file = models.FileField(upload_to=_contract_directory_path, blank=True)
+    status = models.CharField(max_length=50, choices=LicenseStatus.choices)
+
+
+class LicenseAddition(models.Model):
+    title = models.CharField(max_length=100)
+    description = models.CharField(max_length=500)
+    generic_item = models.BooleanField()
+    issued = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+    license = models.ForeignKey(License, on_delete=models.CASCADE, null=False, blank=False)
 
 
 class DataAccessModel(models.Model):
