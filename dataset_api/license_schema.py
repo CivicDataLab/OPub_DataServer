@@ -29,7 +29,7 @@ class LicenseApproveRejectInput(graphene.InputObjectType):
 
 
 class LicenceAdditionsInput(graphene.InputObjectType):
-    id = graphene.ID(required=True)
+    id = graphene.ID(required=False)
     title = graphene.String(required=True)
     description = graphene.String(required=True)
     generic_item = graphene.Boolean(required=True)
