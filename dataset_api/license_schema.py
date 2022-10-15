@@ -7,7 +7,7 @@ from .enums import LicenseStatus
 from .models import License, Organization, LicenseAddition
 
 
-class LicenseAdditionType:
+class LicenseAdditionType(DjangoObjectType):
     class Meta:
         model = LicenseAddition
         fields = "__all__"
