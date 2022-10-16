@@ -2,12 +2,19 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
+from .decorators import validate_token
 from .models import DataAccessModel, Dataset, Resource, AccessModelResource, DatasetAccessModelMap
 
 
 class AccessModelResourceType(DjangoObjectType):
     class Meta:
         model = AccessModelResource
+        fields = "__all__"
+
+
+class DatasetAccessModelMapType(DjangoObjectType):
+    class Meta:
+        model = DatasetAccessModelMap
         fields = "__all__"
 
 
@@ -21,6 +28,24 @@ class AccessModelResourceInput(graphene.InputObjectType):
     resource_map = graphene.List(of_type=ResourceFieldInput, required=True)
     access_model_id = graphene.ID(required=True)
     dataset_id = graphene.ID(required=True)
+
+
+class Query(graphene.ObjectType):
+    dataset_access_model = graphene.List(DatasetAccessModelMapType, dataset_id=graphene.ID())
+    dataset_access_model_by_id = graphene.Field(DatasetAccessModelMapType, dataset_access_model_id=graphene.ID())
+
+    @validate_token
+    def resolve_dataset_access_model(self, info, dataset_id, **kwargs):
+        try:
+            dataset = Dataset.objects.get(id=dataset_id)
+        except Dataset.DoesNotExist as e:
+            return {"success": False,
+                    "errors": {"organization_id": [{"message": "Dataset with id not found", "code": "404"}]}}
+        return DatasetAccessModelMap.objects.all(dataset=dataset)
+
+    @validate_token
+    def resolve_dataset_access_model_by_id(self, info, dataset_access_model_id):
+        return DatasetAccessModelMap.objects.get(pk=dataset_access_model_id)
 
 
 class CreateAccessModelResource(Output, graphene.Mutation):
