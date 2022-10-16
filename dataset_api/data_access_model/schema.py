@@ -4,7 +4,8 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
-from .models import DataAccessModel, Organization, License, LicenseAddition
+from dataset_api.models import Organization, License, LicenseAddition
+from dataset_api.data_access_model.models import DataAccessModel
 
 
 # from .search import update_rating
@@ -97,7 +98,7 @@ class CreateDataAccessModel(Output, graphene.Mutation):
     @staticmethod
     def mutate(root, info, data_access_model_data: DataAccessModelInput):
         org_instance = Organization.objects.get(id=data_access_model_data.organization)
-        license = License.objects.get(id=data_access_model_data.license)
+        dam_license = License.objects.get(id=data_access_model_data.license)
         data_access_model_instance = DataAccessModel(
             title=data_access_model_data.title,
             type=data_access_model_data.type,
@@ -105,7 +106,7 @@ class CreateDataAccessModel(Output, graphene.Mutation):
             organization=org_instance,
             contract_url=data_access_model_data.contract_url,
             contract=data_access_model_data.contract,
-            license=license,
+            license=dam_license,
             quota_limit=data_access_model_data.quota_limit,
             quota_limit_unit=data_access_model_data.quota_limit_unit,
             rate_limit=data_access_model_data.rate_limit,
@@ -113,7 +114,7 @@ class CreateDataAccessModel(Output, graphene.Mutation):
         )
 
         try:
-            _add_update_license_additions(data_access_model_instance, license, data_access_model_data.additions)
+            _add_update_license_additions(data_access_model_instance, dam_license, data_access_model_data.additions)
         except InvalidAddition as e:
             return {"success": False, "errors": {"id": [{str(e)}]}}
 

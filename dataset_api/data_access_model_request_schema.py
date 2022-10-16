@@ -3,7 +3,7 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
 from .decorators import validate_token
-from .models import DataAccessModel, DataAccessModelRequest
+from .data_access_model.models import DataAccessModel, DataAccessModelRequest
 
 
 class DataAccessModelRequestType(DjangoObjectType):
