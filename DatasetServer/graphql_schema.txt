@@ -52,12 +52,6 @@ type ApproveRejectDataAccessModelRequest {
     success: Boolean
 }
 
-type ApproveRejectDataRequest {
-    data_request: DataRequestType
-    errors: ExpectedErrorType
-    success: Boolean
-}
-
 type ApproveRejectModerationRequests {
     errors: ExpectedErrorType
     moderation_requests: [ModerationRequestType]
@@ -297,7 +291,6 @@ type ModerationRequestType {
 type Mutation {
     access_model_resource(access_model_resource_data: AccessModelResourceInput): CreateAccessModelResource
     approve_reject_data_access_model_request(data_access_model_request: DataAccessModelRequestUpdateInput): ApproveRejectDataAccessModelRequest
-    approve_reject_data_request(data_request: DataRequestApproveRejectInput): ApproveRejectDataRequest
     approve_reject_dataset_rating(rating_data: DatasetRatingApproveRejectInput!): ApproveRejectRating
     approve_reject_moderation_requests(moderation_request: ModerationRequestsApproveRejectInput): ApproveRejectModerationRequests
     create_additional_info(info_data: AdditionalInfoInput): CreateAdditionInfo
@@ -696,12 +689,6 @@ input DataAccessModelRequestUpdateInput {
     id: ID!
     remark: String
     status: DataAccessModelRequestStatusType
-}
-
-input DataRequestApproveRejectInput {
-    id: ID!
-    remark: String!
-    status: StatusType
 }
 
 input DataRequestInput {

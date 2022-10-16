@@ -100,39 +100,3 @@ class DataRequestUpdateMutation(graphene.Mutation, Output):
             data_request_instance.file = data_request.file
         data_request_instance.save()
         return DataRequestUpdateMutation(data_request=data_request_instance)
-
-
-class DataRequestApproveRejectInput(graphene.InputObjectType):
-    id = graphene.ID(required=True)
-    status = StatusType()
-    remark = graphene.String(required=True)
-
-
-# TODO: Remove this
-class ApproveRejectDataRequest(graphene.Mutation, Output):
-    class Arguments:
-        data_request = DataRequestApproveRejectInput()
-
-    data_request = graphene.Field(DataRequestType)
-
-    @staticmethod
-    def mutate(root, info, data_request: DataRequestApproveRejectInput = None):
-        data_request_instance = DataRequest.objects.get(id=data_request.id)
-        if data_request_instance:
-            data_request_instance.status = data_request.status
-            data_request_instance.remark = data_request.remark
-        data_request_instance.save()
-        resource = data_request_instance.resource.all()[0]
-        dataset = resource.dataset
-        #     TODO: FIX magic strings
-        if resource and dataset.dataset_type == "API" and data_request.status == "APPROVED":
-            url = f"https://pipeline.ndp.civicdatalab.in/transformer/api_source_query?api_source_id={resource.id}&request_id={data_request.id}"
-            payload = {}
-            headers = {}
-            response = requests.request("GET", url, headers=headers, data=payload)
-            print(response.text)
-        elif resource and dataset.dataset_type == "FILE" and data_request.status == "APPROVED":
-            data_request_instance.file = resource.filedetails.file
-            data_request_instance.status = StatusType.FETCHED
-        data_request_instance.save()
-        return DataRequestUpdateMutation(data_request=data_request_instance)

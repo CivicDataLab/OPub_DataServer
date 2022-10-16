@@ -48,7 +48,6 @@ class Mutation(graphene.ObjectType):
     update_organization = dataset_api.organization_schema.UpdateOrganization.Field()
     data_request = dataset_api.fetch_dataset.DataRequestMutation.Field()
     update_data_request = dataset_api.fetch_dataset.DataRequestUpdateMutation.Field()
-    approve_reject_data_request = dataset_api.fetch_dataset.ApproveRejectDataRequest.Field()
     moderation_request = dataset_api.dataset_moderation.ModerationRequestMutation.Field()
     approve_reject_moderation_requests = dataset_api.dataset_moderation.ApproveRejectModerationRequests.Field()
     data_access_model_request = dataset_api.data_access_model_request_schema.DataAccessModelRequestMutation.Field()
