@@ -18,13 +18,15 @@ from django.urls import path, re_path, include
 from django.views.decorators.csrf import csrf_exempt
 from graphene_file_upload.django import FileUploadGraphQLView
 
-from dataset_api import resource_file, data_request_file
+from dataset_api import resource_file, data_request_file, organization_logo, license_file
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     # re_path(r'^download/(?P<resource_id>\d+)/', resource_file.download),
     path('download/request/<int:data_request_id>/', data_request_file.download),
     path('download/<int:resource_id>/', resource_file.download),
+    path('logo/<int:organization_id>/', organization_logo.logo),
+    path('download/license/<int:license_id>/', license_file.download),
     path("graphql", csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True))),
     path('', include('dataset_api.urls')),
 ]
