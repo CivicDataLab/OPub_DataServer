@@ -189,11 +189,11 @@ class DataAccessModel(models.Model):
     contract_url = models.URLField(blank=True, null=True)
     contract = models.FileField(upload_to=_contract_directory_path, blank=True)
     license = models.ForeignKey(License, on_delete=models.CASCADE, blank=False, null=False)
-    # license = models.CharField(max_length=100, default="not_specified")
     quota_limit = models.IntegerField(blank=False)
     quota_limit_unit = models.CharField(blank=False, max_length=100)
     rate_limit = models.IntegerField(blank=False)
     rate_limit_unit = models.CharField(blank=False, max_length=100)
+    license_additions = models.ManyToManyField(LicenseAddition, blank=True)
 
 
 class DatasetAccessModelMap(models.Model):
