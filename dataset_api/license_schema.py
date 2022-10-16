@@ -2,6 +2,7 @@ import graphene
 from django.db.models import Q
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
+from graphql_auth.bases import Output
 
 from .enums import LicenseStatus
 from .models import License, Organization, LicenseAddition
@@ -99,7 +100,7 @@ def _create_update_license_additions(license_instance: License, additions: [Lice
             license_addition.delete()
 
 
-class CreateLicense(graphene.Mutation):
+class CreateLicense(graphene.Mutation, Output):
     class Arguments:
         license_data = LicenseInput(required=True)
 
@@ -124,7 +125,7 @@ class CreateLicense(graphene.Mutation):
         return CreateLicense(license=license_instance)
 
 
-class UpdateLicense(graphene.Mutation):
+class UpdateLicense(graphene.Mutation, Output):
     class Arguments:
         license_data = LicenseInput(required=True)
 
