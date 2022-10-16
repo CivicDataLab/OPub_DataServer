@@ -124,22 +124,6 @@ class FileDetails(models.Model):
     remote_url = models.URLField(blank=True)
 
 
-class APIResource(models.Model):
-    title = models.CharField(max_length=100)
-    description = models.CharField(max_length=500)
-    issued = models.DateTimeField(auto_now_add=True)
-    modified = models.DateTimeField(auto_now=True)
-    status = models.CharField(max_length=50, default="Draft")
-    masked_fields = ArrayField(
-        models.CharField(max_length=10, blank=True), blank=True, null=True
-    )
-    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
-    url_path = models.URLField(null=False, blank=False)
-    api_source = models.ForeignKey(APISource, on_delete=models.CASCADE)
-    auth_required = models.BooleanField()
-    # response_type = models.CharField(max_length=20)
-
-
 class DatasetRatings(models.Model):
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
     review = models.CharField(max_length=500)

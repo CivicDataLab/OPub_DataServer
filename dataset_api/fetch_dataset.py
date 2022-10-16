@@ -4,7 +4,7 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from graphene_file_upload.scalars import Upload
 
-from .models import Resource, DataRequest, APIResource, DataAccessModelRequest
+from .models import Resource, DataRequest, DataAccessModelRequest
 from .decorators import validate_token
 
 
@@ -108,6 +108,7 @@ class DataRequestApproveRejectInput(graphene.InputObjectType):
     remark = graphene.String(required=True)
 
 
+# TODO: Remove this
 class ApproveRejectDataRequest(graphene.Mutation, Output):
     class Arguments:
         data_request = DataRequestApproveRejectInput()
@@ -123,10 +124,6 @@ class ApproveRejectDataRequest(graphene.Mutation, Output):
         data_request_instance.save()
         resource = data_request_instance.resource.all()[0]
         dataset = resource.dataset
-        try:
-            api_resource = data_request_instance.api_resource.all()[0]
-        except IndexError:
-            api_resource = None
         #     TODO: FIX magic strings
         if resource and dataset.dataset_type == "API" and data_request.status == "APPROVED":
             url = f"https://pipeline.ndp.civicdatalab.in/transformer/api_source_query?api_source_id={resource.id}&request_id={data_request.id}"
