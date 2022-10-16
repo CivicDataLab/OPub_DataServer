@@ -1,5 +1,6 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphql_auth.bases import Output
 
 from .models import Organization, Geography
 
@@ -27,7 +28,7 @@ class GeographyInput(graphene.InputObjectType):
     # organization = graphene.String()
 
 
-class CreateGeography(graphene.Mutation):
+class CreateGeography(Output, graphene.Mutation):
     class Arguments:
         geography_data = GeographyInput(required=True)
 

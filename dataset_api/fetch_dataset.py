@@ -4,7 +4,7 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from graphene_file_upload.scalars import Upload
 
-from .models import Resource, DataRequest, APIResource, DataAccessModelRequest
+from .models import Resource, DataRequest, DataAccessModelRequest
 from .decorators import validate_token
 
 
@@ -54,8 +54,8 @@ class DataRequestMutation(graphene.Mutation, Output):
     data_request = graphene.Field(DataRequestType)
 
     @staticmethod
-    # @validate_token
-    def mutate(root, info, data_request: DataRequestInput = None, username="abhinav"):
+    @validate_token
+    def mutate(root, info, data_request: DataRequestInput = None, username=""):
         # TODO: Check if resource id's provided exists!!
         try:
             resource = Resource.objects.get(id=data_request.resource)
@@ -102,40 +102,6 @@ class DataRequestUpdateMutation(graphene.Mutation, Output):
         return DataRequestUpdateMutation(data_request=data_request_instance)
 
 
-class DataRequestApproveRejectInput(graphene.InputObjectType):
-    id = graphene.ID(required=True)
-    status = StatusType()
-    remark = graphene.String(required=True)
-
-
-class ApproveRejectDataRequest(graphene.Mutation, Output):
-    class Arguments:
-        data_request = DataRequestApproveRejectInput()
-
-    data_request = graphene.Field(DataRequestType)
-
-    @staticmethod
-    def mutate(root, info, data_request: DataRequestApproveRejectInput = None):
-        data_request_instance = DataRequest.objects.get(id=data_request.id)
-        if data_request_instance:
-            data_request_instance.status = data_request.status
-            data_request_instance.remark = data_request.remark
-        data_request_instance.save()
-        resource = data_request_instance.resource.all()[0]
-        dataset = resource.dataset
-        try:
-            api_resource = data_request_instance.api_resource.all()[0]
-        except IndexError:
-            api_resource = None
-        #     TODO: FIX magic strings
-        if resource and dataset.dataset_type == "API" and data_request.status == "APPROVED":
-            url = f"https://pipeline.ndp.civicdatalab.in/transformer/api_source_query?api_source_id={resource.id}&request_id={data_request.id}"
-            payload = {}
-            headers = {}
-            response = requests.request("GET", url, headers=headers, data=payload)
-            print(response.text)
-        elif resource and dataset.dataset_type == "FILE" and data_request.status == "APPROVED":
-            data_request_instance.file = resource.filedetails.file
-            data_request_instance.status = StatusType.FETCHED
-        data_request_instance.save()
-        return DataRequestUpdateMutation(data_request=data_request_instance)
+class Mutation(graphene.ObjectType):
+    data_request = DataRequestMutation.Field()
+    update_data_request = DataRequestUpdateMutation.Field()

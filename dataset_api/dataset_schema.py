@@ -1,5 +1,6 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphql_auth.bases import Output
 
 from .models import Dataset, Catalog, Tag, Geography, Sector, Organization
 from .decorators import auth_user_action_dataset
@@ -76,7 +77,7 @@ class PatchDatasetInput(graphene.InputObjectType):
     funnel = graphene.String(default=None)
     status = graphene.String(default=None)
 
-class CreateDataset(graphene.Mutation):
+class CreateDataset(Output,graphene.Mutation):
     class Arguments:
         dataset_data = DatasetInput()
 
@@ -109,12 +110,11 @@ class CreateDataset(graphene.Mutation):
         return CreateDataset(dataset=dataset_instance)
 
 
-class UpdateDataset(graphene.Mutation):
+class UpdateDataset(Output,graphene.Mutation):
     class Arguments:
         dataset_data = DatasetInput()
 
     dataset = graphene.Field(DatasetType)
-    
     @staticmethod
     @auth_user_action_dataset(action="update_dataset")
     def mutate(root, info, dataset_data: DatasetInput = None):
@@ -143,7 +143,7 @@ class UpdateDataset(graphene.Mutation):
         return UpdateDataset(dataset=None)
 
 
-class PatchDataset(graphene.Mutation):
+class PatchDataset(Output,graphene.Mutation):
     class Arguments:
         dataset_data = PatchDatasetInput()
 
@@ -162,3 +162,9 @@ class PatchDataset(graphene.Mutation):
             dataset_instance.funnel = dataset_data.funnel
         dataset_instance.save()
         return PatchDataset(success=True, dataset=dataset_instance)
+
+
+class Mutation(graphene.ObjectType):
+    create_dataset = CreateDataset.Field()
+    update_dataset = UpdateDataset.Field()
+    patch_dataset = PatchDataset.Field()

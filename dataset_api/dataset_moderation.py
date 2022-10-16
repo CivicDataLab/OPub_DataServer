@@ -8,6 +8,7 @@ from .decorators import validate_token
 from .models import ModerationRequest, Dataset
 from .search import index_data
 
+
 class ModerationRequestType(DjangoObjectType):
     class Meta:
         model = ModerationRequest
@@ -114,3 +115,8 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
                     "errors": {"ids": errors}}
 
         return ApproveRejectModerationRequests(moderation_requests=moderation_requests)
+
+
+class Mutation(graphene.ObjectType):
+    moderation_request = ModerationRequestMutation.Field()
+    approve_reject_moderation_requests = ApproveRejectModerationRequests.Field()

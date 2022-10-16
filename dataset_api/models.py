@@ -1,73 +1,13 @@
-import os
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
-from dataset_api.enums import RatingStatus
+
+from dataset_api.enums import RatingStatus, LicenseStatus
+from dataset_api.file_paths import _organization_directory_path, _resource_directory_path, _info_directory_path, \
+    _contract_directory_path, _data_request_directory_path, _license_directory_path
 
 
 # TODO: Add choices to choice fields
-def _organization_directory_path(org, filename):
-    """
-    Create a directory path to upload the organization logo
-
-    """
-    org_name = org.title
-    _, extension = os.path.splitext(filename)
-    return f"resources/{org_name}/{extension[1:]}/{filename}"
-
-
-def _resource_directory_path(file_details, filename):
-    """
-    Create a directory path to upload the resources.
-
-    """
-    dataset_name = file_details.resource.dataset.title
-    resource_name = file_details.resource.title
-    _, extension = os.path.splitext(filename)
-    return f"resources/{dataset_name}/{resource_name}/{extension[1:]}/{filename}"
-
-
-def _info_directory_path(info, filename):
-    """
-    Create a directory path to upload additional info.
-
-    """
-    dataset_name = info.dataset.title
-    resource_name = info.title
-    _, extension = os.path.splitext(filename)
-    return f"info/{dataset_name}/{resource_name}/{extension[1:]}/{filename}"
-
-
-def _contract_directory_path(dam, filename):
-    """
-    Create a directory path to upload DAM contract files.
-
-    """
-    dataset_name = dam.dataset.title
-    dam_name = dam.title
-    _, extension = os.path.splitext(filename)
-    return f"info/{dataset_name}/{dam_name}/{extension[1:]}/{filename}"
-
-
-def _license_directory_path(license, filename):
-    """
-    Create a directory path to upload license files.
-
-    """
-    org_name = license.organization.title
-    license_name = license.title
-    _, extension = os.path.splitext(filename)
-    return f"info/{org_name}/{license_name}/{extension[1:]}/{filename}"
-
-
-def _data_request_directory_path(request, filename):
-    """
-    Create a directory path to receive the request data.
-
-    """
-    _, extension = os.path.splitext(filename)
-    return f"request/{request.id}/{extension[1:]}/{filename}"
-
 
 class Organization(models.Model):
     title = models.CharField(max_length=100, unique=True)
@@ -184,22 +124,6 @@ class FileDetails(models.Model):
     remote_url = models.URLField(blank=True)
 
 
-class APIResource(models.Model):
-    title = models.CharField(max_length=100)
-    description = models.CharField(max_length=500)
-    issued = models.DateTimeField(auto_now_add=True)
-    modified = models.DateTimeField(auto_now=True)
-    status = models.CharField(max_length=50, default="Draft")
-    masked_fields = ArrayField(
-        models.CharField(max_length=10, blank=True), blank=True, null=True
-    )
-    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
-    url_path = models.URLField(null=False, blank=False)
-    api_source = models.ForeignKey(APISource, on_delete=models.CASCADE)
-    auth_required = models.BooleanField()
-    # response_type = models.CharField(max_length=20)
-
-
 class DatasetRatings(models.Model):
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
     review = models.CharField(max_length=500)
@@ -210,6 +134,7 @@ class DatasetRatings(models.Model):
     status = models.CharField(max_length=50, choices=RatingStatus.choices)
     # data_standards = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
     # coverage = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
+
 
 class AdditionalInfo(models.Model):
     title = models.CharField(max_length=100)
@@ -236,12 +161,22 @@ class ModerationRequest(models.Model):
 
 class License(models.Model):
     title = models.CharField(max_length=100)
-    description = models.CharField(max_length=500)
+    description = models.CharField(max_length=5000)
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, blank=False, null=False)
+    created_organization = models.ForeignKey(Organization, on_delete=models.CASCADE, blank=True, null=True)
     remote_url = models.URLField(blank=True)
-    file = models.FileField(upload_to=_contract_directory_path, blank=True)
+    file = models.FileField(upload_to=_license_directory_path, blank=True)
+    status = models.CharField(max_length=50, choices=LicenseStatus.choices)
+
+
+class LicenseAddition(models.Model):
+    title = models.CharField(max_length=100)
+    description = models.CharField(max_length=500)
+    generic_item = models.BooleanField()
+    issued = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+    license = models.ForeignKey(License, on_delete=models.CASCADE, null=False, blank=False)
 
 
 class DataAccessModel(models.Model):
@@ -250,26 +185,27 @@ class DataAccessModel(models.Model):
     description = models.CharField(max_length=500)
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    #dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, default="")
     contract_url = models.URLField(blank=True, null=True)
     contract = models.FileField(upload_to=_contract_directory_path, blank=True)
-    # license = models.ForeignKey(License, on_delete=models.CASCADE, blank=False, null=False)
-    license = models.CharField(max_length=100, default="not_specified")
+    license = models.ForeignKey(License, on_delete=models.CASCADE, blank=False, null=False)
     quota_limit = models.IntegerField(blank=False)
     quota_limit_unit = models.CharField(blank=False, max_length=100)
     rate_limit = models.IntegerField(blank=False)
     rate_limit_unit = models.CharField(blank=False, max_length=100)
-    #resources = models.ManyToManyField(Resource)
+    license_additions = models.ManyToManyField(LicenseAddition, blank=True)
+
 
 class DatasetAccessModelMap(models.Model):
     data_access_model = models.ForeignKey(DataAccessModel, on_delete=models.CASCADE)
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
 
+
 class AccessModelResource(models.Model):
     resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
     fields = ArrayField(models.CharField(max_length=25, blank=False), blank=False, null=False)
     dataset_access_map = models.ForeignKey(DatasetAccessModelMap, on_delete=models.CASCADE, default="")
+
 
 class DataAccessModelRequest(models.Model):
     data_access_model_id = models.ForeignKey(DataAccessModel, blank=False, null=False, on_delete=models.CASCADE)

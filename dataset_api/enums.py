@@ -6,3 +6,9 @@ class RatingStatus(models.TextChoices):
     CREATED = "CREATED"
     REJECTED = "REJECTED"
     PUBLISHED = "PUBLISHED"
+
+
+class LicenseStatus(models.TextChoices):
+    CREATED = "CREATED"
+    REJECTED = "REJECTED"
+    PUBLISHED = "PUBLISHED"

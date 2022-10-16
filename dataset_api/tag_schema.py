@@ -1,5 +1,6 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphql_auth.bases import Output
 
 from .models import Organization, Tag
 
@@ -27,7 +28,7 @@ class TagInput(graphene.InputObjectType):
     # organization = graphene.String()
 
 
-class CreateTag(graphene.Mutation):
+class CreateTag(Output, graphene.Mutation):
     class Arguments:
         tag_data = TagInput(required=True)
 

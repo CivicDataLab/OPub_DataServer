@@ -4,6 +4,8 @@ from graphql_auth.bases import Output
 
 from .enums import RatingStatus
 from .models import DatasetRatings, Dataset
+
+
 # from .search import update_rating
 
 
@@ -43,7 +45,7 @@ class DatasetRatingApproveRejectInput(graphene.InputObjectType):
     status = graphene.Enum.from_enum(RatingStatus)(required=True)
 
 
-class CreateDatasetRating(graphene.Mutation):
+class CreateDatasetRating(Output, graphene.Mutation):
     class Arguments:
         rating_data = DatasetRatingInput(required=True)
 
@@ -84,3 +86,8 @@ class ApproveRejectRating(graphene.Mutation, Output):
         # Update rating in elasticsearch
         # update_rating_index(rating_instance)
         return ApproveRejectRating(dataset_rating=rating_instance)
+
+
+class Mutation(graphene.ObjectType):
+    create_dataset_rating = CreateDatasetRating.Field()
+    approve_reject_dataset_rating = ApproveRejectRating.Field()
