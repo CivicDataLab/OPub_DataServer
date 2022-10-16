@@ -49,10 +49,9 @@ def _license_directory_path(license, filename):
     Create a directory path to upload license files.
 
     """
-    org_name = license.organization.title
     license_name = license.title
     _, extension = os.path.splitext(filename)
-    return f"info/{org_name}/{license_name}/{extension[1:]}/{filename}"
+    return f"info/{license_name}/{extension[1:]}/{filename}"
 
 
 def _data_request_directory_path(request, filename):
