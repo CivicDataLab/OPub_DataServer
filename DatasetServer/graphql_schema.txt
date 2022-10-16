@@ -20,6 +20,7 @@ type APISourceType {
 }
 
 type AccessModelResourceType {
+    dataset_access_map: DatasetAccessModelMapType!
     fields: [String!]!
     id: ID!
     resource: ResourceType!
@@ -173,12 +174,13 @@ type DataAccessModelRequestType {
 
 type DataAccessModelType {
     contract: String!
-    contract_url: String
     dataaccessmodelrequest_set: [DataAccessModelRequestType!]!
+    datasetaccessmodelmap_set: [DatasetAccessModelMapType!]!
     description: String!
     id: ID!
     issued: DateTime!
     license: LicenseType!
+    license_additions: [LicenseAdditionType!]!
     modified: DateTime!
     organization: OrganizationType!
     quota_limit: Int!
@@ -212,6 +214,13 @@ type DataRequestUpdateMutation {
     success: Boolean
 }
 
+type DatasetAccessModelMapType {
+    accessmodelresource_set: [AccessModelResourceType!]!
+    data_access_model: DataAccessModelType!
+    dataset: DatasetType!
+    id: ID!
+}
+
 type DatasetRatingType {
     data_quality: Float!
     dataset: DatasetType!
@@ -225,6 +234,7 @@ type DatasetType {
     additionalinfo_set: [AdditionalInfoType!]!
     catalog: CatalogType!
     dataset_type: String!
+    datasetaccessmodelmap_set: [DatasetAccessModelMapType!]!
     datasetratings_set: [DatasetRatingType!]!
     description: String!
     funnel: String!
@@ -268,6 +278,7 @@ type GeographyType {
 }
 
 type LicenseAdditionType {
+    dataaccessmodel_set: [DataAccessModelType!]!
     description: String!
     generic_item: Boolean!
     id: ID!
@@ -693,11 +704,12 @@ input CatalogInput {
 }
 
 input DataAccessModelInput {
+    additions: [ID]
     contract: Upload
     contract_url: String
     description: String!
     id: ID
-    license: String!
+    license: ID!
     organization: String!
     quota_limit: Int!
     quota_limit_unit: QuotaUnits!
