@@ -2,8 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 
 from .models import Dataset, Catalog, Tag, Geography, Sector, Organization
-# from .search import update_dataset
-from .decorators import validate_token
+from .decorators import auth_user_action_dataset
 
 
 class DatasetType(DjangoObjectType):
@@ -71,6 +70,11 @@ class DatasetInput(graphene.InputObjectType):
     geo_list = graphene.List(of_type=graphene.String, default=[], required=False)
     sector_list = graphene.List(of_type=graphene.String, default=[], required=False)
 
+class PatchDatasetInput(graphene.InputObjectType):
+    id = graphene.ID(required=True)
+    organization = graphene.ID(required=True)
+    funnel = graphene.String(default=None)
+    status = graphene.String(default=None)
 
 class CreateDataset(graphene.Mutation):
     class Arguments:
@@ -105,13 +109,14 @@ class CreateDataset(graphene.Mutation):
         return CreateDataset(dataset=dataset_instance)
 
 
-
 class UpdateDataset(graphene.Mutation):
     class Arguments:
         dataset_data = DatasetInput()
 
     dataset = graphene.Field(DatasetType)
+    
     @staticmethod
+    @auth_user_action_dataset(action="update_dataset")
     def mutate(root, info, dataset_data: DatasetInput = None):
         dataset_instance = Dataset.objects.get(id=dataset_data.id)
         organization = Organization.objects.get(id=dataset_data.organization)
@@ -134,31 +139,26 @@ class UpdateDataset(graphene.Mutation):
             _add_update_attributes_to_dataset(dataset_instance, "geography", dataset_data.geo_list, Geography)
             _add_update_attributes_to_dataset(dataset_instance, "sector", dataset_data.sector_list, Sector)
 
-            # For updating indexed data in elasticsearch.
-            # update_dataset(dataset_instance)
-
             return UpdateDataset(dataset=dataset_instance)
         return UpdateDataset(dataset=None)
 
 
 class PatchDataset(graphene.Mutation):
     class Arguments:
-        id = graphene.ID(required=True)
-        funnel = graphene.String()
-        status = graphene.String()
+        dataset_data = PatchDatasetInput()
 
     success = graphene.Boolean()
     dataset = graphene.Field(DatasetType)
 
-    @validate_token
-    def mutate(root, info, username, id, funnel=None, status=None):
+    @auth_user_action_dataset(action="patch_dataset")
+    def mutate(root, info, dataset_data: PatchDatasetInput = None):
         try:
-            dataset_instance = Dataset.objects.get(id=id)
+            dataset_instance = Dataset.objects.get(id=dataset_data.id)
         except Dataset.DoesNotExist as e:
             return {"success": False, "errors": {"id": [{"message": "Dataset with given id not found", "code": "404"}]}}
-        if status:
-            dataset_instance.status = status
-        if funnel:
-            dataset_instance.funnel = funnel
+        if dataset_data.status:
+            dataset_instance.status = dataset_data.status
+        if dataset_data.funnel:
+            dataset_instance.funnel = dataset_data.funnel
         dataset_instance.save()
         return PatchDataset(success=True, dataset=dataset_instance)

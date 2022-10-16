@@ -17,7 +17,7 @@ from .models import (
     APIDetails,
     FileDetails,
 )
-# from .search import delete_data, index_data, update_data
+from .decorators import auth_user_action_resource
 from .utils import FORMAT_MAPPING
 
 
@@ -136,6 +136,9 @@ class ResourceInput(graphene.InputObjectType):
     api_details: ApiInputType = graphene.Field(ApiInputType, required=False)
     file_details: FileInputType = graphene.Field(FileInputType, required=False)
 
+class DeleteResourceInput(graphene.InputObjectType):
+    id: str = graphene.ID()
+    dataset = graphene.ID(required=True)
 
 def _remove_masked_fields(resource_instance: Resource):
     if (
@@ -252,6 +255,7 @@ class CreateResource(graphene.Mutation, Output):
     resource = graphene.Field(ResourceType)
 
     @staticmethod
+    @auth_user_action_resource(action="create_resource")
     def mutate(root, info, resource_data: ResourceInput = None):
         """
 
@@ -284,8 +288,6 @@ class CreateResource(graphene.Mutation, Output):
         _remove_masked_fields(resource_instance)
         _create_update_schema(resource_data, resource_instance)
         
-        # For indexing data in elasticsearch.
-        # index_data(resource_instance)
         return CreateResource(success=True, resource=resource_instance)
 
 
@@ -296,6 +298,7 @@ class UpdateResource(graphene.Mutation, Output):
     resource = graphene.Field(ResourceType)
 
     @staticmethod
+    @auth_user_action_resource(action="update_resource")
     def mutate(root, info, resource_data: ResourceInput = None):
         resource_instance = Resource.objects.get(id=int(resource_data.id))
         dataset = Dataset.objects.get(id=resource_data.dataset)
@@ -318,26 +321,21 @@ class UpdateResource(graphene.Mutation, Output):
                     resource_instance=resource_instance,
                     attribute=resource_data.file_details,
                 )
-
-            # For updating indexed data in elasticsearch.
-            # update_data(resource_instance)
             return UpdateResource(success=True, resource=resource_instance)
-
         return UpdateResource(success=False, resource=None)
 
 
 class DeleteResource(graphene.Mutation):
     class Arguments:
-        id = graphene.ID()
+        resource_data = DeleteResourceInput()
 
     success = graphene.String()
 
     # resource = graphene.Field(ResourceType)
 
     @staticmethod
-    def mutate(root, info, id):
-        resource_instance = Resource.objects.get(id=id)
+    @auth_user_action_resource(action="delete_resource")
+    def mutate(root, info, resource_data: DeleteResourceInput = None):
+        resource_instance = Resource.objects.get(id=resource_data.id)
         resource_instance.delete()
-        # For deleting indexed data in elasticsearch.
-        # delete_data(id)
         return DeleteResource(success=True)
