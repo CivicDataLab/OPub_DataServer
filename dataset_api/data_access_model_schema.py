@@ -1,8 +1,11 @@
 import graphene
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
+from graphql_auth.bases import Output
 
 from .models import DataAccessModel, Organization
+
+
 # from .search import update_rating
 
 
@@ -65,7 +68,7 @@ class DataAccessModelInput(graphene.InputObjectType):
     # resources = graphene.List(of_type=graphene.String, required=True)
 
 
-class CreateDataAccessModel(graphene.Mutation):
+class CreateDataAccessModel(Output, graphene.Mutation):
     class Arguments:
         data_access_model_data = DataAccessModelInput()
 

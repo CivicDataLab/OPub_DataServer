@@ -45,7 +45,7 @@ class DatasetRatingApproveRejectInput(graphene.InputObjectType):
     status = graphene.Enum.from_enum(RatingStatus)(required=True)
 
 
-class CreateDatasetRating(graphene.Mutation):
+class CreateDatasetRating(Output, graphene.Mutation):
     class Arguments:
         rating_data = DatasetRatingInput(required=True)
 

@@ -1,5 +1,6 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphql_auth.bases import Output
 
 from .models import DataAccessModel, Dataset, Resource, AccessModelResource, DatasetAccessModelMap
 
@@ -22,7 +23,7 @@ class AccessModelResourceInput(graphene.InputObjectType):
     dataset_id = graphene.ID(required=True)
 
 
-class CreateAccessModelResource(graphene.Mutation):
+class CreateAccessModelResource(Output, graphene.Mutation):
     class Arguments:
         access_model_resource_data = AccessModelResourceInput()
 

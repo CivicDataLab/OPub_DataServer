@@ -1,5 +1,6 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphql_auth.bases import Output
 
 from .models import Dataset, Catalog, Tag, Geography, Sector, Organization
 # from .search import update_dataset
@@ -72,7 +73,7 @@ class DatasetInput(graphene.InputObjectType):
     sector_list = graphene.List(of_type=graphene.String, default=[], required=False)
 
 
-class CreateDataset(graphene.Mutation):
+class CreateDataset(Output,graphene.Mutation):
     class Arguments:
         dataset_data = DatasetInput()
 
@@ -105,7 +106,7 @@ class CreateDataset(graphene.Mutation):
         return CreateDataset(dataset=dataset_instance)
 
 
-class UpdateDataset(graphene.Mutation):
+class UpdateDataset(Output,graphene.Mutation):
     class Arguments:
         dataset_data = DatasetInput()
 
@@ -141,7 +142,7 @@ class UpdateDataset(graphene.Mutation):
         return UpdateDataset(dataset=None)
 
 
-class PatchDataset(graphene.Mutation):
+class PatchDataset(Output,graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
         funnel = graphene.String()

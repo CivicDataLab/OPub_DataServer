@@ -1,5 +1,6 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphql_auth.bases import Output
 
 from .models import Catalog, Organization
 
@@ -28,7 +29,7 @@ class CatalogInput(graphene.InputObjectType):
     organization = graphene.ID(required=True)
 
 
-class CreateCatalog(graphene.Mutation):
+class CreateCatalog(Output, graphene.Mutation):
     class Arguments:
         catalog_data = CatalogInput(required=True)
 

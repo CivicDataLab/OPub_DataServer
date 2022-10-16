@@ -1,5 +1,6 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphql_auth.bases import Output
 
 from .models import Sector
 
@@ -27,7 +28,7 @@ class SectorInput(graphene.InputObjectType):
     # organization = graphene.String()
 
 
-class CreateSector(graphene.Mutation):
+class CreateSector(Output, graphene.Mutation):
     class Arguments:
         sector_data = SectorInput(required=True)
 

@@ -1,5 +1,6 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphql_auth.bases import Output
 
 from .models import APISource
 
@@ -50,7 +51,7 @@ class APISourceInput(graphene.InputObjectType):
     auth_token = graphene.String()
 
 
-class CreateAPISource(graphene.Mutation):
+class CreateAPISource(Output, graphene.Mutation):
     class Arguments:
         api_source_data = APISourceInput(required=True)
 

@@ -76,10 +76,14 @@ type CatalogType {
 
 type CreateAPISource {
     API_source: APISourceType
+    errors: ExpectedErrorType
+    success: Boolean
 }
 
 type CreateAccessModelResource {
     access_model_resource: AccessModelResourceType
+    errors: ExpectedErrorType
+    success: Boolean
 }
 
 type CreateAdditionInfo {
@@ -90,30 +94,44 @@ type CreateAdditionInfo {
 
 type CreateCatalog {
     catalog: CatalogType
+    errors: ExpectedErrorType
+    success: Boolean
 }
 
 type CreateDataAccessModel {
     data_access_model: DataAccessModelType
+    errors: ExpectedErrorType
+    success: Boolean
 }
 
 type CreateDataset {
     dataset: DatasetType
+    errors: ExpectedErrorType
+    success: Boolean
 }
 
 type CreateDatasetRating {
     dataset_rating: DatasetRatingType
+    errors: ExpectedErrorType
+    success: Boolean
 }
 
 type CreateGeography {
+    errors: ExpectedErrorType
     geography: GeographyType
+    success: Boolean
 }
 
 type CreateLicense {
+    errors: ExpectedErrorType
     license: LicenseType
+    success: Boolean
 }
 
 type CreateOrganization {
+    errors: ExpectedErrorType
     organization: OrganizationType
+    success: Boolean
 }
 
 type CreateResource {
@@ -123,10 +141,14 @@ type CreateResource {
 }
 
 type CreateSector {
+    errors: ExpectedErrorType
     sector: SectorType
+    success: Boolean
 }
 
 type CreateTag {
+    errors: ExpectedErrorType
+    success: Boolean
     tag: TagType
 }
 
@@ -335,6 +357,7 @@ type OrganizationType {
 
 type PatchDataset {
     dataset: DatasetType
+    errors: ExpectedErrorType
     success: Boolean
 }
 
@@ -439,14 +462,20 @@ type UpdateAdditionalInfo {
 
 type UpdateDataset {
     dataset: DatasetType
+    errors: ExpectedErrorType
+    success: Boolean
 }
 
 type UpdateLicense {
+    errors: ExpectedErrorType
     license: LicenseType
+    success: Boolean
 }
 
 type UpdateOrganization {
+    errors: ExpectedErrorType
     organization: OrganizationType
+    success: Boolean
 }
 
 type UpdateResource {

@@ -8,6 +8,7 @@ from .decorators import validate_token
 from .models import ModerationRequest, Dataset
 from .search import index_data
 
+
 class ModerationRequestType(DjangoObjectType):
     class Meta:
         model = ModerationRequest

@@ -1,6 +1,7 @@
 import graphene
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
+from graphql_auth.bases import Output
 
 from .models import Organization
 
@@ -35,7 +36,7 @@ class OrganizationInput(graphene.InputObjectType):
     contact = graphene.String(required=False)
 
 
-class CreateOrganization(graphene.Mutation):
+class CreateOrganization(Output, graphene.Mutation):
     class Arguments:
         organization_data = OrganizationInput(required=True)
 
@@ -54,7 +55,7 @@ class CreateOrganization(graphene.Mutation):
         return CreateOrganization(organization=organization_instance)
 
 
-class UpdateOrganization(graphene.Mutation):
+class UpdateOrganization(Output, graphene.Mutation):
     class Arguments:
         organization_data = OrganizationInput(required=True)
 
