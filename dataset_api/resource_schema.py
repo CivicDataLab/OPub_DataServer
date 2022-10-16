@@ -341,3 +341,9 @@ class DeleteResource(graphene.Mutation):
         # For deleting indexed data in elasticsearch.
         # delete_data(id)
         return DeleteResource(success=True)
+
+
+class Mutation(graphene.ObjectType):
+    create_resource = CreateResource.Field()
+    update_resource = UpdateResource.Field()
+    delete_resource = DeleteResource.Field()

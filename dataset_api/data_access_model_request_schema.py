@@ -95,3 +95,8 @@ class ApproveRejectDataAccessModelRequest(graphene.Mutation, Output):
             data_access_model_request_instance.remark = data_access_model_request.remark
         data_access_model_request_instance.save()
         return ApproveRejectDataAccessModelRequest(data_access_model_request=data_access_model_request_instance)
+
+
+class Mutation(graphene.ObjectType):
+    data_access_model_request = DataAccessModelRequestMutation.Field()
+    approve_reject_data_access_model_request = ApproveRejectDataAccessModelRequest.Field()

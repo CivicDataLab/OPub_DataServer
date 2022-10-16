@@ -114,3 +114,8 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
                     "errors": {"ids": errors}}
 
         return ApproveRejectModerationRequests(moderation_requests=moderation_requests)
+
+
+class Mutation(graphene.ObjectType):
+    moderation_request = ModerationRequestMutation.Field()
+    approve_reject_moderation_requests = ApproveRejectModerationRequests.Field()

@@ -112,3 +112,9 @@ class DeleteAdditionalInfo(graphene.Mutation):
         info_instance = AdditionalInfo.objects.get(id=id)
         info_instance.delete()
         return DeleteAdditionalInfo(success=True, additional_info=info_instance)
+
+
+class Mutation(graphene.ObjectType):
+    create_additional_info = CreateAdditionInfo.Field()
+    update_additional_info = UpdateAdditionalInfo.Field()
+    delete_additional_info = DeleteAdditionalInfo.Field()

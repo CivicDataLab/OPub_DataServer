@@ -44,3 +44,7 @@ class CreateCatalog(graphene.Mutation):
         )
         catalog_instance.save()
         return CreateCatalog(catalog=catalog_instance)
+
+
+class Mutation(graphene.ObjectType):
+    create_catalog = CreateCatalog.Field()

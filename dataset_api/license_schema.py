@@ -151,3 +151,8 @@ class UpdateLicense(graphene.Mutation):
         if license_data.license_additions:
             _create_update_license_additions(license_instance, license_data.license_additions)
         return CreateLicense(license=license_instance)
+
+
+class Mutation(graphene.ObjectType):
+    create_license = CreateLicense.Field()
+    update_license = UpdateLicense.Field()

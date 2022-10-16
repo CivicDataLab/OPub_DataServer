@@ -54,8 +54,8 @@ class DataRequestMutation(graphene.Mutation, Output):
     data_request = graphene.Field(DataRequestType)
 
     @staticmethod
-    # @validate_token
-    def mutate(root, info, data_request: DataRequestInput = None, username="abhinav"):
+    @validate_token
+    def mutate(root, info, data_request: DataRequestInput = None, username=""):
         # TODO: Check if resource id's provided exists!!
         try:
             resource = Resource.objects.get(id=data_request.resource)
@@ -100,3 +100,8 @@ class DataRequestUpdateMutation(graphene.Mutation, Output):
             data_request_instance.file = data_request.file
         data_request_instance.save()
         return DataRequestUpdateMutation(data_request=data_request_instance)
+
+
+class Mutation(graphene.ObjectType):
+    data_request = DataRequestMutation.Field()
+    update_data_request = DataRequestUpdateMutation.Field()

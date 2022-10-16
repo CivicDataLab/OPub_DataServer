@@ -100,3 +100,7 @@ class CreateDataAccessModel(graphene.Mutation):
         # Update rating in elasticsearch
         # update_rating(data_access_model_instance)
         return CreateDataAccessModel(data_access_model=data_access_model_instance)
+
+
+class Mutation(graphene.ObjectType):
+    create_data_access_model = CreateDataAccessModel.Field()

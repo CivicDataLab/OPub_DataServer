@@ -105,12 +105,12 @@ class CreateDataset(graphene.Mutation):
         return CreateDataset(dataset=dataset_instance)
 
 
-
 class UpdateDataset(graphene.Mutation):
     class Arguments:
         dataset_data = DatasetInput()
 
     dataset = graphene.Field(DatasetType)
+
     @staticmethod
     def mutate(root, info, dataset_data: DatasetInput = None):
         dataset_instance = Dataset.objects.get(id=dataset_data.id)
@@ -162,3 +162,9 @@ class PatchDataset(graphene.Mutation):
             dataset_instance.funnel = funnel
         dataset_instance.save()
         return PatchDataset(success=True, dataset=dataset_instance)
+
+
+class Mutation(graphene.ObjectType):
+    create_dataset = CreateDataset.Field()
+    update_dataset = UpdateDataset.Field()
+    patch_dataset = PatchDataset.Field()

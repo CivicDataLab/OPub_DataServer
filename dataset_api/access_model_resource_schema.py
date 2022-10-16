@@ -57,3 +57,7 @@ class CreateAccessModelResource(graphene.Mutation):
             return {"success": False, "errors": {"id": [{"message": "Dataset id not found", "code": "404"}]}}
         except DataAccessModel.DoesNotExist as e:
             return {"success": False, "errors": {"id": [{"message": "Access Model id not found", "code": "404"}]}}
+
+
+class Mutation(graphene.ObjectType):
+    access_model_resource = CreateAccessModelResource.Field()

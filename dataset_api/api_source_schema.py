@@ -71,3 +71,7 @@ class CreateAPISource(graphene.Mutation):
         )
         api_source_instance.save()
         return CreateAPISource(API_source=api_source_instance)
+
+
+class Mutation(graphene.ObjectType):
+    create_api_source = CreateAPISource.Field()
