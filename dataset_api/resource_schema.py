@@ -219,6 +219,13 @@ def _create_update_api_details(resource_instance, attribute):
     api_source_instance = APISource.objects.get(id=attribute.api_source)
     try:
         api_detail_object = APIDetails.objects.get(resource=resource_instance)
+        # Update api_details, if it already exists.
+        api_detail_object.resource = resource_instance
+        api_detail_object.api_source = api_source_instance
+        api_detail_object.auth_required = attribute.auth_required
+        api_detail_object.url_path = attribute.url_path
+        api_detail_object.response_type = attribute.response_type
+        api_detail_object.save()
     except APIDetails.DoesNotExist as e:
         api_detail_object = APIDetails(
             resource=resource_instance,
