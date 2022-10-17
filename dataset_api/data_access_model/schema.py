@@ -4,12 +4,9 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
+from dataset_api.data_access_model.models import DataAccessModel
 from dataset_api.enums import SubscriptionUnits
 from dataset_api.models import Organization, License, LicenseAddition
-from dataset_api.data_access_model.models import DataAccessModel
-
-
-# from .search import update_rating
 
 
 class DataAccessModelType(DjangoObjectType):
@@ -42,11 +39,6 @@ class AccessTypes(graphene.Enum):
     OPEN = "OPEN"
     RESTRICTED = "RESTRICTED"
     REGISTERED = "REGISTERED"
-
-
-class QuotaUnits(graphene.Enum):
-    MONTHLY = "MONTHLY"
-    YEARLY = "YEARLY"
 
 
 class RateLimitUnits(graphene.Enum):
@@ -126,5 +118,46 @@ class CreateDataAccessModel(Output, graphene.Mutation):
         return CreateDataAccessModel(data_access_model=data_access_model_instance)
 
 
+class UpdateDataAccessModel(Output, graphene.Mutation):
+    class Arguments:
+        data_access_model_data = DataAccessModelInput()
+
+    data_access_model = graphene.Field(DataAccessModelType)
+
+    @staticmethod
+    def mutate(root, info, data_access_model_data: DataAccessModelInput):
+        if not data_access_model_data.id:
+            return {"success": False,
+                    "errors": {"id": [{"message": "Data Access Model id not found", "code": "404"}]}}
+
+        try:
+            data_access_model_instance = DataAccessModel.objects.get(id=data_access_model_data.id)
+            org_instance = Organization.objects.get(id=data_access_model_data.organization)
+            dam_license = License.objects.get(id=data_access_model_data.license)
+        except (DataAccessModel.DoesNotExist, Organization.DoesNotExist, License.DoesNotExist) as e:
+            return {"success": False,
+                    "errors": {"id": [{"message": str(e), "code": "404"}]}}
+
+        data_access_model_instance.title = data_access_model_data.title
+        data_access_model_instance.type = data_access_model_data.type
+        data_access_model_instance.description = data_access_model_data.description
+        data_access_model_instance.organization = org_instance
+        data_access_model_instance.contract = data_access_model_data.contract
+        data_access_model_instance.license = dam_license
+        data_access_model_instance.subscription_quota = data_access_model_data.subscription_quota
+        data_access_model_instance.subscription_quota_unit = data_access_model_data.subscription_quota_unit
+        data_access_model_instance.rate_limit = data_access_model_data.rate_limit
+        data_access_model_instance.rate_limit_unit = data_access_model_data.rate_limit_unit
+        data_access_model_instance.save()
+
+        try:
+            _add_update_license_additions(data_access_model_instance, dam_license, data_access_model_data.additions)
+        except InvalidAddition as e:
+            return {"success": False, "errors": {"id": [{str(e)}]}}
+
+        return CreateDataAccessModel(data_access_model=data_access_model_instance)
+
+
 class Mutation(graphene.ObjectType):
     create_data_access_model = CreateDataAccessModel.Field()
+    update_data_access_model = UpdateDataAccessModel.Field()
