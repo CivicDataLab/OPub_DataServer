@@ -42,7 +42,7 @@ class Query(graphene.ObjectType):
         except Dataset.DoesNotExist as e:
             return {"success": False,
                     "errors": {"organization_id": [{"message": "Dataset with id not found", "code": "404"}]}}
-        return DatasetAccessModelMap.objects.all(dataset=dataset)
+        return DatasetAccessModelMap.objects.filter(dataset=dataset)
 
     @validate_token
     def resolve_dataset_access_model_by_id(self, info, dataset_access_model_id):
