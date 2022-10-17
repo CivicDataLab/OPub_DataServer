@@ -397,13 +397,13 @@ type Query {
     data_request(data_request_id: Int): DataRequestType
     data_request_user: DataRequestType
     dataset(dataset_id: Int): DatasetType
-    dataset_data_access_models(dataset_id: Int): [DataAccessModelType]
     dataset_rating(dataset_id: Int): [DatasetRatingType]
     geography(geography_id: Int): GeographyType
     info(info_id: Int): AdditionalInfoType
     license(license_id: Int): LicenseType
     moderation_request(moderation_request_id: Int): ModerationRequestType
     moderation_request_user: [ModerationRequestType]
+    org_data_access_models(organization_id: ID): [DataAccessModelType]
     organization(organization_id: Int): OrganizationType
     organization_by_title(organization_title: String): OrganizationType
     rating(dataset_rating_id: Int): DatasetRatingType
@@ -737,7 +737,7 @@ input DataAccessModelInput {
     description: String!
     id: ID
     license: ID!
-    organization: String!
+    organization: ID!
     quota_limit: Int!
     quota_limit_unit: QuotaUnits!
     rate_limit: Int!
