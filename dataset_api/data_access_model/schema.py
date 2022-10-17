@@ -20,14 +20,19 @@ class DataAccessModelType(DjangoObjectType):
 
 class Query(graphene.ObjectType):
     all_data_access_models = graphene.List(DataAccessModelType)
-    dataset_data_access_models = graphene.List(DataAccessModelType, dataset_id=graphene.Int())
+    org_data_access_models = graphene.List(DataAccessModelType, organization_id=graphene.ID())
     data_access_model = graphene.Field(DataAccessModelType, data_access_model_id=graphene.Int())
 
     def resolve_all_data_access_models(self, info, **kwargs):
         return DataAccessModel.objects.all().order_by("-modified")
 
-    def resolve_dataset_data_access_models(self, info, dataset_id):
-        return DataAccessModel.objects.filter(dataset=dataset_id).order_by("-modified")
+    def resolve_org_data_access_models(self, info, organization_id):
+        try:
+            organization = Organization.objects.get(pk=organization_id)
+        except Organization.DoesNotExist:
+            return {"success": False,
+                    "errors": {"organization_id": [{"message": "Organization id not found", "code": "404"}]}}
+        return DataAccessModel.objects.filter(organization=organization).order_by("-modified")
 
     def resolve_data_access_model(self, info, data_access_model_id):
         return DataAccessModel.objects.get(pk=data_access_model_id)
