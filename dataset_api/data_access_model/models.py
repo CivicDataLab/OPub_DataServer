@@ -1,7 +1,7 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
-from dataset_api.enums import SubscriptionModels
+from dataset_api.enums import SubscriptionUnits
 from dataset_api.file_paths import _contract_directory_path, _data_request_directory_path
 from dataset_api.models import Organization, License, LicenseAddition, Dataset, Resource
 
@@ -15,12 +15,11 @@ class DataAccessModel(models.Model):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, default="")
     contract = models.FileField(upload_to=_contract_directory_path, blank=True)
     license = models.ForeignKey(License, on_delete=models.CASCADE, blank=False, null=False)
-    quota_limit = models.IntegerField(blank=False)
-    quota_limit_unit = models.CharField(blank=False, max_length=100)
-    rate_limit = models.IntegerField(blank=False)
-    rate_limit_unit = models.CharField(blank=False, max_length=100)
+    subscription_quota = models.IntegerField(blank=False)
+    subscription_quota_unit = models.CharField(blank=False, choices=SubscriptionUnits.choices, max_length=50)
+    rate_limit = models.IntegerField(blank=True)
+    rate_limit_unit = models.CharField(blank=True, max_length=100)
     license_additions = models.ManyToManyField(LicenseAddition, blank=True)
-    subscription_model = models.CharField(choices=SubscriptionModels.choices, blank=False, null=False, max_length=50)
 
 
 class DatasetAccessModelMap(models.Model):

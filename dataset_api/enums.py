@@ -14,8 +14,8 @@ class LicenseStatus(models.TextChoices):
     PUBLISHED = "PUBLISHED"
 
 
-class SubscriptionModels(models.TextChoices):
-    ONETIMEDOWNLOAD = "ONETIMEDOWNLOAD"
+class SubscriptionUnits(models.TextChoices):
+    LIMITEDDOWNLOAD = "LIMITEDDOWNLOAD"
     DAILY = "DAILY"
     WEEKLY = "WEEKLY"
     QUARTERLY = "QUARTERLY"

@@ -4,7 +4,7 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
-from dataset_api.enums import SubscriptionModels
+from dataset_api.enums import SubscriptionUnits
 from dataset_api.models import Organization, License, LicenseAddition
 from dataset_api.data_access_model.models import DataAccessModel
 
@@ -69,12 +69,11 @@ class DataAccessModelInput(graphene.InputObjectType):
     contract_url = graphene.String(required=False)
     contract = Upload(required=False)
     license = graphene.ID(required=True)
-    quota_limit = graphene.Int(required=True)
-    quota_limit_unit = QuotaUnits(required=True)
+    subscription_quota = graphene.Int(required=True)
+    subscription_quota_unit = graphene.Enum.from_enum(SubscriptionUnits)(required=True)
     rate_limit = graphene.Int(required=True)
     rate_limit_unit = RateLimitUnits(required=True)
     additions = graphene.List(of_type=graphene.ID, required=False, default=[])
-    subscription_model = graphene.Enum.from_enum(SubscriptionModels)(required=True)
 
 
 class InvalidAddition(Exception):
@@ -101,7 +100,6 @@ class CreateDataAccessModel(Output, graphene.Mutation):
 
     data_access_model = graphene.Field(DataAccessModelType)
 
-    # TODO: Reject if no resources passed
     @staticmethod
     def mutate(root, info, data_access_model_data: DataAccessModelInput):
         org_instance = Organization.objects.get(id=data_access_model_data.organization)
@@ -114,11 +112,10 @@ class CreateDataAccessModel(Output, graphene.Mutation):
             contract_url=data_access_model_data.contract_url,
             contract=data_access_model_data.contract,
             license=dam_license,
-            quota_limit=data_access_model_data.quota_limit,
-            quota_limit_unit=data_access_model_data.quota_limit_unit,
+            subscription_quota=data_access_model_data.subscription_quota,
+            subscription_quota_unit=data_access_model_data.subscription_quota_unit,
             rate_limit=data_access_model_data.rate_limit,
             rate_limit_unit=data_access_model_data.rate_limit_unit,
-            subscription_model=data_access_model_data.subscription_model,
         )
 
         try:
