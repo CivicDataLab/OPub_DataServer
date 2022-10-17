@@ -260,6 +260,10 @@ type DeleteAdditionalInfo {
     additional_info: AdditionalInfoType
 }
 
+type DeleteDataAccessModel {
+    success: String
+}
+
 type DeleteResource {
     success: String
 }
@@ -341,10 +345,12 @@ type Mutation {
     data_access_model_request(data_access_model_request: DataAccessModelRequestInput): DataAccessModelRequestMutation
     data_request(data_request: DataRequestInput): DataRequestMutation
     delete_additional_info(id: ID): DeleteAdditionalInfo
+    delete_data_access_model(id: ID!): DeleteDataAccessModel
     delete_resource(resource_data: DeleteResourceInput): DeleteResource
     moderation_request(moderation_request: ModerationRequestInput): ModerationRequestMutation
     patch_dataset(dataset_data: PatchDatasetInput): PatchDataset
     update_additional_info(resource_data: AdditionalInfoInput!): UpdateAdditionalInfo
+    update_data_access_model(data_access_model_data: DataAccessModelInput): UpdateDataAccessModel
     update_data_request(data_request: DataRequestUpdateInput): DataRequestUpdateMutation
     update_dataset(dataset_data: DatasetInput): UpdateDataset
     update_license(license_data: LicenseInput!): UpdateLicense
@@ -467,6 +473,12 @@ type TagType {
 
 type UpdateAdditionalInfo {
     additional_info: AdditionalInfoType
+    errors: ExpectedErrorType
+    success: Boolean
+}
+
+type UpdateDataAccessModel {
+    data_access_model: DataAccessModelType
     errors: ExpectedErrorType
     success: Boolean
 }
