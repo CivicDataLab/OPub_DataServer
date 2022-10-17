@@ -9,6 +9,7 @@ from dataset_api.enums import SubscriptionUnits
 from dataset_api.models import Organization, License, LicenseAddition
 from .decorator import auth_user_action_dam
 
+
 class DataAccessModelType(DjangoObjectType):
     class Meta:
         model = DataAccessModel
@@ -66,8 +67,10 @@ class DataAccessModelInput(graphene.InputObjectType):
     rate_limit_unit = RateLimitUnits(required=True)
     additions = graphene.List(of_type=graphene.ID, required=False, default=[])
 
+
 class DeleteDataAccessModelInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
+
 
 class InvalidAddition(Exception):
     def __init__(self, addition_id):

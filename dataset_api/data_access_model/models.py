@@ -34,7 +34,7 @@ class AccessModelResource(models.Model):
 
 
 class DataAccessModelRequest(models.Model):
-    data_access_model_id = models.ForeignKey(DataAccessModel, blank=False, null=False, on_delete=models.CASCADE)
+    access_model = models.ForeignKey(AccessModelResource, blank=False, null=False, on_delete=models.CASCADE)
     user = models.CharField(max_length=50, blank=False, null=False)
     status = models.CharField(max_length=20)
     description = models.CharField(max_length=500)
