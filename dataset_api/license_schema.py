@@ -6,7 +6,7 @@ from graphql_auth.bases import Output
 
 from .enums import LicenseStatus
 from .models import License, Organization, LicenseAddition
-
+from .decorators import check_license_role
 
 class LicenseAdditionType(DjangoObjectType):
     class Meta:
@@ -107,18 +107,22 @@ class CreateLicense(graphene.Mutation, Output):
     license = graphene.Field(LicenseType)
 
     @staticmethod
-    def mutate(root, info, license_data: LicenseInput = None):
+    @check_license_role
+    def mutate(root, info, role, license_data: LicenseInput = None):
         organization = Organization.objects.get(id=license_data.organization)
         license_instance = License(
             title=license_data.title,
             description=license_data.description,
             created_organization=organization,
-            status=LicenseStatus.CREATED.value
         )
         if license_data.file:
             license_instance.file = license_data.file
         if license_data.remote_url:
             license_instance.remote_url = license_data.remote_url
+        if role == "DPA":
+            license_instance.status = LicenseStatus.CREATED.value
+        if role == "PMU":
+            license_instance.status = LicenseStatus.PUBLISHED.value
         license_instance.save()
         if license_data.license_additions:
             _create_update_license_additions(license_instance, license_data.license_additions)
@@ -132,7 +136,8 @@ class UpdateLicense(graphene.Mutation, Output):
     license = graphene.Field(LicenseType)
 
     @staticmethod
-    def mutate(root, info, license_data: LicenseInput = None):
+    @check_license_role
+    def mutate(root, info, role, license_data: LicenseInput = None):
         try:
             organization = Organization.objects.get(id=license_data.organization)
             license_instance = License.objects.get(id=license_data.id)
@@ -148,6 +153,10 @@ class UpdateLicense(graphene.Mutation, Output):
             license_instance.file = license_data.file
         if license_data.remote_url:
             license_instance.remote_url = license_data.remote_url
+        if role == "DPA":
+            license_instance.status = LicenseStatus.CREATED.value
+        if role == "PMU":
+            license_instance.status = LicenseStatus.PUBLISHED.value
         license_instance.save()
         if license_data.license_additions:
             _create_update_license_additions(license_instance, license_data.license_additions)
