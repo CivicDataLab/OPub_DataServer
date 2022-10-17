@@ -237,8 +237,10 @@ def _create_update_file_details(resource_instance, attribute):
         file_detail_object = FileDetails.objects.get(resource=resource_instance)
     except FileDetails.DoesNotExist as e:
         file_detail_object = FileDetails(resource=resource_instance)
-    file_detail_object.file = attribute.file
-    file_detail_object.remote_url = attribute.remote_url
+    if attribute.file:
+        file_detail_object.file = attribute.file
+    if attribute.remote_url:
+        file_detail_object.remote_url = attribute.remote_url
     file_detail_object.save()
     file_format = attribute.format
     if attribute.format and attribute.format == "":
