@@ -77,8 +77,9 @@ class InvalidAddition(Exception):
 
 def _add_update_license_additions(data_access_model_instance, dam_license: License, additions):
     possible_additions = LicenseAddition.objects.filter(Q(license=dam_license) | Q(generic_item=True))
-    license_additions = [addition.id for addition in possible_additions]
+    license_additions = [int(addition.id) for addition in possible_additions]
     data_access_model_instance.license_additions.clear()
+    additions = [int(addition) for addition in additions]
     for addition_id in additions:
         if addition_id in license_additions:
             dam_addition = LicenseAddition.objects.get(id=addition_id)
