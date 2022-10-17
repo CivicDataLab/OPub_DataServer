@@ -3,7 +3,7 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
 from .models import Dataset, Catalog, Tag, Geography, Sector, Organization
-from .decorators import auth_user_action_dataset
+from .decorators import auth_user_action_dataset, map_user_dataset
 
 
 class DatasetType(DjangoObjectType):
@@ -86,6 +86,7 @@ class CreateDataset(Output, graphene.Mutation):
     dataset = graphene.Field(DatasetType)
 
     @staticmethod
+    @map_user_dataset
     def mutate(root, info, dataset_data: DatasetInput = None):
         organization = Organization.objects.get(id=dataset_data.organization)
         catalog = Catalog.objects.filter(organization=organization)[0]

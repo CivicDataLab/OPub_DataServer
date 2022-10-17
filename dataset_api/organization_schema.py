@@ -4,7 +4,7 @@ from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
 from .models import Organization
-
+from .decorators import validate_token, create_user_org
 
 class OrganizationType(DjangoObjectType):
     class Meta:
@@ -43,6 +43,7 @@ class CreateOrganization(Output, graphene.Mutation):
     organization = graphene.Field(OrganizationType)
 
     @staticmethod
+    @create_user_org
     def mutate(root, info, organization_data: OrganizationInput = None):
         organization_instance = Organization(
             title=organization_data.title,
@@ -62,6 +63,7 @@ class UpdateOrganization(Output, graphene.Mutation):
     organization = graphene.Field(OrganizationType)
 
     @staticmethod
+    @validate_token
     def mutate(root, info, organization_data: OrganizationInput = None):
         organization_instance = Organization.objects.get(id=organization_data.id)
         if organization_instance:

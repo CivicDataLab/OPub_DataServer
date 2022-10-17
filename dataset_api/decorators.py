@@ -1,19 +1,21 @@
 import requests
 import json
+from .models import Resource
 
-auth_url = "https://auth.idp.civicdatalab.in/users/verify_user_token"
+verify_token_url = "https://auth.idp.civicdatalab.in/users/verify_user_token"
 check_action_url = "https://auth.idp.civicdatalab.in/users/check_user_access"
+create_user_url = "https://auth.idp.civicdatalab.in/users/create_user_role"
+dataset_owner_url = "https://auth.idp.civicdatalab.in/users/update_dataset_owner"
 
-
-def request_to_server(body, headers):
-    response = requests.request("POST", check_action_url, data=body, headers=headers)
+def request_to_server(body, server_url):
+    headers = {"Content-type": "application/json"}
+    response = requests.request("POST", server_url, data=body, headers=headers)
     response_json = json.loads(response.text)
     return response_json
 
 
 def validate_token(func):
     def inner(*args, **kwargs):
-        print(args)
         user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
         if user_token == "":
             print("Whoops! Empty user")
@@ -21,10 +23,8 @@ def validate_token(func):
                 "success": False,
                 "errors": {"user": [{"message": "Empty User", "code": "no_user"}]},
             }
-
-        headers = {}
         body = json.dumps({"access_token": user_token})
-        response_json = request_to_server(body, headers)
+        response_json = request_to_server(body, verify_token_url)
         if not response_json["success"]:
             return {
                 "success": False,
@@ -62,9 +62,6 @@ def auth_user_action_dataset(action):
                     "success": False,
                     "errors": {"user": [{"message": "Empty User", "code": "no_user"}]},
                 }
-
-            headers = {"Content-type": "application/json"}
-            print(action)
             body = json.dumps(
                 {
                     "access_token": user_token,
@@ -73,7 +70,7 @@ def auth_user_action_dataset(action):
                     "access_data_id": dataset_id,
                 }
             )
-            response_json = request_to_server(body, headers)
+            response_json = request_to_server(body, check_action_url)
 
             if not response_json["Success"]:
                 return {
@@ -107,9 +104,10 @@ def auth_user_action_resource(action):
                 try:
                     dataset_id = kwargs[keys]["dataset"]
                 except:
-                    pass
+                    resource_id = kwargs[keys]["id"]
+                    dataset_id = Resource.objects.get(id=resource_id).dataset.id
                 break
-
+            
             user_token = args[1].context.META.get('HTTP_AUTHORIZATION')
             org_id = args[1].context.META.get('Organization')  # Required from Frontend.
             if user_token == "":
@@ -118,8 +116,6 @@ def auth_user_action_resource(action):
                     "success": False,
                     "errors": {"user": [{"message": "Empty User", "code": "no_user"}]},
                 }
-
-            headers = {"Content-type": "application/json"}
             body = json.dumps(
                 {
                     "access_token": user_token,
@@ -128,7 +124,7 @@ def auth_user_action_resource(action):
                     "access_data_id": dataset_id,
                 }
             )
-            response_json = request_to_server(body, headers)
+            response_json = request_to_server(body, check_action_url)
             if not response_json["Success"]:
                 return {
                     "success": False,
@@ -152,3 +148,39 @@ def auth_user_action_resource(action):
         return inner
 
     return accept_func
+
+def create_user_org(func):
+    def inner(*args, **kwargs):
+        value = func(*args, **kwargs)
+        org_id = value.organization.id
+        org_title = value.organization.title
+        # user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+        user_token = args[1].context.headers.get('Authorization').replace('Bearer ', "")
+        body = json.dumps(
+                    {
+                        "access_token": user_token,
+                        "org_id": org_id,
+                        "org_title": org_title,
+                    }
+                )
+        response_json = request_to_server(body, create_user_url)
+        print(response_json)
+        return value
+    return inner
+
+def map_user_dataset(func):
+    def inner(*args, **kwargs):
+        value = func(*args, **kwargs)
+        dataset_id = value.dataset.id
+        # user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+        user_token = args[1].context.headers.get('Authorization').replace('Bearer ', "")
+        body = json.dumps(
+                    {
+                        "access_token": user_token,
+                        "dataset_id": dataset_id,
+                        "action": "create",
+                    }
+                )
+        response_json = request_to_server(body, dataset_owner_url)
+        return value
+    return inner
