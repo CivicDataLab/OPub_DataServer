@@ -183,11 +183,10 @@ type DataAccessModelType {
     license_additions: [LicenseAdditionType!]!
     modified: DateTime!
     organization: OrganizationType!
-    quota_limit: Int!
-    quota_limit_unit: String!
     rate_limit: Int!
     rate_limit_unit: String!
-    subscription_model: DataAccessModelSubscriptionModel!
+    subscription_quota: Int!
+    subscription_quota_unit: DataAccessModelSubscriptionQuotaUnit!
     title: String!
     type: String!
 }
@@ -519,13 +518,13 @@ enum DataAccessModelRequestStatusType {
 }
 
 "An enumeration."
-enum DataAccessModelSubscriptionModel {
+enum DataAccessModelSubscriptionQuotaUnit {
     "Daily"
     DAILY
+    "Limiteddownload"
+    LIMITEDDOWNLOAD
     "Monthly"
     MONTHLY
-    "Onetimedownload"
-    ONETIMEDOWNLOAD
     "Quarterly"
     QUARTERLY
     "Weekly"
@@ -580,11 +579,6 @@ enum PurposeType {
     RESEARCH
 }
 
-enum QuotaUnits {
-    MONTHLY
-    YEARLY
-}
-
 enum RateLimitUnits {
     DAY
     HOUR
@@ -616,10 +610,10 @@ enum StatusType {
 }
 
 "An enumeration."
-enum SubscriptionModels {
+enum SubscriptionUnits {
     DAILY
+    LIMITEDDOWNLOAD
     MONTHLY
-    ONETIMEDOWNLOAD
     QUARTERLY
     WEEKLY
     YEARLY
@@ -733,16 +727,14 @@ input CatalogInput {
 input DataAccessModelInput {
     additions: [ID]
     contract: Upload
-    contract_url: String
     description: String!
     id: ID
     license: ID!
     organization: ID!
-    quota_limit: Int!
-    quota_limit_unit: QuotaUnits!
     rate_limit: Int!
     rate_limit_unit: RateLimitUnits!
-    subscription_model: SubscriptionModels!
+    subscription_quota: Int!
+    subscription_quota_unit: SubscriptionUnits!
     title: String!
     type: AccessTypes!
 }

@@ -136,9 +136,11 @@ class ResourceInput(graphene.InputObjectType):
     api_details: ApiInputType = graphene.Field(ApiInputType, required=False)
     file_details: FileInputType = graphene.Field(FileInputType, required=False)
 
+
 class DeleteResourceInput(graphene.InputObjectType):
     id: str = graphene.ID()
     dataset = graphene.ID(required=True)
+
 
 def _remove_masked_fields(resource_instance: Resource):
     if (
@@ -278,19 +280,13 @@ class CreateResource(graphene.Mutation, Output):
 
         # Create either api or file object.
         if dataset.dataset_type == "API":
-            _create_update_api_details(
-                resource_instance=resource_instance,
-                attribute=resource_data.api_details,
-            )
+            _create_update_api_details(resource_instance=resource_instance,attribute=resource_data.api_details)
         elif dataset.dataset_type == "FILE":
-            _create_update_file_details(
-                resource_instance=resource_instance,
-                attribute=resource_data.file_details,
-            )
+            _create_update_file_details(resource_instance=resource_instance,attribute=resource_data.file_details)
 
         _remove_masked_fields(resource_instance)
         _create_update_schema(resource_data, resource_instance)
-        
+
         return CreateResource(success=True, resource=resource_instance)
 
 

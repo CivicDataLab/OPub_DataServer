@@ -66,7 +66,6 @@ class DataAccessModelInput(graphene.InputObjectType):
     type = AccessTypes(required=True)
     description = graphene.String(required=True)
     organization = graphene.ID(required=True)
-    contract_url = graphene.String(required=False)
     contract = Upload(required=False)
     license = graphene.ID(required=True)
     subscription_quota = graphene.Int(required=True)
@@ -109,7 +108,6 @@ class CreateDataAccessModel(Output, graphene.Mutation):
             type=data_access_model_data.type,
             description=data_access_model_data.description,
             organization=org_instance,
-            contract_url=data_access_model_data.contract_url,
             contract=data_access_model_data.contract,
             license=dam_license,
             subscription_quota=data_access_model_data.subscription_quota,
