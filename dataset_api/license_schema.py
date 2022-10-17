@@ -174,7 +174,6 @@ class ApproveRejectLicense(graphene.Mutation, Output):
     def mutate(root, info, license_data: LicenseApproveRejectInput = None):
         try:
             license_instance = License.objects.get(id=license_data.id)
-            print(license_instance)
         except License.DoesNotExist as e:
             return {"success": False,
                     "errors": {
