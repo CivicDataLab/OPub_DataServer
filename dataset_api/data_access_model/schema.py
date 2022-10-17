@@ -18,7 +18,7 @@ class DataAccessModelType(DjangoObjectType):
 class Query(graphene.ObjectType):
     all_data_access_models = graphene.List(DataAccessModelType)
     org_data_access_models = graphene.List(DataAccessModelType, organization_id=graphene.ID())
-    data_access_model = graphene.Field(DataAccessModelType, data_access_model_id=graphene.Int())
+    data_access_model = graphene.Field(DataAccessModelType, data_access_model_id=graphene.ID())
 
     def resolve_all_data_access_models(self, info, **kwargs):
         return DataAccessModel.objects.all().order_by("-modified")
