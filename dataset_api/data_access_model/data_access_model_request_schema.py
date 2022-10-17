@@ -2,8 +2,8 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
+from dataset_api.data_access_model.models import DataAccessModelRequest, AccessModelResource
 from dataset_api.decorators import validate_token
-from dataset_api.data_access_model.models import DataAccessModel, DataAccessModelRequest
 
 
 class DataAccessModelRequestType(DjangoObjectType):
@@ -44,7 +44,7 @@ class Query(graphene.ObjectType):
 class DataAccessModelRequestInput(graphene.InputObjectType):
     id = graphene.ID()
     description = graphene.String(required=True)
-    data_access_model = graphene.String(required=True)
+    access_model = graphene.ID(required=True)
     purpose = PurposeType(required=True)
 
 
@@ -63,17 +63,17 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
     @staticmethod
     @validate_token
     def mutate(root, info, data_access_model_request: DataAccessModelRequestInput = None, username=""):
-        data_access_model = DataAccessModel.objects.get(id=data_access_model_request.data_access_model)
+        access_model = AccessModelResource.objects.get(id=data_access_model_request.access_model)
         # TODO: fix magic strings
         data_access_model_request_instance = DataAccessModelRequest(
             status="REQUESTED",
             purpose=data_access_model_request.purpose,
             description=data_access_model_request.description,
             user=username,
-            data_access_model_id=data_access_model
+            data_access_model_id=access_model
         )
         data_access_model_request_instance.save()
-        data_access_model.save()
+        access_model.save()
         return DataAccessModelRequestMutation(data_access_model_request=data_access_model_request_instance)
 
 
