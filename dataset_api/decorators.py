@@ -182,3 +182,39 @@ def map_user_dataset(func):
         response_json = request_to_server(body, dataset_owner_url)
         return value
     return inner
+
+def check_license_role(func):
+    def inner(*args, **kwargs):
+        user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+        # user_token = args[1].context.headers.get("Authorization").replace("Bearer ", "")
+        for keys in kwargs:
+            try:
+                org_id = kwargs[keys]["organization"]
+            except:
+                pass
+            break
+        body = json.dumps(
+                {
+                    "access_token": user_token,
+                    "access_req": "create_license",
+                    "access_org_id": org_id,
+                    "access_data_id": "",
+                }
+            )
+        response_json = request_to_server(body, check_action_url)
+        if not response_json["Success"]:
+            return {
+                "success": False,
+                "errors": {
+                    "user": [
+                        {
+                            "message": response_json["error_description"],
+                            "code": response_json["error"],
+                        }
+                    ]
+                },
+            }
+        if response_json["access_allowed"]:
+            kwargs["role"] = response_json["role"]
+            return func(*args, **kwargs)
+    return inner
