@@ -138,8 +138,7 @@ class ResourceInput(graphene.InputObjectType):
 
 
 class DeleteResourceInput(graphene.InputObjectType):
-    id: str = graphene.ID()
-    dataset = graphene.ID(required=True)
+    id = graphene.ID(required=True)
 
 
 def _remove_masked_fields(resource_instance: Resource):
@@ -324,7 +323,7 @@ class UpdateResource(graphene.Mutation, Output):
         return UpdateResource(success=False, resource=None)
 
 
-class DeleteResource(graphene.Mutation):
+class DeleteResource(graphene.Mutation, Output):
     class Arguments:
         resource_data = DeleteResourceInput()
 
