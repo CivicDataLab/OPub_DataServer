@@ -91,6 +91,7 @@ def _add_update_license_additions(data_access_model_instance, dam_license: Licen
             data_access_model_instance.license_additions.add(dam_addition)
         else:
             raise InvalidAddition(addition_id)
+    data_access_model_instance.save()
 
 
 class CreateDataAccessModel(Output, graphene.Mutation):
@@ -116,12 +117,11 @@ class CreateDataAccessModel(Output, graphene.Mutation):
             rate_limit_unit=data_access_model_data.rate_limit_unit,
         )
 
+        data_access_model_instance.save()
         try:
             _add_update_license_additions(data_access_model_instance, dam_license, data_access_model_data.additions)
         except InvalidAddition as e:
             return {"success": False, "errors": {"id": [{str(e)}]}}
-
-        data_access_model_instance.save()
 
         return CreateDataAccessModel(data_access_model=data_access_model_instance)
 
