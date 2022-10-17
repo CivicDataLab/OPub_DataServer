@@ -7,7 +7,7 @@ from graphql_auth.bases import Output
 from dataset_api.data_access_model.models import DataAccessModel
 from dataset_api.enums import SubscriptionUnits
 from dataset_api.models import Organization, License, LicenseAddition
-
+from .decorator import auth_user_action_dam
 
 class DataAccessModelType(DjangoObjectType):
     class Meta:
@@ -66,6 +66,8 @@ class DataAccessModelInput(graphene.InputObjectType):
     rate_limit_unit = RateLimitUnits(required=True)
     additions = graphene.List(of_type=graphene.ID, required=False, default=[])
 
+class DeleteDataAccessModelInput(graphene.InputObjectType):
+    id = graphene.ID(required=True)
 
 class InvalidAddition(Exception):
     def __init__(self, addition_id):
@@ -93,6 +95,7 @@ class CreateDataAccessModel(Output, graphene.Mutation):
     data_access_model = graphene.Field(DataAccessModelType)
 
     @staticmethod
+    @auth_user_action_dam(action="create_dam")
     def mutate(root, info, data_access_model_data: DataAccessModelInput):
         org_instance = Organization.objects.get(id=data_access_model_data.organization)
         dam_license = License.objects.get(id=data_access_model_data.license)
@@ -125,6 +128,7 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
     data_access_model = graphene.Field(DataAccessModelType)
 
     @staticmethod
+    @auth_user_action_dam(action="update_dam")
     def mutate(root, info, data_access_model_data: DataAccessModelInput):
         if not data_access_model_data.id:
             return {"success": False,
@@ -158,17 +162,18 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
         return CreateDataAccessModel(data_access_model=data_access_model_instance)
 
 
-class DeleteDataAccessModel(graphene.Mutation):
+class DeleteDataAccessModel(Output, graphene.Mutation):
     class Arguments:
-        id = graphene.ID(required=True)
+        data_access_model_data = DeleteDataAccessModelInput()
 
     success = graphene.String()
 
     # resource = graphene.Field(ResourceType)
 
     @staticmethod
-    def mutate(root, info, id: graphene.ID = None):
-        dam_instance = DataAccessModel.objects.get(id=id)
+    @auth_user_action_dam(action="delete_dam")
+    def mutate(root, info, data_access_model_data: DeleteDataAccessModelInput):
+        dam_instance = DataAccessModel.objects.get(id=data_access_model_data.id)
         dam_instance.delete()
         return DeleteDataAccessModel(success=True)
 
