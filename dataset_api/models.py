@@ -168,6 +168,7 @@ class License(models.Model):
     remote_url = models.URLField(blank=True)
     file = models.FileField(upload_to=_license_directory_path, blank=True)
     status = models.CharField(max_length=50, choices=LicenseStatus.choices)
+    reject_reason = models.CharField(max_length=500, blank=True)
 
 
 class LicenseAddition(models.Model):

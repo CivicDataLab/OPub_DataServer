@@ -8,6 +8,7 @@ from .enums import LicenseStatus
 from .models import License, Organization, LicenseAddition
 from .decorators import check_license_role
 
+
 class LicenseAdditionType(DjangoObjectType):
     class Meta:
         model = LicenseAddition
@@ -41,6 +42,7 @@ class Query(graphene.ObjectType):
 
 class LicenseApproveRejectInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
+    reject_reason = graphene.String(required=False)
     # TODO: Re-visit duplicate license status
     status = graphene.String(required=True)
     # status = graphene.Enum.from_enum(LicenseStatus)(required=True)
@@ -164,12 +166,13 @@ class UpdateLicense(graphene.Mutation, Output):
             _create_update_license_additions(license_instance, license_data.license_additions)
         return CreateLicense(license=license_instance)
 
+
 class ApproveRejectLicense(graphene.Mutation, Output):
     class Arguments:
         license_data = LicenseApproveRejectInput(required=True)
 
     license = graphene.Field(LicenseType)
-    
+
     @staticmethod
     def mutate(root, info, license_data: LicenseApproveRejectInput = None):
         try:
@@ -178,10 +181,13 @@ class ApproveRejectLicense(graphene.Mutation, Output):
             return {"success": False,
                     "errors": {
                         "id": [{"message": "License with given id not found", "code": "404"}]}}
-        
+
         license_instance.status = license_data.status
+        if license_data.reject_reason:
+            license_instance.reject_reason = license_data.reject_reason
         license_instance.save()
         return ApproveRejectLicense(license=license_instance)
+
 
 class Mutation(graphene.ObjectType):
     create_license = CreateLicense.Field()
