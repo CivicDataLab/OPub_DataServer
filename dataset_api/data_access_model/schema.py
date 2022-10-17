@@ -4,6 +4,7 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
+from dataset_api.enums import SubscriptionModels
 from dataset_api.models import Organization, License, LicenseAddition
 from dataset_api.data_access_model.models import DataAccessModel
 
@@ -68,6 +69,7 @@ class DataAccessModelInput(graphene.InputObjectType):
     rate_limit = graphene.Int(required=True)
     rate_limit_unit = RateLimitUnits(required=True)
     additions = graphene.List(of_type=graphene.ID, required=False, default=[])
+    subscription_model = graphene.Enum.from_enum(SubscriptionModels)(required=True)
 
 
 class InvalidAddition(Exception):
@@ -111,6 +113,7 @@ class CreateDataAccessModel(Output, graphene.Mutation):
             quota_limit_unit=data_access_model_data.quota_limit_unit,
             rate_limit=data_access_model_data.rate_limit,
             rate_limit_unit=data_access_model_data.rate_limit_unit,
+            subscription_model=data_access_model_data.subscription_model,
         )
 
         try:

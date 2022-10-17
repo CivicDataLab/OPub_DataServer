@@ -109,9 +109,9 @@ def auth_user_action_resource(action):
                 except:
                     pass
                 break
-            
+
             user_token = args[1].context.META.get('HTTP_AUTHORIZATION')
-            org_id = args[1].context.META.get('Organization') # Required from Frontend.
+            org_id = args[1].context.META.get('Organization')  # Required from Frontend.
             if user_token == "":
                 print("Whoops! Empty user")
                 return {
