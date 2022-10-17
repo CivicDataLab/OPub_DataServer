@@ -71,13 +71,15 @@ class DatasetInput(graphene.InputObjectType):
     geo_list = graphene.List(of_type=graphene.String, default=[], required=False)
     sector_list = graphene.List(of_type=graphene.String, default=[], required=False)
 
+
 class PatchDatasetInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
     organization = graphene.ID(required=True)
     funnel = graphene.String(default=None)
     status = graphene.String(default=None)
 
-class CreateDataset(Output,graphene.Mutation):
+
+class CreateDataset(Output, graphene.Mutation):
     class Arguments:
         dataset_data = DatasetInput()
 
@@ -110,11 +112,12 @@ class CreateDataset(Output,graphene.Mutation):
         return CreateDataset(dataset=dataset_instance)
 
 
-class UpdateDataset(Output,graphene.Mutation):
+class UpdateDataset(Output, graphene.Mutation):
     class Arguments:
         dataset_data = DatasetInput()
 
     dataset = graphene.Field(DatasetType)
+
     @staticmethod
     @auth_user_action_dataset(action="update_dataset")
     def mutate(root, info, dataset_data: DatasetInput = None):
@@ -133,6 +136,7 @@ class UpdateDataset(Output,graphene.Mutation):
             dataset_instance.period_to = dataset_data.period_to
             dataset_instance.period_from = dataset_data.period_from
             dataset_instance.dataset_type = dataset_data.dataset_type
+            dataset_instance.update_frequency = dataset_data.update_frequency
 
             dataset_instance.save()
             _add_update_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
@@ -143,7 +147,7 @@ class UpdateDataset(Output,graphene.Mutation):
         return UpdateDataset(dataset=None)
 
 
-class PatchDataset(Output,graphene.Mutation):
+class PatchDataset(Output, graphene.Mutation):
     class Arguments:
         dataset_data = PatchDatasetInput()
 
