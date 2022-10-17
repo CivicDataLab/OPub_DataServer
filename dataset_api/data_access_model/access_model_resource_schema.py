@@ -72,7 +72,7 @@ class CreateAccessModelResource(Output, graphene.Mutation):
                     Resource.objects.get(id=resources.resource_id)
                     access_model_resource_instance = AccessModelResource(
                         resource_id=resources.resource_id,
-                        fields=resources.resource_map,
+                        fields=resources.fields,
                         dataset_access_map=dataset_access_map_instance
                     )
                     access_model_resource_instance.save()
