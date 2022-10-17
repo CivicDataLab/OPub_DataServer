@@ -341,9 +341,9 @@ type Mutation {
     data_access_model_request(data_access_model_request: DataAccessModelRequestInput): DataAccessModelRequestMutation
     data_request(data_request: DataRequestInput): DataRequestMutation
     delete_additional_info(id: ID): DeleteAdditionalInfo
-    delete_resource(id: ID): DeleteResource
+    delete_resource(resource_data: DeleteResourceInput): DeleteResource
     moderation_request(moderation_request: ModerationRequestInput): ModerationRequestMutation
-    patch_dataset(funnel: String, id: ID!, status: String): PatchDataset
+    patch_dataset(dataset_data: PatchDatasetInput): PatchDataset
     update_additional_info(resource_data: AdditionalInfoInput!): UpdateAdditionalInfo
     update_data_request(data_request: DataRequestUpdateInput): DataRequestUpdateMutation
     update_dataset(dataset_data: DatasetInput): UpdateDataset
@@ -774,6 +774,11 @@ input DatasetRatingInput {
     review: String!
 }
 
+input DeleteResourceInput {
+    dataset: ID!
+    id: ID
+}
+
 input FileInputType {
     file: Upload
     format: String
@@ -831,6 +836,13 @@ input OrganizationInput {
     "Logo for the Company."
     logo: Upload
     title: String!
+}
+
+input PatchDatasetInput {
+    funnel: String
+    id: ID!
+    organization: ID!
+    status: String
 }
 
 input ResourceFieldInput {
