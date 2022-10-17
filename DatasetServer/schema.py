@@ -22,7 +22,7 @@ class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Qu
             dataset_api.resource_schema.Query, dataset_api.tag_schema.Query, dataset_api.geography_schema.Query,
             dataset_api.api_source_schema.Query, dataset_api.rating_schema.Query, dataset_api.license_schema.Query,
             dataset_api.sector_schema.Query, dataset_api.additional_info_schema.Query,
-            dataset_api.data_access_model.data_request_schema.Query,
+            dataset_api.data_access_model.data_request_schema.Query, dataset_api.data_access_model.access_model_resource_schema.Query,
             dataset_api.data_access_model.schema.Query, dataset_api.dataset_moderation.Query,
             dataset_api.data_access_model.data_access_model_request_schema.Query, dataset_api.stats_schema.Query,
             graphene.ObjectType):
