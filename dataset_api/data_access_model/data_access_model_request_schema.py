@@ -2,7 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
-from dataset_api.data_access_model.models import DataAccessModelRequest, AccessModelResource
+from dataset_api.data_access_model.models import DataAccessModelRequest, DatasetAccessModelMap
 from dataset_api.decorators import validate_token
 
 
@@ -63,14 +63,14 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
     @staticmethod
     @validate_token
     def mutate(root, info, data_access_model_request: DataAccessModelRequestInput = None, username=""):
-        access_model = AccessModelResource.objects.get(id=data_access_model_request.access_model)
+        access_model = DatasetAccessModelMap.objects.get(id=data_access_model_request.access_model)
         # TODO: fix magic strings
         data_access_model_request_instance = DataAccessModelRequest(
             status="REQUESTED",
             purpose=data_access_model_request.purpose,
             description=data_access_model_request.description,
             user=username,
-            data_access_model_id=access_model
+            access_model=access_model,
         )
         data_access_model_request_instance.save()
         access_model.save()
