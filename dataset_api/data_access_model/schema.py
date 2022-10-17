@@ -158,6 +158,22 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
         return CreateDataAccessModel(data_access_model=data_access_model_instance)
 
 
+class DeleteDataAccessModel(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    success = graphene.String()
+
+    # resource = graphene.Field(ResourceType)
+
+    @staticmethod
+    def mutate(root, info, id: graphene.ID = None):
+        dam_instance = DataAccessModel.objects.get(id=id)
+        dam_instance.delete()
+        return DeleteDataAccessModel(success=True)
+
+
 class Mutation(graphene.ObjectType):
     create_data_access_model = CreateDataAccessModel.Field()
     update_data_access_model = UpdateDataAccessModel.Field()
+    delete_data_access_model = DeleteDataAccessModel.Field()
