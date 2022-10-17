@@ -55,7 +55,7 @@ def auth_user_action_dataset(action):
                     pass
                 break
             user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
-            org_id = args[1].context.META.get("Organization")
+            org_id = args[1].context.META.get("HTTP_ORGANIZATION")
             if user_token == "":
                 print("Whoops! Empty user")
                 return {
@@ -109,7 +109,7 @@ def auth_user_action_resource(action):
                 break
             
             user_token = args[1].context.META.get('HTTP_AUTHORIZATION')
-            org_id = args[1].context.META.get('Organization')  # Required from Frontend.
+            org_id = args[1].context.META.get('HTTP_ORGANIZATION')  # Required from Frontend.
             if user_token == "":
                 print("Whoops! Empty user")
                 return {
@@ -154,8 +154,7 @@ def create_user_org(func):
         value = func(*args, **kwargs)
         org_id = value.organization.id
         org_title = value.organization.title
-        # user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
-        user_token = args[1].context.headers.get('Authorization').replace('Bearer ', "")
+        user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
         body = json.dumps(
                     {
                         "access_token": user_token,
@@ -172,8 +171,7 @@ def map_user_dataset(func):
     def inner(*args, **kwargs):
         value = func(*args, **kwargs)
         dataset_id = value.dataset.id
-        # user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
-        user_token = args[1].context.headers.get('Authorization').replace('Bearer ', "")
+        user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
         body = json.dumps(
                     {
                         "access_token": user_token,
