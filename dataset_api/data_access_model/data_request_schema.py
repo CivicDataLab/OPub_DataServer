@@ -4,9 +4,9 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from graphene_file_upload.scalars import Upload
 
-from .models import Resource
-from .data_access_model.models import DataAccessModelRequest, DataRequest
-from .decorators import validate_token
+from dataset_api.models import Resource
+from dataset_api.data_access_model.models import DataAccessModelRequest, DataRequest
+from dataset_api.decorators import validate_token
 
 
 class DataRequestType(DjangoObjectType):

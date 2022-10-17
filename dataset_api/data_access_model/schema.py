@@ -60,7 +60,7 @@ class DataAccessModelInput(graphene.InputObjectType):
     title = graphene.String(required=True)
     type = AccessTypes(required=True)
     description = graphene.String(required=True)
-    organization = graphene.String(required=True)
+    organization = graphene.ID(required=True)
     contract_url = graphene.String(required=False)
     contract = Upload(required=False)
     license = graphene.ID(required=True)

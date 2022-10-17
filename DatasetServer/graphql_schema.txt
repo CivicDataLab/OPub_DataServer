@@ -187,6 +187,7 @@ type DataAccessModelType {
     quota_limit_unit: String!
     rate_limit: Int!
     rate_limit_unit: String!
+    subscription_model: DataAccessModelSubscriptionModel!
     title: String!
     type: String!
 }
@@ -517,6 +518,22 @@ enum DataAccessModelRequestStatusType {
     REQUESTED
 }
 
+"An enumeration."
+enum DataAccessModelSubscriptionModel {
+    "Daily"
+    DAILY
+    "Monthly"
+    MONTHLY
+    "Onetimedownload"
+    ONETIMEDOWNLOAD
+    "Quarterly"
+    QUARTERLY
+    "Weekly"
+    WEEKLY
+    "Yearly"
+    YEARLY
+}
+
 enum DataType {
     API
     DATASET
@@ -596,6 +613,16 @@ enum StatusType {
     FETCHED
     FULFILLED
     REQUESTED
+}
+
+"An enumeration."
+enum SubscriptionModels {
+    DAILY
+    MONTHLY
+    ONETIMEDOWNLOAD
+    QUARTERLY
+    WEEKLY
+    YEARLY
 }
 
 """
@@ -715,6 +742,7 @@ input DataAccessModelInput {
     quota_limit_unit: QuotaUnits!
     rate_limit: Int!
     rate_limit_unit: RateLimitUnits!
+    subscription_model: SubscriptionModels!
     title: String!
     type: AccessTypes!
 }
