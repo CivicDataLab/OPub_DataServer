@@ -41,7 +41,7 @@ class Query(graphene.ObjectType):
 
 
 class LicenseApproveRejectInput(graphene.InputObjectType):
-    id = graphene.ID(required=True)
+    ids = graphene.List(graphene.ID, required=True)
     reject_reason = graphene.String(required=False)
     # TODO: Re-visit duplicate license status
     status = graphene.String(required=True)
@@ -171,22 +171,29 @@ class ApproveRejectLicense(graphene.Mutation, Output):
     class Arguments:
         license_data = LicenseApproveRejectInput(required=True)
 
-    license = graphene.Field(LicenseType)
+    license_requests = graphene.List(LicenseType)
 
     @staticmethod
     def mutate(root, info, license_data: LicenseApproveRejectInput = None):
-        try:
-            license_instance = License.objects.get(id=license_data.id)
-        except License.DoesNotExist as e:
+        errors = []
+        license_requests = []
+        for license_id in license_data.ids:
+            try:
+                license_instance = License.objects.get(id=license_id)
+            except License.DoesNotExist as e:
+                return errors.append({"message": "License with given id not found", "code": "404"})
+
+            license_instance.status = license_data.status
+            if license_data.reject_reason:
+                license_instance.reject_reason = license_data.reject_reason
+            license_instance.save()
+            license_requests.append(license_instance)
+        if errors:
             return {"success": False,
                     "errors": {
-                        "id": [{"message": "License with given id not found", "code": "404"}]}}
+                        "ids": errors}}
 
-        license_instance.status = license_data.status
-        if license_data.reject_reason:
-            license_instance.reject_reason = license_data.reject_reason
-        license_instance.save()
-        return ApproveRejectLicense(license=license_instance)
+        return ApproveRejectLicense(license_requests=license_requests)
 
 
 class Mutation(graphene.ObjectType):
