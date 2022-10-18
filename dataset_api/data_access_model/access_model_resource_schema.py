@@ -38,11 +38,11 @@ class Query(graphene.ObjectType):
     @validate_token
     def resolve_dataset_access_model(self, info, dataset_id, **kwargs):
         try:
-            dataset = Dataset.objects.get(id=dataset_id).order_by("-modified")
+            dataset = Dataset.objects.get(id=dataset_id)
         except Dataset.DoesNotExist as e:
             return {"success": False,
                     "errors": {"organization_id": [{"message": "Dataset with id not found", "code": "404"}]}}
-        return DatasetAccessModelMap.objects.filter(dataset=dataset)
+        return DatasetAccessModelMap.objects.filter(dataset=dataset).order_by("-modified")
 
     @validate_token
     def resolve_dataset_access_model_by_id(self, info, dataset_access_model_id):
