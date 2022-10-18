@@ -7,6 +7,7 @@ from graphql_auth.bases import Output
 from dataset_api.data_access_model.models import DataAccessModel
 from dataset_api.enums import SubscriptionUnits
 from dataset_api.models import Organization, License, LicenseAddition
+from .contract import create_contract
 from .decorator import auth_user_action_dam
 
 
@@ -119,6 +120,7 @@ class CreateDataAccessModel(Output, graphene.Mutation):
         data_access_model_instance.save()
         try:
             _add_update_license_additions(data_access_model_instance, dam_license, data_access_model_data.additions)
+            create_contract(dam_license, data_access_model_data.additions, data_access_model_instance)
         except InvalidAddition as e:
             return {"success": False, "errors": {"id": [{str(e)}]}}
 
@@ -160,10 +162,11 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
 
         try:
             _add_update_license_additions(data_access_model_instance, dam_license, data_access_model_data.additions)
+            create_contract(dam_license, data_access_model_data.additions, data_access_model_instance)
         except InvalidAddition as e:
             return {"success": False, "errors": {"id": [{str(e)}]}}
 
-        return CreateDataAccessModel(data_access_model=data_access_model_instance)
+        return UpdateDataAccessModel(data_access_model=data_access_model_instance)
 
 
 class DeleteDataAccessModel(Output, graphene.Mutation):

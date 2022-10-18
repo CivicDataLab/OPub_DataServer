@@ -38,10 +38,10 @@ def _contract_directory_path(dam, filename):
     Create a directory path to upload DAM contract files.
 
     """
-    dataset_name = dam.dataset.title
+    org_name = dam.organization.title
     dam_name = dam.title
     _, extension = os.path.splitext(filename)
-    return f"info/{dataset_name}/{dam_name}/{extension[1:]}/{filename}"
+    return f"info/{org_name}/{dam_name}/{extension[1:]}/{filename}"
 
 
 def _license_directory_path(license, filename):
