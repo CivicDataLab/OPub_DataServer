@@ -196,7 +196,24 @@ class ApproveRejectLicense(graphene.Mutation, Output):
         return ApproveRejectLicense(license_requests=license_requests)
 
 
+class DeleteLicense(graphene.Mutation, Output):
+    class Arguments:
+        license_id = graphene.ID(required=True)
+
+    success = graphene.String()
+
+    # resource = graphene.Field(ResourceType)
+
+    @staticmethod
+    @check_license_role
+    def mutate(root, info, license_id: graphene.ID):
+        license_instance = License.objects.get(id=license_id)
+        license_instance.delete()
+        return DeleteLicense(success=True)
+
+
 class Mutation(graphene.ObjectType):
     create_license = CreateLicense.Field()
     update_license = UpdateLicense.Field()
     approve_reject_license = ApproveRejectLicense.Field()
+    delete_license = DeleteLicense.Field()
