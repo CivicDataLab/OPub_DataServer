@@ -86,6 +86,7 @@ class CreateDataset(Output, graphene.Mutation):
     dataset = graphene.Field(DatasetType)
 
     @staticmethod
+    @auth_user_action_dataset(action="create_dataset")
     @map_user_dataset
     def mutate(root, info, dataset_data: DatasetInput = None):
         organization = Organization.objects.get(id=dataset_data.organization)
