@@ -2,10 +2,7 @@ import os
 from typing import List
 
 import pdfkit
-from django.core.files import File
 from django.core.files.base import ContentFile
-from pip._vendor.chardet import detect
-from pytz import unicode
 
 from dataset_api.data_access_model.models import DataAccessModel
 from dataset_api.models import License, LicenseAddition
