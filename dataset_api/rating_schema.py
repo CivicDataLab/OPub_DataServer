@@ -2,6 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
+from .decorators import validate_token
 from .enums import RatingStatus
 from .models import DatasetRatings, Dataset
 
@@ -52,7 +53,8 @@ class CreateDatasetRating(Output, graphene.Mutation):
     dataset_rating = graphene.Field(DatasetRatingType)
 
     @staticmethod
-    def mutate(root, info, rating_data: DatasetRatingInput):
+    @validate_token
+    def mutate(root, info, rating_data: DatasetRatingInput, username=None, **kwargs):
         dataset = Dataset.objects.get(id=rating_data.dataset)
         rating_instance = DatasetRatings(
             review=rating_data.review,
@@ -61,7 +63,8 @@ class CreateDatasetRating(Output, graphene.Mutation):
             # data_standards=rating_data.data_standards,
             # coverage=rating_data.coverage,
             status=RatingStatus.CREATED.value,
-            dataset=dataset
+            dataset=dataset,
+            user=username,
         )
         rating_instance.save()
         # Update rating in elasticsearch

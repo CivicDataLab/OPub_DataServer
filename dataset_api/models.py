@@ -132,6 +132,7 @@ class DatasetRatings(models.Model):
         validators=[MinValueValidator(0.0), MaxValueValidator(5.0)]
     )
     status = models.CharField(max_length=50, choices=RatingStatus.choices)
+    user = models.CharField(max_length=50, blank=False, null=False)
     # data_standards = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
     # coverage = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
 
