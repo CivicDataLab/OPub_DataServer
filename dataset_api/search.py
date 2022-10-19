@@ -32,6 +32,8 @@ def index_data(dataset_obj):
         "period_to": dataset_obj.period_to,
         "update_frequency": dataset_obj.update_frequency,
         "dataset_type": dataset_obj.dataset_type,
+        "remote_issued": dataset_obj.remote_issued,
+        "remote_modified": dataset_obj.remote_modified
     }
 
     geography = dataset_obj.geography.all()
@@ -232,6 +234,8 @@ def reindex_data():
             doc["period_to"] = resources.dataset.period_to
             doc["update_frequency"] = resources.dataset.update_frequency
             doc["dataset_type"] = resources.dataset.dataset_type
+            doc["remote_issued"] = resources.dataset.remote_issued
+            doc["remote_modified"] = resources.dataset.remote_modified
             doc["resource_title"] = resources.title
             doc["resource_description"] = resources.description
             doc["resource_status"] = resources.status
