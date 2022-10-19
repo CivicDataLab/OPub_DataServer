@@ -30,6 +30,9 @@ class AccessModelResourceInput(graphene.InputObjectType):
     access_model_id = graphene.ID(required=True)
     dataset_id = graphene.ID(required=True)
 
+class DeleteAccessModelResourceInput(graphene.InputObjectType):
+    id = graphene.ID(required=True)
+
 
 class Query(graphene.ObjectType):
     dataset_access_model = graphene.List(DatasetAccessModelMapType, dataset_id=graphene.ID())
@@ -85,6 +88,56 @@ class CreateAccessModelResource(Output, graphene.Mutation):
         except DataAccessModel.DoesNotExist as e:
             return {"success": False, "errors": {"id": [{"message": "Access Model id not found", "code": "404"}]}}
 
+class UpdateAccessModelResource(Output, graphene.Mutation):
+    class Arguments:
+        access_model_resource_data = AccessModelResourceInput()
+
+    access_model_resource = graphene.Field(DatasetAccessModelMapType)
+
+    @staticmethod
+    def mutate(root, info, access_model_resource_data: AccessModelResourceInput):
+        try:
+            access_map_instance = DatasetAccessModelMap.objects.get(pk=access_model_resource_data.id)
+            for resources in access_model_resource_data.resource_map:
+                try:
+                    access_model_resource_instance = AccessModelResource.objects.get(dataset_access_map_id=access_model_resource_data.id, resource_id=resources.resource_id)
+                    access_model_resource_instance.fields = resources.fields
+                    access_model_resource_instance.save()
+                except AccessModelResource.DoesNotExist as e:
+                    try:
+                        Resource.objects.get(id=resources.resource_id)
+                        access_model_resource_instance = AccessModelResource(
+                            resource_id=resources.resource_id,
+                            fields=resources.fields,
+                            dataset_access_map=access_map_instance
+                        )
+                        access_model_resource_instance.save()
+                    except Resource.DoesNotExist as e:
+                        return {"success": False, "errors": {"id": [{"message": "Resource id not found", "code": "404"}]}}
+            return UpdateAccessModelResource(access_model_resource=access_map_instance)
+        except DatasetAccessModelMap.DoesNotExist as e:
+            return {"success": False, "errors": {"id": [{"message": "Dataset Access Model Map id not found", "code": "404"}]}}
+
+class DeleteAccessModelResource(Output, graphene.Mutation):
+    class Arguments:
+        access_model_resource_data = DeleteAccessModelResourceInput()
+
+    access_model_resource = graphene.Field(DatasetAccessModelMapType)
+
+    @staticmethod
+    def mutate(root, info, access_model_resource_data: DeleteAccessModelResourceInput):
+        try:
+            access_model_map_instance = DatasetAccessModelMap.objects.get(pk=access_model_resource_data.id)
+            access_model_resource_instance = AccessModelResource.objects.filter(dataset_access_map_id=access_model_resource_data.id)
+            if access_model_resource_instance.exists():
+                for resource in access_model_resource_instance:
+                    resource.delete()
+                access_model_map_instance.delete()
+        except DatasetAccessModelMap.DoesNotExist as e:
+            return {"success": False, "errors": {"id": [{"message": "Dataset Access Model Map id not found", "code": "404"}]}}
+        return DeleteAccessModelResource(success=True)
 
 class Mutation(graphene.ObjectType):
     access_model_resource = CreateAccessModelResource.Field()
+    update_access_model_resource = UpdateAccessModelResource.Field()
+    delete_access_model_resource = DeleteAccessModelResource.Field()
