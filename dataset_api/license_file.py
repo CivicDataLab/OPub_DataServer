@@ -3,7 +3,7 @@ import os
 
 from django.http import HttpResponse
 
-from dataset_api.models import License
+from dataset_api.license.models import License
 
 
 def download(request, license_id):

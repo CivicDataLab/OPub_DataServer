@@ -19,7 +19,8 @@ from django.views.decorators.csrf import csrf_exempt
 from graphene_file_upload.django import FileUploadGraphQLView
 
 from dataset_api import resource_file, organization_logo, license_file
-from dataset_api.data_access_model import data_request_file, contract_file
+from dataset_api.data_access_model import contract_file
+from dataset_api.data_request import data_request_file
 
 urlpatterns = [
     path('admin/', admin.site.urls),

@@ -2,13 +2,14 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
-from dataset_api.data_access_model.models import DataAccessModelRequest, DatasetAccessModelMap
+from dataset_api.dataset_access_model_request.models import DatasetAccessModelRequest
+from dataset_api.dataset_access_model.models import DatasetAccessModel
 from dataset_api.decorators import validate_token
 
 
 class DataAccessModelRequestType(DjangoObjectType):
     class Meta:
-        model = DataAccessModelRequest
+        model = DatasetAccessModelRequest
         fields = "__all__"
 
 
@@ -31,14 +32,14 @@ class Query(graphene.ObjectType):
     data_access_model_request_user = graphene.List(DataAccessModelRequestType)
 
     def resolve_all_data_access_model_requests(self, info, **kwargs):
-        return DataAccessModelRequest.objects.all().order_by("-modified")
+        return DatasetAccessModelRequest.objects.all().order_by("-modified")
 
     def resolve_data_access_model_request(self, info, data_access_model_request_id):
-        return DataAccessModelRequest.objects.get(pk=data_access_model_request_id)
+        return DatasetAccessModelRequest.objects.get(pk=data_access_model_request_id)
 
     @validate_token
     def resolve_data_access_model_request_user(self, info, username, **kwargs):
-        return DataAccessModelRequest.objects.filter(user=username).order_by("-modified")
+        return DatasetAccessModelRequest.objects.filter(user=username).order_by("-modified")
 
 
 class DataAccessModelRequestInput(graphene.InputObjectType):
@@ -63,9 +64,9 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
     @staticmethod
     @validate_token
     def mutate(root, info, data_access_model_request: DataAccessModelRequestInput = None, username=""):
-        access_model = DatasetAccessModelMap.objects.get(id=data_access_model_request.access_model)
+        access_model = DatasetAccessModel.objects.get(id=data_access_model_request.access_model)
         # TODO: fix magic strings
-        data_access_model_request_instance = DataAccessModelRequest(
+        data_access_model_request_instance = DatasetAccessModelRequest(
             status="REQUESTED",
             purpose=data_access_model_request.purpose,
             description=data_access_model_request.description,
@@ -86,8 +87,8 @@ class ApproveRejectDataAccessModelRequest(graphene.Mutation, Output):
     @staticmethod
     def mutate(root, info, data_access_model_request: DataAccessModelRequestUpdateInput = None):
         try:
-            data_access_model_request_instance = DataAccessModelRequest.objects.get(id=data_access_model_request.id)
-        except DataAccessModelRequest.DoesNotExist as e:
+            data_access_model_request_instance = DatasetAccessModelRequest.objects.get(id=data_access_model_request.id)
+        except DatasetAccessModelRequest.DoesNotExist as e:
             return {"success": False,
                     "errors": {"id": [{"message": "Data Access Model with given id not found", "code": "404"}]}}
         data_access_model_request_instance.status = data_access_model_request.status

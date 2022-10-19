@@ -3,7 +3,7 @@ import os
 
 from django.http import HttpResponse
 
-from dataset_api.data_access_model.models import DataRequest
+from dataset_api.data_request.models import DataRequest
 
 
 def download(request, data_request_id):

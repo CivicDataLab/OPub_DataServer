@@ -6,7 +6,8 @@ from graphql_auth.bases import Output
 
 from dataset_api.data_access_model.models import DataAccessModel
 from dataset_api.enums import SubscriptionUnits
-from dataset_api.models import Organization, License, LicenseAddition
+from dataset_api.models import Organization
+from ..license.models import License, LicenseAddition
 from .contract import create_contract
 from .decorator import auth_user_action_dam
 

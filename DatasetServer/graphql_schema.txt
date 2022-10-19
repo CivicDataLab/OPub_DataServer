@@ -20,7 +20,7 @@ type APISourceType {
 }
 
 type AccessModelResourceType {
-    dataset_access_map: DatasetAccessModelMapType!
+    dataset_access_model: DatasetAccessModelType!
     fields: [String!]!
     id: ID!
     resource: ResourceType!
@@ -53,6 +53,12 @@ type ApproveRejectDataAccessModelRequest {
     success: Boolean
 }
 
+type ApproveRejectLicense {
+    errors: ExpectedErrorType
+    license_requests: [LicenseType]
+    success: Boolean
+}
+
 type ApproveRejectModerationRequests {
     errors: ExpectedErrorType
     moderation_requests: [ModerationRequestType]
@@ -82,7 +88,7 @@ type CreateAPISource {
 }
 
 type CreateAccessModelResource {
-    access_model_resource: AccessModelResourceType
+    access_model_resource: DatasetAccessModelType
     errors: ExpectedErrorType
     success: Boolean
 }
@@ -160,7 +166,7 @@ type DataAccessModelRequestMutation {
 }
 
 type DataAccessModelRequestType {
-    data_access_model_id: DataAccessModelType!
+    access_model: DatasetAccessModelType!
     datarequest_set: [DataRequestType!]!
     description: String!
     id: ID!
@@ -174,8 +180,7 @@ type DataAccessModelRequestType {
 
 type DataAccessModelType {
     contract: String!
-    dataaccessmodelrequest_set: [DataAccessModelRequestType!]!
-    datasetaccessmodelmap_set: [DatasetAccessModelMapType!]!
+    datasetaccessmodel_set: [DatasetAccessModelType!]!
     description: String!
     id: ID!
     issued: DateTime!
@@ -199,7 +204,7 @@ type DataRequestMutation {
 
 type DataRequestType {
     creation_date: DateTime
-    data_access_model_request: DataAccessModelRequestType!
+    dataset_access_model_request: DataAccessModelRequestType!
     file: String
     id: ID!
     reject_reason: String!
@@ -214,11 +219,14 @@ type DataRequestUpdateMutation {
     success: Boolean
 }
 
-type DatasetAccessModelMapType {
-    accessmodelresource_set: [AccessModelResourceType!]!
+type DatasetAccessModelType {
     data_access_model: DataAccessModelType!
     dataset: DatasetType!
+    datasetaccessmodelrequest_set: [DataAccessModelRequestType!]!
+    datasetaccessmodelresource_set: [AccessModelResourceType!]!
     id: ID!
+    issued: DateTime!
+    modified: DateTime!
 }
 
 type DatasetRatingType {
@@ -227,6 +235,7 @@ type DatasetRatingType {
     id: ID!
     review: String!
     status: DatasetRatingsStatus!
+    user: String!
 }
 
 type DatasetType {
@@ -234,7 +243,7 @@ type DatasetType {
     additionalinfo_set: [AdditionalInfoType!]!
     catalog: CatalogType!
     dataset_type: String!
-    datasetaccessmodelmap_set: [DatasetAccessModelMapType!]!
+    datasetaccessmodel_set: [DatasetAccessModelType!]!
     datasetratings_set: [DatasetRatingType!]!
     description: String!
     funnel: String!
@@ -256,15 +265,28 @@ type DatasetType {
     update_frequency: String
 }
 
+type DeleteAccessModelResource {
+    access_model_resource: DatasetAccessModelType
+    errors: ExpectedErrorType
+    success: Boolean
+}
+
 type DeleteAdditionalInfo {
     additional_info: AdditionalInfoType
 }
 
 type DeleteDataAccessModel {
+    errors: ExpectedErrorType
+    success: String
+}
+
+type DeleteLicense {
+    errors: ExpectedErrorType
     success: String
 }
 
 type DeleteResource {
+    errors: ExpectedErrorType
     success: String
 }
 
@@ -302,6 +324,7 @@ type LicenseType {
     issued: DateTime!
     licenseaddition_set: [LicenseAdditionType!]!
     modified: DateTime!
+    reject_reason: String!
     remote_url: String!
     status: LicenseStatus!
     title: String!
@@ -329,6 +352,7 @@ type Mutation {
     access_model_resource(access_model_resource_data: AccessModelResourceInput): CreateAccessModelResource
     approve_reject_data_access_model_request(data_access_model_request: DataAccessModelRequestUpdateInput): ApproveRejectDataAccessModelRequest
     approve_reject_dataset_rating(rating_data: DatasetRatingApproveRejectInput!): ApproveRejectRating
+    approve_reject_license(license_data: LicenseApproveRejectInput!): ApproveRejectLicense
     approve_reject_moderation_requests(moderation_request: ModerationRequestsApproveRejectInput): ApproveRejectModerationRequests
     create_additional_info(info_data: AdditionalInfoInput): CreateAdditionInfo
     create_api_source(api_source_data: APISourceInput!): CreateAPISource
@@ -344,11 +368,14 @@ type Mutation {
     create_tag(tag_data: TagInput!): CreateTag
     data_access_model_request(data_access_model_request: DataAccessModelRequestInput): DataAccessModelRequestMutation
     data_request(data_request: DataRequestInput): DataRequestMutation
+    delete_access_model_resource(access_model_resource_data: DeleteAccessModelResourceInput): DeleteAccessModelResource
     delete_additional_info(id: ID): DeleteAdditionalInfo
-    delete_data_access_model(id: ID!): DeleteDataAccessModel
+    delete_data_access_model(data_access_model_data: DeleteDataAccessModelInput): DeleteDataAccessModel
+    delete_license(license_id: ID!): DeleteLicense
     delete_resource(resource_data: DeleteResourceInput): DeleteResource
     moderation_request(moderation_request: ModerationRequestInput): ModerationRequestMutation
     patch_dataset(dataset_data: PatchDatasetInput): PatchDataset
+    update_access_model_resource(access_model_resource_data: AccessModelResourceInput): UpdateAccessModelResource
     update_additional_info(resource_data: AdditionalInfoInput!): UpdateAdditionalInfo
     update_data_access_model(data_access_model_data: DataAccessModelInput): UpdateDataAccessModel
     update_data_request(data_request: DataRequestUpdateInput): DataRequestUpdateMutation
@@ -396,12 +423,14 @@ type Query {
     all_sector: [SectorType]
     all_tag: [TagType]
     catalog(catalog_id: Int): CatalogType
-    data_access_model(data_access_model_id: Int): DataAccessModelType
+    data_access_model(data_access_model_id: ID): DataAccessModelType
     data_access_model_request(data_access_model_request_id: Int): DataAccessModelRequestType
     data_access_model_request_user: [DataAccessModelRequestType]
     data_request(data_request_id: Int): DataRequestType
     data_request_user: DataRequestType
     dataset(dataset_id: Int): DatasetType
+    dataset_access_model(dataset_id: ID): [DatasetAccessModelType]
+    dataset_access_model_by_id(dataset_access_model_id: ID): DatasetAccessModelType
     dataset_rating(dataset_id: Int): [DatasetRatingType]
     geography(geography_id: Int): GeographyType
     info(info_id: Int): AdditionalInfoType
@@ -433,7 +462,6 @@ type ResourceSchemaType {
 }
 
 type ResourceType {
-    accessmodelresource_set: [AccessModelResourceType!]!
     api_details: ApiDetailsType
     apidetails: ApiDetailsType
     datarequest_set: [DataRequestType!]!
@@ -469,6 +497,12 @@ type TagType {
     dataset_set: [DatasetType!]!
     id: ID!
     name: String!
+}
+
+type UpdateAccessModelResource {
+    access_model_resource: DatasetAccessModelType
+    errors: ExpectedErrorType
+    success: Boolean
 }
 
 type UpdateAdditionalInfo {
@@ -723,17 +757,17 @@ input AdditionalInfoInput {
 }
 
 input ApiInputType {
-    api_source: String!
+    api_source: ID!
     auth_required: Boolean!
     response_type: ResponseType
     url_path: String!
 }
 
 input CatalogInput {
-    description: String
+    description: String!
     id: ID
     organization: ID!
-    title: String
+    title: String!
 }
 
 input DataAccessModelInput {
@@ -752,7 +786,7 @@ input DataAccessModelInput {
 }
 
 input DataAccessModelRequestInput {
-    data_access_model: String!
+    access_model: ID!
     description: String!
     id: ID
     purpose: PurposeType!
@@ -806,9 +840,16 @@ input DatasetRatingInput {
     review: String!
 }
 
+input DeleteAccessModelResourceInput {
+    id: ID!
+}
+
+input DeleteDataAccessModelInput {
+    id: ID!
+}
+
 input DeleteResourceInput {
-    dataset: ID!
-    id: ID
+    id: ID!
 }
 
 input FileInputType {
@@ -833,6 +874,12 @@ input LicenceAdditionsInput {
     generic_item: Boolean!
     id: ID
     title: String!
+}
+
+input LicenseApproveRejectInput {
+    ids: [ID]!
+    reject_reason: String
+    status: String!
 }
 
 input LicenseInput {
@@ -873,7 +920,6 @@ input OrganizationInput {
 input PatchDatasetInput {
     funnel: String
     id: ID!
-    organization: ID!
     status: String
 }
 
@@ -884,7 +930,7 @@ input ResourceFieldInput {
 
 input ResourceInput {
     api_details: ApiInputType
-    dataset: String!
+    dataset: ID!
     description: String
     file_details: FileInputType
     id: ID

@@ -5,7 +5,8 @@ from graphql_auth.bases import Output
 from graphene_file_upload.scalars import Upload
 
 from dataset_api.models import Resource
-from dataset_api.data_access_model.models import DataAccessModelRequest, DataRequest
+from dataset_api.data_request.models import DataRequest
+from dataset_api.dataset_access_model_request.models import DatasetAccessModelRequest
 from dataset_api.decorators import validate_token
 
 
@@ -60,8 +61,8 @@ class DataRequestMutation(graphene.Mutation, Output):
         # TODO: Check if resource id's provided exists!!
         try:
             resource = Resource.objects.get(id=data_request.resource)
-            dam_request = DataAccessModelRequest(id=data_request.data_access_model_request)
-        except (Resource.DoesNotExist, DataAccessModelRequest.DoesNotExist) as e:
+            dam_request = DatasetAccessModelRequest(id=data_request.data_access_model_request)
+        except (Resource.DoesNotExist, DatasetAccessModelRequest.DoesNotExist) as e:
             return {"success": False,
                     "errors": {
                         "id": [{"message": "Data Access Model or resource with given id not found", "code": "404"}]}}

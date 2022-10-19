@@ -4,9 +4,10 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
-from .enums import LicenseStatus
-from .models import License, Organization, LicenseAddition
-from .decorators import check_license_role
+from dataset_api.enums import LicenseStatus
+from dataset_api.models import Organization
+from dataset_api.license.models import License, LicenseAddition
+from dataset_api.decorators import check_license_role
 
 
 class LicenseAdditionType(DjangoObjectType):
