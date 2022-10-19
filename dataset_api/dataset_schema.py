@@ -74,7 +74,6 @@ class DatasetInput(graphene.InputObjectType):
 
 class PatchDatasetInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
-    organization = graphene.ID(required=True)
     funnel = graphene.String(default=None)
     status = graphene.String(default=None)
 
@@ -89,10 +88,12 @@ class CreateDataset(Output, graphene.Mutation):
     @auth_user_action_dataset(action="create_dataset")
     @map_user_dataset
     def mutate(root, info, dataset_data: DatasetInput = None):
-        organization = Organization.objects.get(id=dataset_data.organization)
-        catalog = Catalog.objects.filter(organization=organization)[0]
-        # catalog = organization.objects.select_related('catalog').all(0)
-        # print(dataset_data)
+        try:
+            organization = Organization.objects.get(id=dataset_data.organization)
+            catalog = Catalog.objects.filter(organization=organization)[0]
+            # catalog = organization.objects.select_related('catalog').all(0)
+        except Organization.DoesNotExist as e:
+            return {"success": False, "errors": {"id": [{"message": "Organization with given id not found", "code": "404"}]}}
         dataset_instance = Dataset(
             title=dataset_data.title,
             description=dataset_data.description,
@@ -123,30 +124,31 @@ class UpdateDataset(Output, graphene.Mutation):
     @staticmethod
     @auth_user_action_dataset(action="update_dataset")
     def mutate(root, info, dataset_data: DatasetInput = None):
-        dataset_instance = Dataset.objects.get(id=dataset_data.id)
-        organization = Organization.objects.get(id=dataset_data.organization)
+        try:
+            dataset_instance = Dataset.objects.get(id=dataset_data.id)
+            organization = Organization.objects.get(id=dataset_data.organization)
+        except (Dataset.DoesNotExist, Organization.DoesNotExist) as e:
+            return {"success": False, "errors": {"id": [{"message": "Organization or Datset with given id not found", "code": "404"}]}}
         catalog = Catalog.objects.filter(organization=organization)[0]
-        if dataset_instance:
-            dataset_instance.title = dataset_data.title
-            dataset_instance.description = dataset_data.description
-            dataset_instance.remote_issued = dataset_data.remote_issued
-            dataset_instance.remote_modified = dataset_data.remote_modified
-            dataset_instance.funnel = dataset_data.funnel
-            dataset_instance.action = dataset_data.action
-            dataset_instance.status = dataset_data.status
-            dataset_instance.catalog = catalog
-            dataset_instance.period_to = dataset_data.period_to
-            dataset_instance.period_from = dataset_data.period_from
-            dataset_instance.dataset_type = dataset_data.dataset_type
-            dataset_instance.update_frequency = dataset_data.update_frequency
+        dataset_instance.title = dataset_data.title
+        dataset_instance.description = dataset_data.description
+        dataset_instance.remote_issued = dataset_data.remote_issued
+        dataset_instance.remote_modified = dataset_data.remote_modified
+        dataset_instance.funnel = dataset_data.funnel
+        dataset_instance.action = dataset_data.action
+        dataset_instance.status = dataset_data.status
+        dataset_instance.catalog = catalog
+        dataset_instance.period_to = dataset_data.period_to
+        dataset_instance.period_from = dataset_data.period_from
+        dataset_instance.dataset_type = dataset_data.dataset_type
+        dataset_instance.update_frequency = dataset_data.update_frequency
 
-            dataset_instance.save()
-            _add_update_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
-            _add_update_attributes_to_dataset(dataset_instance, "geography", dataset_data.geo_list, Geography)
-            _add_update_attributes_to_dataset(dataset_instance, "sector", dataset_data.sector_list, Sector)
+        dataset_instance.save()
+        _add_update_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
+        _add_update_attributes_to_dataset(dataset_instance, "geography", dataset_data.geo_list, Geography)
+        _add_update_attributes_to_dataset(dataset_instance, "sector", dataset_data.sector_list, Sector)
 
-            return UpdateDataset(dataset=dataset_instance)
-        return UpdateDataset(dataset=None)
+        return UpdateDataset(dataset=dataset_instance)
 
 
 class PatchDataset(Output, graphene.Mutation):
