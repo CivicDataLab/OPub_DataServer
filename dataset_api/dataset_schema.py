@@ -130,7 +130,7 @@ class UpdateDataset(Output, graphene.Mutation):
         except Organization.DoesNotExist as e:
             return {"success": False, "errors": {"id": [{"message": "Organization with given id not found", "code": "404"}]}}
         except Dataset.DoesNotExist as e:
-            return {"success": False, "errors": {"id": [{"message": "Datset with given id not found", "code": "404"}]}}
+            return {"success": False, "errors": {"id": [{"message": "Dataset with given id not found", "code": "404"}]}}
         catalog = Catalog.objects.filter(organization=organization)[0]
         dataset_instance.title = dataset_data.title
         dataset_instance.description = dataset_data.description
