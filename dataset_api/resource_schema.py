@@ -112,7 +112,7 @@ class ResponseType(graphene.Enum):
 
 
 class ApiInputType(graphene.InputObjectType):
-    api_source = graphene.String(required=True)
+    api_source = graphene.ID(required=True)
     auth_required = graphene.Boolean(required=True)
     url_path = graphene.String(required=True)
     response_type = ResponseType()
@@ -126,10 +126,10 @@ class FileInputType(graphene.InputObjectType):
 
 
 class ResourceInput(graphene.InputObjectType):
-    id: str = graphene.ID()
+    id = graphene.ID()
     title = graphene.String(required=True)
     description = graphene.String(required=False)
-    dataset = graphene.String(required=True)
+    dataset = graphene.ID(required=True)
     status = graphene.String(required=True)
     schema: List = graphene.List(of_type=ResourceSchemaInputType, required=False)
     masked_fields = graphene.List(of_type=graphene.String, default=[], required=False)
@@ -265,8 +265,10 @@ class CreateResource(graphene.Mutation, Output):
 
         :type resource_data: List of dictionary
         """
-        dataset = Dataset.objects.get(id=resource_data.dataset)
-
+        try:
+            dataset = Dataset.objects.get(id=resource_data.dataset)
+        except Dataset.DoesNotExist as e:
+            return {"success": False, "errors": {"id": [{"message": "Dataset with given id not found", "code": "404"}]}}
         masked_fields = resource_data.masked_fields
         resource_instance = Resource(
             title=resource_data.title,
@@ -279,7 +281,12 @@ class CreateResource(graphene.Mutation, Output):
 
         # Create either api or file object.
         if dataset.dataset_type == "API":
-            _create_update_api_details(resource_instance=resource_instance,attribute=resource_data.api_details)
+            try:
+                api_source_instance = APISource.objects.get(id=resource_data.api_details.api_source)
+                _create_update_api_details(resource_instance=resource_instance,attribute=resource_data.api_details)
+            except APISource.DoesNotExist as e:
+                resource_instance.delete()
+                return {"success": False, "errors": {"id": [{"message": "API Source with given id not found", "code": "404"}]}}
         elif dataset.dataset_type == "FILE":
             _create_update_file_details(resource_instance=resource_instance,attribute=resource_data.file_details)
 
@@ -298,29 +305,36 @@ class UpdateResource(graphene.Mutation, Output):
     @staticmethod
     @auth_user_action_resource(action="update_resource")
     def mutate(root, info, resource_data: ResourceInput = None):
-        resource_instance = Resource.objects.get(id=int(resource_data.id))
-        dataset = Dataset.objects.get(id=resource_data.dataset)
-        if resource_instance:
-            resource_instance.title = resource_data.title
-            resource_instance.description = resource_data.description
-            resource_instance.dataset = dataset
-            resource_instance.status = resource_data.status
-            resource_instance.masked_fields = resource_data.masked_fields
-            resource_instance.save()
-            _remove_masked_fields(resource_instance)
-            _create_update_schema(resource_data, resource_instance)
-            if dataset.dataset_type == "API":
-                _create_update_api_details(
-                    resource_instance=resource_instance,
-                    attribute=resource_data.api_details,
-                )
-            else:
-                _create_update_file_details(
-                    resource_instance=resource_instance,
-                    attribute=resource_data.file_details,
-                )
-            return UpdateResource(success=True, resource=resource_instance)
-        return UpdateResource(success=False, resource=None)
+        try:
+            resource_instance = Resource.objects.get(id=resource_data.id)
+            dataset = Dataset.objects.get(id=resource_data.dataset)
+        except Resource.DoesNotExist as e:
+            return {"success": False, "errors": {"id": [{"message": "Resource with given id not found", "code": "404"}]}}
+        except Dataset.DoesNotExist as e:
+            return {"success": False, "errors": {"id": [{"message": "Dataset with given id not found", "code": "404"}]}}
+        resource_instance.title = resource_data.title
+        resource_instance.description = resource_data.description
+        resource_instance.dataset = dataset
+        resource_instance.status = resource_data.status
+        resource_instance.masked_fields = resource_data.masked_fields
+        # resource_instance.save()
+        # _remove_masked_fields(resource_instance)
+        # _create_update_schema(resource_data, resource_instance)
+        if dataset.dataset_type == "API":
+            try:
+                api_source_instance = APISource.objects.get(id=resource_data.api_details.api_source)
+                _create_update_api_details(resource_instance=resource_instance,attribute=resource_data.api_details)
+            except APISource.DoesNotExist as e:
+                return {"success": False, "errors": {"id": [{"message": "API Source with given id not found", "code": "404"}]}}
+        else:
+            _create_update_file_details(
+                resource_instance=resource_instance,
+                attribute=resource_data.file_details,
+            )
+        resource_instance.save()
+        _remove_masked_fields(resource_instance)
+        _create_update_schema(resource_data, resource_instance)
+        return UpdateResource(success=True, resource=resource_instance)
 
 
 class DeleteResource(graphene.Mutation, Output):
@@ -334,7 +348,10 @@ class DeleteResource(graphene.Mutation, Output):
     @staticmethod
     @auth_user_action_resource(action="delete_resource")
     def mutate(root, info, resource_data: DeleteResourceInput = None):
-        resource_instance = Resource.objects.get(id=resource_data.id)
+        try:
+            resource_instance = Resource.objects.get(id=resource_data.id)
+        except Resource.DoesNotExist as e:
+            return {"success": False, "errors": {"id": [{"message": "Resource with given id not found", "code": "404"}]}} 
         resource_instance.delete()
         return DeleteResource(success=True)
 

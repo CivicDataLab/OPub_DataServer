@@ -24,8 +24,8 @@ class Query(graphene.ObjectType):
 
 class CatalogInput(graphene.InputObjectType):
     id = graphene.ID()
-    title = graphene.String()
-    description = graphene.String()
+    title = graphene.String(required=True)
+    description = graphene.String(required=True)
     organization = graphene.ID(required=True)
 
 
@@ -37,7 +37,10 @@ class CreateCatalog(Output, graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, catalog_data=None):
-        organization = Organization.objects.get(id=catalog_data.organization)
+        try:
+            organization = Organization.objects.get(id=catalog_data.organization)
+        except Organization.DoesNotExist as e:
+            return {"success": False, "errors": {"id": [{"message": "Organization with given id not found", "code": "404"}]}}
         catalog_instance = Catalog(
             title=catalog_data.title,
             description=catalog_data.description,
