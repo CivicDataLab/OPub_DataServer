@@ -3,6 +3,7 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
 from .models import APISource
+from .enums import AuthLocation, AuthType
 
 
 class APISourceType(DjangoObjectType):
@@ -22,16 +23,6 @@ class Query(graphene.ObjectType):
         return APISource.objects.get(pk=api_source_id)
 
 
-class AuthLocation(graphene.Enum):
-    HEADER = "HEADER"
-    PARAM = "PARAM"
-
-
-class AuthType(graphene.Enum):
-    CREDENTIALS = "CREDENTIALS"
-    TOKEN = "TOKEN"
-
-
 class KeyValueType(graphene.InputObjectType):
     key = graphene.String()
     value = graphene.String()
@@ -43,10 +34,10 @@ class APISourceInput(graphene.InputObjectType):
     title = graphene.String(required=True)
     base_url = graphene.String(required=True)
     description = graphene.String(required=True)
-    api_version = graphene.String(required=True)
+    api_version = graphene.String()
     headers = graphene.List(of_type=KeyValueType)
-    auth_loc = AuthLocation(required=True)
-    auth_type = AuthType(required=True)
+    auth_loc = graphene.Enum.from_enum(AuthLocation)(default="")
+    auth_type = graphene.Enum.from_enum(AuthType)(required=True)
     auth_credentials = graphene.List(of_type=KeyValueType)
     auth_token = graphene.String()
 

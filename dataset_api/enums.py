@@ -21,3 +21,14 @@ class SubscriptionUnits(models.TextChoices):
     QUARTERLY = "QUARTERLY"
     MONTHLY = "MONTHLY"
     YEARLY = "YEARLY"
+
+
+class AuthLocation(models.TextChoices):
+    HEADER = "HEADER"
+    PARAM = "PARAM"
+
+
+class AuthType(models.TextChoices):
+    CREDENTIALS = "CREDENTIALS"
+    TOKEN = "TOKEN"
+    NO_AUTH = "NO_AUTH"
