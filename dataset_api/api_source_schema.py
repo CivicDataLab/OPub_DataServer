@@ -40,13 +40,13 @@ class KeyValueType(graphene.InputObjectType):
 
 class APISourceInput(graphene.InputObjectType):
     id = graphene.ID()
-    title = graphene.String()
-    base_url = graphene.String()
-    description = graphene.String()
-    api_version = graphene.String()
+    title = graphene.String(required=True)
+    base_url = graphene.String(required=True)
+    description = graphene.String(required=True)
+    api_version = graphene.String(required=True)
     headers = graphene.List(of_type=KeyValueType)
-    auth_loc = AuthLocation()
-    auth_type = AuthType()
+    auth_loc = AuthLocation(required=True)
+    auth_type = AuthType(required=True)
     auth_credentials = graphene.List(of_type=KeyValueType)
     auth_token = graphene.String()
 
