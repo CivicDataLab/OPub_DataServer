@@ -17,6 +17,7 @@ import dataset_api.dataset_access_model_resource.schema
 import dataset_api.license.license_schema
 import dataset_api.stats_schema
 import dataset_api.dataset_moderation
+import dataset_api.organization_request_schema
 
 
 class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Query, dataset_api.catalog_schema.Query,
@@ -28,6 +29,7 @@ class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Qu
             dataset_api.dataset_access_model_request.schema.Query,
             dataset_api.data_access_model.schema.Query, dataset_api.dataset_moderation.Query,
             dataset_api.stats_schema.Query,
+            dataset_api.organization_request_schema.Query,
             graphene.ObjectType):
     pass
 
@@ -39,7 +41,7 @@ class Mutation(dataset_api.dataset_schema.Mutation, dataset_api.organization_sch
                dataset_api.api_source_schema.Mutation, dataset_api.rating_schema.Mutation,
                dataset_api.license.license_schema.Mutation, dataset_api.dataset_access_model_request.schema.Mutation,
                dataset_api.sector_schema.Mutation, dataset_api.additional_info_schema.Mutation,
-               dataset_api.data_request.schema.Mutation,
+               dataset_api.data_request.schema.Mutation, dataset_api.organization_request_schema.Mutation,
                dataset_api.data_access_model.schema.Mutation, dataset_api.dataset_moderation.Mutation,
                dataset_api.dataset_access_model_resource.schema.Mutation,
                graphene.ObjectType):
