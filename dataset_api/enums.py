@@ -1,4 +1,3 @@
-from enum import Enum
 from django.db import models
 
 
@@ -21,3 +20,9 @@ class SubscriptionUnits(models.TextChoices):
     QUARTERLY = "QUARTERLY"
     MONTHLY = "MONTHLY"
     YEARLY = "YEARLY"
+
+
+class OrganizationRequestStatusType(models.TextChoices):
+    REQUESTED = "REQUESTED"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"

@@ -18,6 +18,15 @@ class Organization(models.Model):
     contact_email = models.EmailField(blank=True)
 
 
+class OrganizationRequest(models.Model):
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, blank=False)
+    description = models.CharField(max_length=500, blank=False)
+    issued = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+    user = models.CharField(max_length=50, blank=False, null=False)
+    remark = models.CharField(max_length=500, blank=True, null=True)
+
+
 class Tag(models.Model):
     name = models.CharField(max_length=50, unique=True, blank=False)
 
@@ -157,5 +166,3 @@ class ModerationRequest(models.Model):
     modified_date = models.DateTimeField(auto_now=True, null=False)
     reject_reason = models.CharField(max_length=500, blank=True)
     user = models.CharField(max_length=50, blank=False, null=False)
-
-
