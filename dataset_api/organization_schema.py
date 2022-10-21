@@ -47,7 +47,7 @@ class Query(graphene.ObjectType):
 
 
 class OrganizationInput(graphene.InputObjectType):
-    id = graphene.ID(required=True)
+    id = graphene.ID()
     title = graphene.String(required=True)
     description = graphene.String(required=True)
     logo = Upload(required=False, description="Logo for the Company.")
@@ -72,7 +72,7 @@ class CreateOrganization(Output, graphene.Mutation):
     organization = graphene.Field(CreateOrganizationType)
 
     @staticmethod
-    @create_user_org
+    # @create_user_org
     def mutate(root, info, organization_data: OrganizationInput = None):
         organization_additional_info_instance = OrganizationCreateRequest(
             title=organization_data.title,

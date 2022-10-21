@@ -18,10 +18,9 @@ def _organization_file_directory_path(org, filename):
 
     """
 
-    if org.upload_sample_data_file:
-        org_name = org.title
-        _, extension = os.path.splitext(filename)
-        return f"resources/{org_name}/sample_data/{extension[1:]}/{filename}"
+    org_name = org.title
+    _, extension = os.path.splitext(filename)
+    return f"resources/{org_name}/sample_data/{extension[1:]}/{filename}"
 
 
 def _resource_directory_path(file_details, filename):
