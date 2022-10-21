@@ -22,6 +22,17 @@ class SubscriptionUnits(models.TextChoices):
     YEARLY = "YEARLY"
 
 
+class AuthLocation(models.TextChoices):
+    HEADER = "HEADER"
+    PARAM = "PARAM"
+
+
+class AuthType(models.TextChoices):
+    CREDENTIALS = "CREDENTIALS"
+    TOKEN = "TOKEN"
+    NO_AUTH = "NO_AUTH"
+
+
 class OrganizationRequestStatusType(models.TextChoices):
     REQUESTED = "REQUESTED"
     APPROVED = "APPROVED"

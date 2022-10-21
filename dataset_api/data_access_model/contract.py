@@ -9,6 +9,8 @@ from dataset_api.license.models import License, LicenseAddition
 
 
 def create_contract(model_license: License, additions: List, data_access_model: DataAccessModel):
+    if not additions:
+        return
     text = model_license.title
     text = text + model_license.description
     for addition_id in additions:

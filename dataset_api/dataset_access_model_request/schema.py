@@ -1,6 +1,7 @@
 import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
+from django.db.models import Q
 
 from dataset_api.dataset_access_model_request.models import DatasetAccessModelRequest
 from dataset_api.dataset_access_model.models import DatasetAccessModel
@@ -30,6 +31,7 @@ class Query(graphene.ObjectType):
     all_data_access_model_requests = graphene.List(DataAccessModelRequestType)
     data_access_model_request = graphene.Field(DataAccessModelRequestType, data_access_model_request_id=graphene.Int())
     data_access_model_request_user = graphene.List(DataAccessModelRequestType)
+    data_access_model_request_org = graphene.List(DataAccessModelRequestType, org_id=graphene.Int())
 
     def resolve_all_data_access_model_requests(self, info, **kwargs):
         return DatasetAccessModelRequest.objects.all().order_by("-modified")
@@ -40,6 +42,9 @@ class Query(graphene.ObjectType):
     @validate_token
     def resolve_data_access_model_request_user(self, info, username, **kwargs):
         return DatasetAccessModelRequest.objects.filter(user=username).order_by("-modified")
+
+    def resolve_data_access_model_request_org(self, info, org_id):
+        return DatasetAccessModelRequest.objects.filter(Q(access_model__data_access_model__organization=org_id), Q(status__exact="APPROVED"))
 
 
 class DataAccessModelRequestInput(graphene.InputObjectType):
