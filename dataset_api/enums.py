@@ -1,4 +1,3 @@
-from enum import Enum
 from django.db import models
 
 
@@ -32,3 +31,9 @@ class AuthType(models.TextChoices):
     CREDENTIALS = "CREDENTIALS"
     TOKEN = "TOKEN"
     NO_AUTH = "NO_AUTH"
+
+
+class OrganizationRequestStatusType(models.TextChoices):
+    REQUESTED = "REQUESTED"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"

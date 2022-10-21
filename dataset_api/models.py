@@ -2,7 +2,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
-from dataset_api.enums import RatingStatus
+from dataset_api.enums import RatingStatus, OrganizationRequestStatusType
 from dataset_api.file_paths import _organization_directory_path, _resource_directory_path, _info_directory_path
 
 
@@ -16,6 +16,16 @@ class Organization(models.Model):
     modified = models.DateTimeField(auto_now=True)
     homepage = models.URLField(blank=True)
     contact_email = models.EmailField(blank=True)
+
+
+class OrganizationRequest(models.Model):
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, blank=False)
+    description = models.CharField(max_length=500, blank=False)
+    issued = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=OrganizationRequestStatusType.choices, blank=False)
+    modified = models.DateTimeField(auto_now=True)
+    user = models.CharField(max_length=50, blank=False, null=False)
+    remark = models.CharField(max_length=500, blank=True, null=True)
 
 
 class Tag(models.Model):
@@ -157,5 +167,3 @@ class ModerationRequest(models.Model):
     modified_date = models.DateTimeField(auto_now=True, null=False)
     reject_reason = models.CharField(max_length=500, blank=True)
     user = models.CharField(max_length=50, blank=False, null=False)
-
-

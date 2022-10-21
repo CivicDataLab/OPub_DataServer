@@ -45,9 +45,13 @@ def _add_update_attributes_to_dataset(dataset_instance, object_field, attribute_
 class Query(graphene.ObjectType):
     all_datasets = graphene.List(DatasetType)
     dataset = graphene.Field(DatasetType, dataset_id=graphene.Int())
+    dataset_by_title = graphene.Field(DatasetType, dataset_title=graphene.String())
 
     def resolve_all_datasets(self, info, **kwargs):
         return Dataset.objects.all().order_by("-modified")
+
+    def resolve_dataset_by_title(self, info, dataset_title, **kwargs):
+        return Dataset.objects.get(title__iexact=dataset_title)
 
     def resolve_dataset(self, info, dataset_id):
         return Dataset.objects.get(pk=dataset_id)
@@ -93,7 +97,8 @@ class CreateDataset(Output, graphene.Mutation):
             catalog = Catalog.objects.filter(organization=organization)[0]
             # catalog = organization.objects.select_related('catalog').all(0)
         except Organization.DoesNotExist as e:
-            return {"success": False, "errors": {"id": [{"message": "Organization with given id not found", "code": "404"}]}}
+            return {"success": False,
+                    "errors": {"id": [{"message": "Organization with given id not found", "code": "404"}]}}
         dataset_instance = Dataset(
             title=dataset_data.title,
             description=dataset_data.description,
@@ -128,7 +133,8 @@ class UpdateDataset(Output, graphene.Mutation):
             dataset_instance = Dataset.objects.get(id=dataset_data.id)
             organization = Organization.objects.get(id=dataset_data.organization)
         except Organization.DoesNotExist as e:
-            return {"success": False, "errors": {"id": [{"message": "Organization with given id not found", "code": "404"}]}}
+            return {"success": False,
+                    "errors": {"id": [{"message": "Organization with given id not found", "code": "404"}]}}
         except Dataset.DoesNotExist as e:
             return {"success": False, "errors": {"id": [{"message": "Dataset with given id not found", "code": "404"}]}}
         catalog = Catalog.objects.filter(organization=organization)[0]

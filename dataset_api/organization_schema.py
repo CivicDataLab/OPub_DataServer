@@ -6,6 +6,7 @@ from graphql_auth.bases import Output
 from .models import Organization
 from .decorators import validate_token, create_user_org
 
+
 class OrganizationType(DjangoObjectType):
     class Meta:
         model = Organization
