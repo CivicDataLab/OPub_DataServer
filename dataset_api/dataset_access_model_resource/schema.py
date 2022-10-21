@@ -50,11 +50,11 @@ class CreateAccessModelResource(Output, graphene.Mutation):
             data_access_instance = DataAccessModel.objects.get(id=access_model_resource_data.access_model_id)
             dataset_instance = Dataset.objects.get(id=access_model_resource_data.dataset_id)
 
-            dataset_access_map_instance = DatasetAccessModel(
+            dataset_access_model = DatasetAccessModel(
                 data_access_model=data_access_instance,
                 dataset=dataset_instance
             )
-            dataset_access_map_instance.save()
+            dataset_access_model.save()
 
             for resources in access_model_resource_data.resource_map:
                 try:
@@ -62,13 +62,13 @@ class CreateAccessModelResource(Output, graphene.Mutation):
                     access_model_resource_instance = DatasetAccessModelResource(
                         resource_id=resources.resource_id,
                         fields=resources.fields,
-                        dataset_access_model=dataset_access_map_instance
+                        dataset_access_model=dataset_access_model
                     )
                     access_model_resource_instance.save()
                 except Resource.DoesNotExist as e:
-                    dataset_access_map_instance.delete()
+                    dataset_access_model.delete()
                     return {"success": False, "errors": {"id": [{"message": "Resource id not found", "code": "404"}]}}
-            return CreateAccessModelResource(access_model_resource=dataset_access_map_instance)
+            return CreateAccessModelResource(access_model_resource=dataset_access_model)
         except Dataset.DoesNotExist as e:
             return {"success": False, "errors": {"id": [{"message": "Dataset id not found", "code": "404"}]}}
         except DataAccessModel.DoesNotExist as e:
