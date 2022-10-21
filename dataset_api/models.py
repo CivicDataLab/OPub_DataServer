@@ -2,11 +2,21 @@ from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
-from dataset_api.enums import RatingStatus, OrganizationRequestStatusType
-from dataset_api.file_paths import _organization_directory_path, _resource_directory_path, _info_directory_path
+from dataset_api.enums import (
+    OrganizationTypes,
+    RatingStatus,
+    OrganizationRequestStatusType,
+)
+from dataset_api.file_paths import (
+    _organization_directory_path,
+    _resource_directory_path,
+    _info_directory_path,
+    _organization_file_directory_path
+)
 
 
 # TODO: Add choices to choice fields
+
 
 class Organization(models.Model):
     title = models.CharField(max_length=100, unique=True)
@@ -16,13 +26,32 @@ class Organization(models.Model):
     modified = models.DateTimeField(auto_now=True)
     homepage = models.URLField(blank=True)
     contact_email = models.EmailField(blank=True)
+    organization_types = models.CharField(
+        max_length=15, choices=OrganizationTypes.choices
+    )
+
+
+class OrganizationCreateRequest(Organization):
+    data_description = models.CharField(max_length=500)
+    upload_sample_data_file = models.FileField(
+        upload_to=_organization_file_directory_path, blank=True
+    )
+    sample_data_url = models.URLField(blank=True)
+    status = models.CharField(
+        max_length=20, choices=OrganizationRequestStatusType.choices, blank=False
+    )
+    remark = models.CharField(max_length=500, blank=True, null=True)
 
 
 class OrganizationRequest(models.Model):
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, blank=False)
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, blank=False
+    )
     description = models.CharField(max_length=500, blank=False)
     issued = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, choices=OrganizationRequestStatusType.choices, blank=False)
+    status = models.CharField(
+        max_length=20, choices=OrganizationRequestStatusType.choices, blank=False
+    )
     modified = models.DateTimeField(auto_now=True)
     user = models.CharField(max_length=50, blank=False, null=False)
     remark = models.CharField(max_length=500, blank=True, null=True)
@@ -119,7 +148,9 @@ class APISource(models.Model):
 
 
 class APIDetails(models.Model):
-    resource = models.OneToOneField(Resource, on_delete=models.CASCADE, primary_key=True)
+    resource = models.OneToOneField(
+        Resource, on_delete=models.CASCADE, primary_key=True
+    )
     api_source = models.ForeignKey(APISource, on_delete=models.CASCADE)
     auth_required = models.BooleanField()
     url_path = models.URLField(null=False, blank=False, default="")
@@ -127,7 +158,9 @@ class APIDetails(models.Model):
 
 
 class FileDetails(models.Model):
-    resource = models.OneToOneField(Resource, on_delete=models.CASCADE, primary_key=True)
+    resource = models.OneToOneField(
+        Resource, on_delete=models.CASCADE, primary_key=True
+    )
     format = models.CharField(max_length=15)
     file = models.FileField(upload_to=_resource_directory_path, blank=True)
     remote_url = models.URLField(blank=True)
@@ -162,7 +195,9 @@ class ModerationRequest(models.Model):
     status = models.CharField(max_length=20)
     description = models.CharField(max_length=500)
     remark = models.CharField(max_length=500, blank=True)
-    dataset = models.ForeignKey(Dataset, blank=False, null=False, on_delete=models.CASCADE)
+    dataset = models.ForeignKey(
+        Dataset, blank=False, null=False, on_delete=models.CASCADE
+    )
     creation_date = models.DateTimeField(auto_now_add=True, null=False)
     modified_date = models.DateTimeField(auto_now=True, null=False)
     reject_reason = models.CharField(max_length=500, blank=True)

@@ -6,9 +6,21 @@ def _organization_directory_path(org, filename):
     Create a directory path to upload the organization logo
 
     """
+
     org_name = org.title
     _, extension = os.path.splitext(filename)
     return f"resources/{org_name}/{extension[1:]}/{filename}"
+
+
+def _organization_file_directory_path(org, filename):
+    """
+    Create a directory path to upload the sample data file.
+
+    """
+
+    org_name = org.title
+    _, extension = os.path.splitext(filename)
+    return f"resources/{org_name}/sample_data/{extension[1:]}/{filename}"
 
 
 def _resource_directory_path(file_details, filename):
