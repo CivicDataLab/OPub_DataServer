@@ -8,7 +8,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('dataset_api', '0061_organizationrequest_status'),
+        ('dataset_api', '0061_organizationrequest'),
     ]
 
     operations = [
