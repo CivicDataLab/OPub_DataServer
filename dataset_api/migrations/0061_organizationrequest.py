@@ -6,7 +6,7 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('dataset_api', '0059_rename_datasetaccessmodelmap_datasetaccessmodel_and_more'),
+        ('dataset_api', '0060_alter_apisource_api_version_alter_apisource_auth_loc_and_more'),
     ]
 
     operations = [
