@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('dataset_api', '0060_organizationrequest'),
+        ('dataset_api', '0061_organizationrequest'),
     ]
 
     operations = [
