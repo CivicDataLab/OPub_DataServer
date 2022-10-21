@@ -26,3 +26,15 @@ class OrganizationRequestStatusType(models.TextChoices):
     REQUESTED = "REQUESTED"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+
+class OrganizationCreationStatusType(models.TextChoices):
+    REQUESTED = "REQUESTED"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
+class OrganizationTypes(models.TextChoices):
+    STARTUP = "STARTUP"
+    GOVERNMENT = "GOVERNMENT"
+    CORPORATIONS = "CORPORATIONS"
+    NGO = "NGO"
