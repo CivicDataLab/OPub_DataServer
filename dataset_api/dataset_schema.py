@@ -51,7 +51,7 @@ class Query(graphene.ObjectType):
         return Dataset.objects.all().order_by("-modified")
 
     def resolve_dataset_by_title(self, info, dataset_title, **kwargs):
-        return Dataset.objects.get(title__iexact=dataset_title).order_by("-modified")
+        return Dataset.objects.get(title__iexact=dataset_title)
 
     def resolve_dataset(self, info, dataset_id):
         return Dataset.objects.get(pk=dataset_id)
