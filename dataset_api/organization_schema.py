@@ -8,19 +8,29 @@ from .decorators import validate_token, create_user_org
 from .enums import OrganizationTypes, OrganizationCreationStatusType
 
 
-class OrganizationType(DjangoObjectType):
+class CreateOrganizationType(DjangoObjectType):
     class Meta:
         model = OrganizationCreateRequest
         fields = "__all__"
 
 
+class OrganizationType(DjangoObjectType):
+    class Meta:
+        model = Organization
+        fields = "__all__"
+
+
 class Query(graphene.ObjectType):
     all_organizations = graphene.List(OrganizationType)
-    organization = graphene.Field(OrganizationType, organization_id=graphene.Int())
+    organization_by_id = graphene.Field(
+        OrganizationType, organization_id=graphene.Int()
+    )
     organization_by_title = graphene.Field(
         OrganizationType, organization_title=graphene.String()
     )
+    organizations = graphene.List(OrganizationType)
 
+    # TODO: Allow all org list for PMU?
     def resolve_all_organizations(self, info, **kwargs):
         return Organization.objects.all().order_by("-modified")
 
@@ -29,6 +39,11 @@ class Query(graphene.ObjectType):
 
     def resolve_organization_by_title(self, info, organization_title):
         return Organization.objects.get(title__iexact=organization_title)
+
+    def resolve_organizations(self, info, **kwargs):
+        return Organization.objects.filter(
+            organizationcreaterequest__status=OrganizationCreationStatusType.APPROVED.value
+        )
 
 
 class OrganizationInput(graphene.InputObjectType):
@@ -54,7 +69,7 @@ class CreateOrganization(Output, graphene.Mutation):
     class Arguments:
         organization_data = OrganizationInput(required=True)
 
-    organization = graphene.Field(OrganizationType)
+    organization = graphene.Field(CreateOrganizationType)
 
     @staticmethod
     @create_user_org
@@ -79,7 +94,7 @@ class UpdateOrganization(Output, graphene.Mutation):
     class Arguments:
         organization_data = OrganizationInput(required=True)
 
-    organization = graphene.Field(OrganizationType)
+    organization = graphene.Field(CreateOrganizationType)
 
     @staticmethod
     @validate_token
@@ -127,7 +142,7 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     class Arguments:
         organization_data = ApproveRejectOrganizationApprovalInput(required=True)
 
-    organization = graphene.Field(OrganizationType)
+    organization = graphene.Field(CreateOrganizationType)
 
     @staticmethod
     @validate_token
