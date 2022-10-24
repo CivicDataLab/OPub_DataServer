@@ -47,7 +47,6 @@ class Query(graphene.ObjectType):
 
 
 class OrganizationInput(graphene.InputObjectType):
-    id = graphene.ID()
     title = graphene.String(required=True)
     description = graphene.String(required=True)
     logo = Upload(required=False, description="Logo for the Company.")
@@ -60,7 +59,6 @@ class OrganizationInput(graphene.InputObjectType):
 
 
 class ApproveRejectOrganizationApprovalInput(graphene.InputObjectType):
-    id = graphene.ID(required=True)
     status = graphene.Enum.from_enum(OrganizationCreationStatusType)(required=True)
     remark = graphene.String(required=False)
 
@@ -72,7 +70,7 @@ class CreateOrganization(Output, graphene.Mutation):
     organization = graphene.Field(CreateOrganizationType)
 
     @staticmethod
-    # @create_user_org
+    @create_user_org
     def mutate(root, info, organization_data: OrganizationInput = None):
         organization_additional_info_instance = OrganizationCreateRequest(
             title=organization_data.title,
@@ -99,10 +97,11 @@ class UpdateOrganization(Output, graphene.Mutation):
     @staticmethod
     @validate_token
     def mutate(root, info, organization_data: OrganizationInput = None):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
         try:
             organization_create_request_instance = (
                 OrganizationCreateRequest.objects.get(
-                    organization_ptr_id=organization_data.id
+                    organization_ptr_id=org_id
                 )
             )
         except OrganizationCreateRequest.DoesNotExist as e:
@@ -149,10 +148,11 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     def mutate(
             root, info, organization_data: ApproveRejectOrganizationApprovalInput = None
     ):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
         try:
             organization_create_request_instance = (
                 OrganizationCreateRequest.objects.get(
-                    organization_ptr_id=organization_data.id
+                    organization_ptr_id=org_id
                 )
             )
         except OrganizationCreateRequest.DoesNotExist as e:
