@@ -30,7 +30,7 @@ class Query(graphene.ObjectType):
         except Organization.DoesNotExist:
             return {"success": False,
                     "errors": {"organization_id": [{"message": "Organization id not found", "code": "404"}]}}
-        return Activity.objects.actor('DC')
+        return Activity.objects.target_group(organization)
 
     def resolve_user_activity(self, info, user):
         return Activity.objects.actor(user)
