@@ -86,29 +86,29 @@ class Activity(models.Model):
             return _('%(actor)s %(verb)s %(action_object)s %(timesince)s ago') % ctx
         return _('%(actor)s %(verb)s %(timesince)s ago') % ctx
 
-    def actor_url(self):
-        # TODO: fix this based on the the user landing
-        return "http://Actor"
-        # return reverse('actstream_actor', None,
-        #                (self.actor_content_type.pk, self.actor_object_id))
+    # def actor_url(self):
+    #     # TODO: fix this based on the the user landing
+    #     return "http://Actor"
+    #     # return reverse('actstream_actor', None,
+    #     #                (self.actor_content_type.pk, self.actor_object_id))
+    #
+    # def target_url(self):
+    #     # TODO: fix views
+    #     return reverse('actstream_actor', None,
+    #                    (self.target_content_type.pk, self.target_object_id))
+    #
+    # def action_object_url(self):
+    #     # TODO: fix views
+    #     return reverse('actstream_actor', None, (
+    #         self.action_object_content_type.pk, self.action_object_object_id))
 
-    def target_url(self):
-        # TODO: fix views
-        return reverse('actstream_actor', None,
-                       (self.target_content_type.pk, self.target_object_id))
-
-    def action_object_url(self):
-        # TODO: fix views
-        return reverse('actstream_actor', None, (
-            self.action_object_content_type.pk, self.action_object_object_id))
+    # def get_absolute_url(self):
+    #     # TODO: fix views
+    #     return reverse(
+    #         'actstream_detail', args=[self.pk])
 
     def timesince(self, now=None):
         return djtimesince(self.issued, now).encode('utf8').replace(b'\xc2\xa0', b' ').decode('utf8')
-
-    def get_absolute_url(self):
-        # TODO: fix views
-        return reverse(
-            'actstream_detail', args=[self.pk])
 
 
 class Follow(models.Model):
