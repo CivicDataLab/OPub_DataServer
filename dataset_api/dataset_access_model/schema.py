@@ -2,7 +2,6 @@ import graphene
 
 from dataset_api.dataset_access_model_resource.schema import DatasetAccessModelType
 from dataset_api.models.DatasetAccessModel import DatasetAccessModel
-from dataset_api.decorators import validate_token
 from dataset_api.models import Dataset
 
 

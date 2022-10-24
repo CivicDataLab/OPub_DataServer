@@ -34,7 +34,7 @@ class Query(graphene.ObjectType):
     def resolve_all_organizations(self, info, **kwargs):
         return Organization.objects.all().order_by("-modified")
 
-    def resolve_organization(self, info, organization_id):
+    def resolve_organization_by_id(self, info, organization_id):
         return Organization.objects.get(pk=organization_id)
 
     def resolve_organization_by_title(self, info, organization_title):
@@ -147,7 +147,7 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     @staticmethod
     @validate_token
     def mutate(
-        root, info, organization_data: ApproveRejectOrganizationApprovalInput = None
+            root, info, organization_data: ApproveRejectOrganizationApprovalInput = None
     ):
         try:
             organization_create_request_instance = (
