@@ -2,8 +2,9 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
+from activity_log.signal import activity
 from .models import Dataset, Catalog, Tag, Geography, Sector, Organization
-from .decorators import auth_user_action_dataset, map_user_dataset
+from .decorators import auth_user_action_dataset, map_user_dataset, validate_token
 
 
 class DatasetType(DjangoObjectType):
@@ -89,9 +90,10 @@ class CreateDataset(Output, graphene.Mutation):
     dataset = graphene.Field(DatasetType)
 
     @staticmethod
+    @validate_token
     @auth_user_action_dataset(action="create_dataset")
     @map_user_dataset
-    def mutate(root, info, dataset_data: DatasetInput = None):
+    def mutate(root, info, username, dataset_data: DatasetInput = None, ):
         try:
             organization = Organization.objects.get(id=dataset_data.organization)
             catalog = Catalog.objects.filter(organization=organization)[0]
@@ -117,6 +119,7 @@ class CreateDataset(Output, graphene.Mutation):
         _add_update_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
         _add_update_attributes_to_dataset(dataset_instance, "geography", dataset_data.geo_list, Geography)
         _add_update_attributes_to_dataset(dataset_instance, "sector", dataset_data.sector_list, Sector)
+        activity.send(username, verb="Created", target=dataset_instance, target_group=organization)
         return CreateDataset(dataset=dataset_instance)
 
 
@@ -127,8 +130,9 @@ class UpdateDataset(Output, graphene.Mutation):
     dataset = graphene.Field(DatasetType)
 
     @staticmethod
+    @validate_token
     @auth_user_action_dataset(action="update_dataset")
-    def mutate(root, info, dataset_data: DatasetInput = None):
+    def mutate(root, info, username, dataset_data: DatasetInput = None):
         try:
             dataset_instance = Dataset.objects.get(id=dataset_data.id)
             organization = Organization.objects.get(id=dataset_data.organization)
@@ -155,7 +159,7 @@ class UpdateDataset(Output, graphene.Mutation):
         _add_update_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
         _add_update_attributes_to_dataset(dataset_instance, "geography", dataset_data.geo_list, Geography)
         _add_update_attributes_to_dataset(dataset_instance, "sector", dataset_data.sector_list, Sector)
-
+        activity.send(username, verb="Updated", target=dataset_instance, target_group=organization)
         return UpdateDataset(dataset=dataset_instance)
 
 
@@ -166,8 +170,9 @@ class PatchDataset(Output, graphene.Mutation):
     success = graphene.Boolean()
     dataset = graphene.Field(DatasetType)
 
+    @validate_token
     @auth_user_action_dataset(action="patch_dataset")
-    def mutate(root, info, dataset_data: PatchDatasetInput = None):
+    def mutate(root, info, username, dataset_data: PatchDatasetInput = None):
         try:
             dataset_instance = Dataset.objects.get(id=dataset_data.id)
         except Dataset.DoesNotExist as e:
@@ -177,6 +182,8 @@ class PatchDataset(Output, graphene.Mutation):
         if dataset_data.funnel:
             dataset_instance.funnel = dataset_data.funnel
         dataset_instance.save()
+        activity.send(username, verb="Updated", target=dataset_instance,
+                      target_group=dataset_instance.catalog.organization)
         return PatchDataset(success=True, dataset=dataset_instance)
 
 
