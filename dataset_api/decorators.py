@@ -1,5 +1,8 @@
-import requests
 import json
+
+import requests
+from graphql import GraphQLError
+
 from .models import Resource
 
 verify_token_url = "https://auth.idp.civicdatalab.in/users/verify_user_token"
@@ -20,24 +23,11 @@ def validate_token(func):
         user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
         if user_token == "":
             print("Whoops! Empty user")
-            return {
-                "success": False,
-                "errors": {"user": [{"message": "Empty User", "code": "no_user"}]},
-            }
+            raise GraphQLError("Empty User")
         body = json.dumps({"access_token": user_token})
         response_json = request_to_server(body, verify_token_url)
         if not response_json["success"]:
-            return {
-                "success": False,
-                "errors": {
-                    "user": [
-                        {
-                            "message": response_json["error_description"],
-                            "code": response_json["error"],
-                        }
-                    ]
-                },
-            }
+            raise GraphQLError(response_json["error_description"])
 
         kwargs["username"] = response_json["preferred_username"]
         return func(*args, **kwargs)
@@ -60,10 +50,7 @@ def auth_user_action_dataset(action):
             org_id = args[1].context.META.get("HTTP_ORGANIZATION")
             if user_token == "":
                 print("Whoops! Empty user")
-                return {
-                    "success": False,
-                    "errors": {"user": [{"message": "Empty User", "code": "no_user"}]},
-                }
+                raise GraphQLError("Empty User")
             request_body = {
                 "access_token": user_token,
                 "access_req": action,
@@ -77,24 +64,11 @@ def auth_user_action_dataset(action):
             response_json = request_to_server(body, check_action_url)
 
             if not response_json["Success"]:
-                return {
-                    "success": False,
-                    "errors": {
-                        "user": [
-                            {
-                                "message": response_json["error_description"],
-                                "code": response_json["error"],
-                            }
-                        ]
-                    },
-                }
+                raise GraphQLError(response_json["error_description"])
             if response_json["access_allowed"]:
                 return func(*args, **kwargs)
             else:
-                return {
-                    "success": False,
-                    "errors": {"user": [{"message": "Access Denied.", "code": "401"}]},
-                }
+                raise GraphQLError("Access Denied")
 
         return inner
 
@@ -116,10 +90,7 @@ def auth_user_action_resource(action):
             org_id = args[1].context.META.get('HTTP_ORGANIZATION')  # Required from Frontend.
             if user_token == "":
                 print("Whoops! Empty user")
-                return {
-                    "success": False,
-                    "errors": {"user": [{"message": "Empty User", "code": "no_user"}]},
-                }
+                raise GraphQLError("Empty User")
             body = json.dumps(
                 {
                     "access_token": user_token,
@@ -130,24 +101,11 @@ def auth_user_action_resource(action):
             )
             response_json = request_to_server(body, check_action_url)
             if not response_json["Success"]:
-                return {
-                    "success": False,
-                    "errors": {
-                        "user": [
-                            {
-                                "message": response_json["error_description"],
-                                "code": response_json["error"],
-                            }
-                        ]
-                    },
-                }
+                raise GraphQLError(response_json["error_description"])
             if response_json["access_allowed"]:
                 return func(*args, **kwargs)
             else:
-                return {
-                    "success": False,
-                    "errors": {"user": [{"message": "Access Denied.", "code": "401"}]},
-                }
+                raise GraphQLError("Access Denied.")
 
         return inner
 
@@ -212,17 +170,7 @@ def check_license_role(func):
         )
         response_json = request_to_server(body, check_action_url)
         if not response_json["Success"]:
-            return {
-                "success": False,
-                "errors": {
-                    "user": [
-                        {
-                            "message": response_json["error_description"],
-                            "code": response_json["error"],
-                        }
-                    ]
-                },
-            }
+            raise GraphQLError(response_json["error_description"])
         if response_json["access_allowed"]:
             kwargs["role"] = response_json["role"]
             return func(*args, **kwargs)

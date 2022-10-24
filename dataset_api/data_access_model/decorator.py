@@ -1,4 +1,7 @@
 import json
+
+from graphql import GraphQLError
+
 from ..decorators import request_to_server
 from ..models.DataAccessModel import DataAccessModel
 
@@ -18,11 +21,7 @@ def auth_user_action_dam(action):
 
             user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
             if user_token == "":
-                print("Whoops! Empty user")
-                return {
-                    "success": False,
-                    "errors": {"user": [{"message": "Empty User", "code": "no_user"}]},
-                }
+                raise GraphQLError("Empty User")
 
             body = json.dumps(
                 {
@@ -34,24 +33,11 @@ def auth_user_action_dam(action):
             )
             response_json = request_to_server(body, check_action_url)
             if not response_json["Success"]:
-                return {
-                    "success": False,
-                    "errors": {
-                        "user": [
-                            {
-                                "message": response_json["error_description"],
-                                "code": response_json["error"],
-                            }
-                        ]
-                    },
-                }
+                raise GraphQLError(response_json["error_description"])
             if response_json["access_allowed"]:
                 return func(*args, **kwargs)
             else:
-                return {
-                    "success": False,
-                    "errors": {"user": [{"message": "Access Denied.", "code": "401"}]},
-                }
+                raise GraphQLError("Access Denied")
 
         return inner
 

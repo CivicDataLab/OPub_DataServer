@@ -4,6 +4,7 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
+from ..decorators import validate_token
 from ..models.DataAccessModel import DataAccessModel
 from dataset_api.enums import SubscriptionUnits
 from dataset_api.models import Organization
@@ -24,9 +25,11 @@ class Query(graphene.ObjectType):
     org_data_access_models = graphene.List(DataAccessModelType, organization_id=graphene.ID())
     data_access_model = graphene.Field(DataAccessModelType, data_access_model_id=graphene.ID())
 
+    @validate_token
     def resolve_all_data_access_models(self, info, **kwargs):
         return DataAccessModel.objects.all().order_by("-modified")
 
+    @validate_token
     def resolve_org_data_access_models(self, info, organization_id):
         try:
             organization = Organization.objects.get(pk=organization_id)
@@ -35,6 +38,7 @@ class Query(graphene.ObjectType):
                     "errors": {"organization_id": [{"message": "Organization id not found", "code": "404"}]}}
         return DataAccessModel.objects.filter(organization=organization).order_by("-modified")
 
+    @validate_token
     def resolve_data_access_model(self, info, data_access_model_id):
         return DataAccessModel.objects.get(pk=data_access_model_id)
 
