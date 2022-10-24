@@ -34,6 +34,19 @@ class Activity(models.Model):
         'target_object_id'
     )
 
+    target_group_content_type = models.ForeignKey(
+        ContentType, blank=True, null=True,
+        related_name='target_group',
+        on_delete=models.CASCADE, db_index=True
+    )
+    target_group_object_id = models.CharField(
+        max_length=255, blank=True, null=True, db_index=True
+    )
+    target_group = GenericForeignKey(
+        'target_group_content_type',
+        'target_group_object_id'
+    )
+
     action_object_content_type = models.ForeignKey(
         ContentType, blank=True, null=True,
         related_name='action_object',
@@ -62,6 +75,7 @@ class Activity(models.Model):
             'verb': self.verb,
             'action_object': self.action_object,
             'target': self.target,
+            'target_group': self.target_group,
             'timesince': self.timesince()
         }
         if self.target:

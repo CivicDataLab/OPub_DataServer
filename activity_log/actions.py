@@ -64,7 +64,7 @@ def activity_handler(verb, **kwargs):
         issued=kwargs.pop('issued', now())
     )
 
-    for opt in ('target', 'action_object'):
+    for opt in ('target', 'action_object', 'target_group'):
         obj = kwargs.pop(opt, None)
         if obj is not None:
             setattr(new_activity, '%s_object_id' % opt, obj.pk)

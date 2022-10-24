@@ -82,6 +82,14 @@ class ActivityManager(GFKManager):
         return obj.target_actions.public(**kwargs)
 
     @stream
+    def target_group(self, obj, **kwargs):
+        """
+        Stream of most recent actions where obj is the target_group.
+        Keyword arguments will be passed to Action.objects.filter
+        """
+        return obj.target_group_actions.public(**kwargs)
+
+    @stream
     def action_object(self, obj, **kwargs):
         """
         Stream of most recent actions where obj is the action_object.
@@ -97,7 +105,8 @@ class ActivityManager(GFKManager):
         ctype = ContentType.objects.get_for_model(model)
         return self.public(
             (Q(target_content_type=ctype)
-             | Q(action_object_content_type=ctype)),
+             | Q(action_object_content_type=ctype)
+             | Q(target_group_content_type=ctype)),
             **kwargs
         )
 
@@ -111,6 +120,9 @@ class ActivityManager(GFKManager):
             Q(
                 target_content_type=ctype,
                 target_object_id=obj.pk,
+            ) | Q(
+                target_group_content_type=ctype,
+                target_group_object_id=obj.pk,
             ) | Q(
                 action_object_content_type=ctype,
                 action_object_object_id=obj.pk,
@@ -151,6 +163,10 @@ class ActivityManager(GFKManager):
             ) | Q(
                 action_object_content_type=content_type,
                 action_object_object_id__in=object_ids.filter(
+                    actor_only=False).values('object_id')
+            ) | Q(
+                target_group_content_type=content_type,
+                target_group_object_id__in=object_ids.filter(
                     actor_only=False).values('object_id')
             )
 
