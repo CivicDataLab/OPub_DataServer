@@ -10,7 +10,6 @@ class Query(graphene.ObjectType):
     dataset_access_model = graphene.List(DatasetAccessModelType, dataset_id=graphene.ID())
     dataset_access_model_by_id = graphene.Field(DatasetAccessModelType, dataset_access_model_id=graphene.ID())
 
-    @validate_token
     def resolve_dataset_access_model(self, info, dataset_id, **kwargs):
         try:
             dataset = Dataset.objects.get(id=dataset_id)
@@ -19,6 +18,5 @@ class Query(graphene.ObjectType):
                     "errors": {"organization_id": [{"message": "Dataset with id not found", "code": "404"}]}}
         return DatasetAccessModel.objects.filter(dataset=dataset).order_by("-modified")
 
-    @validate_token
     def resolve_dataset_access_model_by_id(self, info, dataset_access_model_id):
         return DatasetAccessModel.objects.get(pk=dataset_access_model_id)
