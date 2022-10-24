@@ -46,7 +46,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'graphene_django',
     'dataset_api',
-    "graphql_auth",
+    'graphql_auth',
+    'activity_log',
 ]
 
 MIDDLEWARE = [
