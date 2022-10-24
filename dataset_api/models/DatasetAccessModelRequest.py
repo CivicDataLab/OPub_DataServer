@@ -1,6 +1,6 @@
 from django.db import models
 
-from dataset_api.dataset_access_model.models import DatasetAccessModel
+from dataset_api.models.DatasetAccessModel import DatasetAccessModel
 
 
 class DatasetAccessModelRequest(models.Model):

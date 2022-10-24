@@ -1,8 +1,8 @@
 from django.db import models
 
-from dataset_api.dataset_access_model_request.models import DatasetAccessModelRequest
+from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
 from dataset_api.file_paths import _data_request_directory_path
-from dataset_api.models import Resource
+from dataset_api.models.Resource import Resource
 
 
 class DataRequest(models.Model):

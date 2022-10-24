@@ -4,10 +4,11 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
-from dataset_api.data_access_model.models import DataAccessModel
+from ..models.DataAccessModel import DataAccessModel
 from dataset_api.enums import SubscriptionUnits
 from dataset_api.models import Organization
-from ..license.models import License, LicenseAddition
+from ..models.LicenseAddition import LicenseAddition
+from ..models.License import License
 from .contract import create_contract
 from .decorator import auth_user_action_dam
 

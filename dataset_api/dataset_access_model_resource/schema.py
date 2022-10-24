@@ -5,9 +5,9 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
 from dataset_api.models import Dataset, Resource
-from dataset_api.data_access_model.models import DataAccessModel
-from dataset_api.dataset_access_model_resource.models import DatasetAccessModelResource
-from dataset_api.dataset_access_model.models import DatasetAccessModel
+from dataset_api.models.DataAccessModel import DataAccessModel
+from dataset_api.models.DatasetAccessModelResource import DatasetAccessModelResource
+from dataset_api.models.DatasetAccessModel import DatasetAccessModel
 
 
 class AccessModelResourceType(DjangoObjectType):

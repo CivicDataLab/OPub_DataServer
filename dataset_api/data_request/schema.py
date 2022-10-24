@@ -5,8 +5,8 @@ from graphql_auth.bases import Output
 from graphene_file_upload.scalars import Upload
 
 from dataset_api.models import Resource
-from dataset_api.data_request.models import DataRequest
-from dataset_api.dataset_access_model_request.models import DatasetAccessModelRequest
+from dataset_api.models.DataRequest import DataRequest
+from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
 from dataset_api.decorators import validate_token
 
 

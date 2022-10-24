@@ -4,8 +4,9 @@ from typing import List
 import pdfkit
 from django.core.files.base import ContentFile
 
-from dataset_api.data_access_model.models import DataAccessModel
-from dataset_api.license.models import License, LicenseAddition
+from dataset_api.models.DataAccessModel import DataAccessModel
+from dataset_api.models.LicenseAddition import LicenseAddition
+from dataset_api.models.License import License
 
 
 def create_contract(model_license: License, additions: List, data_access_model: DataAccessModel):

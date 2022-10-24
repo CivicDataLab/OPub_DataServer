@@ -1,8 +1,8 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
-from dataset_api.dataset_access_model.models import DatasetAccessModel
-from dataset_api.models import Resource
+from dataset_api.models.DatasetAccessModel import DatasetAccessModel
+from dataset_api.models.Resource import Resource
 
 
 class DatasetAccessModelResource(models.Model):

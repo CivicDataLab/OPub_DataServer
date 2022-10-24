@@ -1,7 +1,7 @@
 from django.db import models
 
-from dataset_api.data_access_model.models import DataAccessModel
-from dataset_api.models import Dataset
+from dataset_api.models.DataAccessModel import DataAccessModel
+from dataset_api.models.Dataset import Dataset
 
 
 class DatasetAccessModel(models.Model):

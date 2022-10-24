@@ -1,6 +1,6 @@
 import json
 from ..decorators import request_to_server
-from .models import DataAccessModel
+from ..models.DataAccessModel import DataAccessModel
 
 check_action_url = "https://auth.idp.civicdatalab.in/users/check_user_access"
 
@@ -15,7 +15,7 @@ def auth_user_action_dam(action):
                     dam_id = kwargs[keys]["id"]
                     org_id = DataAccessModel.objects.get(id=dam_id).organization.id
                 break
-            
+
             user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
             if user_token == "":
                 print("Whoops! Empty user")

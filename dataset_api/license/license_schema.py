@@ -6,7 +6,8 @@ from graphql_auth.bases import Output
 
 from dataset_api.enums import LicenseStatus
 from dataset_api.models import Organization
-from dataset_api.license.models import License, LicenseAddition
+from dataset_api.models.LicenseAddition import LicenseAddition
+from dataset_api.models.License import License
 from dataset_api.decorators import check_license_role
 
 
