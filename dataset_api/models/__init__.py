@@ -16,6 +16,7 @@ from dataset_api.models.LicenseAddition import LicenseAddition
 from dataset_api.models.ModerationRequest import ModerationRequest
 from dataset_api.models.Organization import Organization
 from dataset_api.models.OrganizationCreateRequest import OrganizationCreateRequest
+from dataset_api.models.OrganizationRequest import OrganizationRequest
 from dataset_api.models.Resource import Resource
 from dataset_api.models.ResourceSchema import ResourceSchema
 from dataset_api.models.Sector import Sector
