@@ -22,6 +22,7 @@ class ActivityType(DjangoObjectType):
 
 class Query(graphene.ObjectType):
     org_activity = graphene.List(ActivityType, organization_id=graphene.ID())
+    user_activity = graphene.List(ActivityType, user=graphene.String())
 
     def resolve_org_activity(self, info, organization_id):
         try:
@@ -29,4 +30,7 @@ class Query(graphene.ObjectType):
         except Organization.DoesNotExist:
             return {"success": False,
                     "errors": {"organization_id": [{"message": "Organization id not found", "code": "404"}]}}
-        return Activity.objects.target_group(organization)
+        return Activity.objects.actor('DC')
+
+    def resolve_user_activity(self, info, user):
+        return Activity.objects.actor(user)

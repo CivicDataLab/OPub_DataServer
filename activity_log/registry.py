@@ -16,18 +16,11 @@ def setup_generic_relations(model_class):
     """
     Activity = apps.get_model('activity_log', 'activity')
 
-    if Activity is None:
-        raise RegistrationError(
-            'Unable get actstream.Activity. Potential circular imports '
-            'in initialisation. Try moving actstream app to come after the '
-            'apps which have models to register in the INSTALLED_APPS setting.'
-        )
-
     related_attr_name = 'related_query_name'
     related_attr_value = 'actions_with_%s' % label(model_class)
 
     relations = {}
-    for field in ('target', 'action_object', 'target_group'):  # Removed actor
+    for field in ('target', 'action_object', 'target_group'):
         attr = '%s_actions' % field
         attr_value = '{}_as_{}'.format(related_attr_value, field)
         kwargs = {

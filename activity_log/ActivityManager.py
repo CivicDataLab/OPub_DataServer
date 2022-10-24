@@ -71,7 +71,8 @@ class ActivityManager(GFKManager):
         Keyword arguments will be passed to Action.objects.filter
         """
         # TODO: fix this
-        return obj.actor_actions.public(**kwargs)
+        kwargs['actor'] = obj
+        return self.filter(**kwargs)
 
     @stream
     def target(self, obj, **kwargs):
