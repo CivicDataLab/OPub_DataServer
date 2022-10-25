@@ -72,7 +72,7 @@ class CreateOrganization(Output, graphene.Mutation):
     organization = graphene.Field(CreateOrganizationType)
 
     @staticmethod
-    # @create_user_org
+    @create_user_org
     def mutate(root, info, organization_data: OrganizationInput = None):
         organization_additional_info_instance = OrganizationCreateRequest(
             title=organization_data.title,
@@ -99,10 +99,12 @@ class UpdateOrganization(Output, graphene.Mutation):
     @staticmethod
     @validate_token
     def mutate(root, info, organization_data: OrganizationInput = None):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
+        org_id = organization_data.id if organization_data.id else org_id
         try:
             organization_create_request_instance = (
                 OrganizationCreateRequest.objects.get(
-                    organization_ptr_id=organization_data.id
+                    organization_ptr_id=org_id
                 )
             )
         except OrganizationCreateRequest.DoesNotExist as e:
@@ -146,9 +148,7 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
 
     @staticmethod
     @validate_token
-    def mutate(
-            root, info, organization_data: ApproveRejectOrganizationApprovalInput = None
-    ):
+    def mutate(root, info, organization_data: ApproveRejectOrganizationApprovalInput = None):
         try:
             organization_create_request_instance = (
                 OrganizationCreateRequest.objects.get(

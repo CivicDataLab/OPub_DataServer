@@ -28,7 +28,9 @@ class DatasetStatus(graphene.Enum):
     TRANSFORMATIONINPROGRESS = "TRANSFORMATIONINPROGRESS"
 
 
-def _add_update_attributes_to_dataset(dataset_instance, object_field, attribute_list, attribute_type):
+def _add_update_attributes_to_dataset(
+    dataset_instance, object_field, attribute_list, attribute_type
+):
     if not attribute_list:
         return
     dataset_attribute = getattr(dataset_instance, object_field)
@@ -62,15 +64,14 @@ class DatasetInput(graphene.InputObjectType):
     id = graphene.ID()
     title = graphene.String(required=True)
     description = graphene.String(required=True)
-    organization = graphene.ID(required=True)
     remote_issued = graphene.Date(required=False)
     remote_modified = graphene.DateTime(required=False)
     period_from = graphene.Date()
     period_to = graphene.Date()
     update_frequency = graphene.String()
     dataset_type = DataType(required=True)
-    funnel = graphene.String(required=False, default_value='upload')
-    action = graphene.String(required=False, default_value='create data')
+    funnel = graphene.String(required=False, default_value="upload")
+    action = graphene.String(required=False, default_value="create data")
     status = graphene.String(required=True)
     tags_list = graphene.List(of_type=graphene.String, default=[], required=False)
     geo_list = graphene.List(of_type=graphene.String, default=[], required=False)
@@ -93,14 +94,29 @@ class CreateDataset(Output, graphene.Mutation):
     @validate_token
     @auth_user_action_dataset(action="create_dataset")
     @map_user_dataset
-    def mutate(root, info, username, dataset_data: DatasetInput = None, ):
+    def mutate(
+        root,
+        info,
+        username,
+        dataset_data: DatasetInput = None,
+    ):
         try:
-            organization = Organization.objects.get(id=dataset_data.organization)
+            org_id = info.context.META.get("HTTP_ORGANIZATION")
+            organization = Organization.objects.get(id=org_id)
             catalog = Catalog.objects.filter(organization=organization)[0]
             # catalog = organization.objects.select_related('catalog').all(0)
         except Organization.DoesNotExist as e:
-            return {"success": False,
-                    "errors": {"id": [{"message": "Organization with given id not found", "code": "404"}]}}
+            return {
+                "success": False,
+                "errors": {
+                    "id": [
+                        {
+                            "message": "Organization with given id not found",
+                            "code": "404",
+                        }
+                    ]
+                },
+            }
         dataset_instance = Dataset(
             title=dataset_data.title,
             description=dataset_data.description,
@@ -113,13 +129,21 @@ class CreateDataset(Output, graphene.Mutation):
             period_to=dataset_data.period_to,
             period_from=dataset_data.period_from,
             update_frequency=dataset_data.update_frequency,
-            dataset_type=dataset_data.dataset_type
+            dataset_type=dataset_data.dataset_type,
         )
         dataset_instance.save()
-        _add_update_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
-        _add_update_attributes_to_dataset(dataset_instance, "geography", dataset_data.geo_list, Geography)
-        _add_update_attributes_to_dataset(dataset_instance, "sector", dataset_data.sector_list, Sector)
-        activity.send(username, verb="Created", target=dataset_instance, target_group=organization)
+        _add_update_attributes_to_dataset(
+            dataset_instance, "tags", dataset_data.tags_list, Tag
+        )
+        _add_update_attributes_to_dataset(
+            dataset_instance, "geography", dataset_data.geo_list, Geography
+        )
+        _add_update_attributes_to_dataset(
+            dataset_instance, "sector", dataset_data.sector_list, Sector
+        )
+        activity.send(
+            username, verb="Created", target=dataset_instance, target_group=organization
+        )
         return CreateDataset(dataset=dataset_instance)
 
 
@@ -133,14 +157,31 @@ class UpdateDataset(Output, graphene.Mutation):
     @validate_token
     @auth_user_action_dataset(action="update_dataset")
     def mutate(root, info, username, dataset_data: DatasetInput = None):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
         try:
             dataset_instance = Dataset.objects.get(id=dataset_data.id)
-            organization = Organization.objects.get(id=dataset_data.organization)
+            organization = Organization.objects.get(id=org_id)
         except Organization.DoesNotExist as e:
-            return {"success": False,
-                    "errors": {"id": [{"message": "Organization with given id not found", "code": "404"}]}}
+            return {
+                "success": False,
+                "errors": {
+                    "id": [
+                        {
+                            "message": "Organization with given id not found",
+                            "code": "404",
+                        }
+                    ]
+                },
+            }
         except Dataset.DoesNotExist as e:
-            return {"success": False, "errors": {"id": [{"message": "Dataset with given id not found", "code": "404"}]}}
+            return {
+                "success": False,
+                "errors": {
+                    "id": [
+                        {"message": "Dataset with given id not found", "code": "404"}
+                    ]
+                },
+            }
         catalog = Catalog.objects.filter(organization=organization)[0]
         dataset_instance.title = dataset_data.title
         dataset_instance.description = dataset_data.description
@@ -156,10 +197,18 @@ class UpdateDataset(Output, graphene.Mutation):
         dataset_instance.update_frequency = dataset_data.update_frequency
 
         dataset_instance.save()
-        _add_update_attributes_to_dataset(dataset_instance, "tags", dataset_data.tags_list, Tag)
-        _add_update_attributes_to_dataset(dataset_instance, "geography", dataset_data.geo_list, Geography)
-        _add_update_attributes_to_dataset(dataset_instance, "sector", dataset_data.sector_list, Sector)
-        activity.send(username, verb="Updated", target=dataset_instance, target_group=organization)
+        _add_update_attributes_to_dataset(
+            dataset_instance, "tags", dataset_data.tags_list, Tag
+        )
+        _add_update_attributes_to_dataset(
+            dataset_instance, "geography", dataset_data.geo_list, Geography
+        )
+        _add_update_attributes_to_dataset(
+            dataset_instance, "sector", dataset_data.sector_list, Sector
+        )
+        activity.send(
+            username, verb="Updated", target=dataset_instance, target_group=organization
+        )
         return UpdateDataset(dataset=dataset_instance)
 
 
@@ -176,14 +225,25 @@ class PatchDataset(Output, graphene.Mutation):
         try:
             dataset_instance = Dataset.objects.get(id=dataset_data.id)
         except Dataset.DoesNotExist as e:
-            return {"success": False, "errors": {"id": [{"message": "Dataset with given id not found", "code": "404"}]}}
+            return {
+                "success": False,
+                "errors": {
+                    "id": [
+                        {"message": "Dataset with given id not found", "code": "404"}
+                    ]
+                },
+            }
         if dataset_data.status:
             dataset_instance.status = dataset_data.status
         if dataset_data.funnel:
             dataset_instance.funnel = dataset_data.funnel
         dataset_instance.save()
-        activity.send(username, verb="Updated", target=dataset_instance,
-                      target_group=dataset_instance.catalog.organization)
+        activity.send(
+            username,
+            verb="Updated",
+            target=dataset_instance,
+            target_group=dataset_instance.catalog.organization,
+        )
         return PatchDataset(success=True, dataset=dataset_instance)
 
 

@@ -65,7 +65,6 @@ class DataAccessModelInput(graphene.InputObjectType):
     title = graphene.String(required=True)
     type = AccessTypes(required=True)
     description = graphene.String(required=True)
-    organization = graphene.ID(required=True)
     contract = Upload(required=False)
     license = graphene.ID(required=True)
     subscription_quota = graphene.Int(required=True)
@@ -110,7 +109,8 @@ class CreateDataAccessModel(Output, graphene.Mutation):
     @staticmethod
     @auth_user_action_dam(action="create_dam")
     def mutate(root, info, data_access_model_data: DataAccessModelInput):
-        org_instance = Organization.objects.get(id=data_access_model_data.organization)
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
+        org_instance = Organization.objects.get(id=org_id)
         dam_license = License.objects.get(id=data_access_model_data.license)
         data_access_model_instance = DataAccessModel(
             title=data_access_model_data.title,
@@ -144,13 +144,14 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
     @staticmethod
     @auth_user_action_dam(action="update_dam")
     def mutate(root, info, data_access_model_data: DataAccessModelInput):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
         if not data_access_model_data.id:
             return {"success": False,
                     "errors": {"id": [{"message": "Data Access Model id not found", "code": "404"}]}}
 
         try:
             data_access_model_instance = DataAccessModel.objects.get(id=data_access_model_data.id)
-            org_instance = Organization.objects.get(id=data_access_model_data.organization)
+            org_instance = Organization.objects.get(id=org_id)
             dam_license = License.objects.get(id=data_access_model_data.license)
         except (DataAccessModel.DoesNotExist, Organization.DoesNotExist, License.DoesNotExist) as e:
             return {"success": False,
