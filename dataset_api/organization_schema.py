@@ -30,7 +30,7 @@ class Query(graphene.ObjectType):
     )
     organizations = graphene.List(OrganizationType)
 
-    create_organization_requests = graphene.List(CreateOrganizationType)
+    requested_organizations = graphene.List(CreateOrganizationType)
 
     # TODO: Allow all org list for PMU?
     def resolve_all_organizations(self, info, **kwargs):
@@ -47,7 +47,7 @@ class Query(graphene.ObjectType):
             organizationcreaterequest__status=OrganizationCreationStatusType.APPROVED.value
         )
 
-    def resolve_create_organization_requests(self, info, **kwargs):
+    def resolve_requested_organizations(self, info, **kwargs):
         return OrganizationCreateRequest.objects.all().order_by("-modified")
 
 
