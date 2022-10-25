@@ -32,11 +32,7 @@ class Query(graphene.ObjectType):
 
     @validate_token
     def resolve_org_data_access_models(self, info, username, organization_id):
-        try:
-            organization = Organization.objects.get(pk=organization_id)
-        except Organization.DoesNotExist:
-            return {"success": False,
-                    "errors": {"organization_id": [{"message": "Organization id not found", "code": "404"}]}}
+        organization = Organization.objects.get(pk=organization_id)
         return DataAccessModel.objects.filter(organization=organization).order_by("-modified")
 
     @validate_token
