@@ -101,7 +101,7 @@ class UpdateAdditionalInfo(graphene.Mutation, Output):
         return UpdateAdditionalInfo(success=False, additional_info=None)
 
 
-class DeleteAdditionalInfo(graphene.Mutation):
+class DeleteAdditionalInfo(graphene.Mutation, Output):
     class Arguments:
         id = graphene.ID()
 
@@ -111,7 +111,7 @@ class DeleteAdditionalInfo(graphene.Mutation):
     def mutate(root, info, id):
         info_instance = AdditionalInfo.objects.get(id=id)
         info_instance.delete()
-        return DeleteAdditionalInfo(success=True, additional_info=info_instance)
+        return DeleteAdditionalInfo(success=True)
 
 
 class Mutation(graphene.ObjectType):
