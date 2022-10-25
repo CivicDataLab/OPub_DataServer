@@ -104,7 +104,7 @@ class UpdateOrganization(Output, graphene.Mutation):
         try:
             organization_create_request_instance = (
                 OrganizationCreateRequest.objects.get(
-                    organization_ptr_id=org_id
+                    organization_ptr_id=organization_data.id
                 )
             )
         except OrganizationCreateRequest.DoesNotExist as e:

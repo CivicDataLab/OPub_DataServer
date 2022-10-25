@@ -61,6 +61,7 @@ class LicenseInput(graphene.InputObjectType):
     id = graphene.ID(required=False)
     title = graphene.String(required=True)
     description = graphene.String(required=True)
+    organization = graphene.ID(required=True)
     file = Upload(required=False)
     remote_url = graphene.String(required=False)
     license_additions = graphene.List(LicenceAdditionsInput, required=False, default=[])
@@ -114,8 +115,7 @@ class CreateLicense(graphene.Mutation, Output):
     @staticmethod
     @check_license_role
     def mutate(root, info, role, license_data: LicenseInput = None):
-        org_id = info.context.META.get("HTTP_ORGANIZATION")
-        organization = Organization.objects.get(id=org_id)
+        organization = Organization.objects.get(id=license_data.organization)
         license_instance = License(
             title=license_data.title,
             description=license_data.description,
@@ -144,9 +144,8 @@ class UpdateLicense(graphene.Mutation, Output):
     @staticmethod
     @check_license_role
     def mutate(root, info, role, license_data: LicenseInput = None):
-        org_id = info.context.META.get("HTTP_ORGANIZATION")
         try:
-            organization = Organization.objects.get(id=org_id)
+            organization = Organization.objects.get(id=license_data.organization)
             license_instance = License.objects.get(id=license_data.id)
         except (License.DoesNotExist, Organization.DoesNotExist) as e:
             return {"success": False,

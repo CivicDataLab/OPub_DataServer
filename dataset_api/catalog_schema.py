@@ -26,6 +26,7 @@ class CatalogInput(graphene.InputObjectType):
     id = graphene.ID()
     title = graphene.String(required=True)
     description = graphene.String(required=True)
+    organization = graphene.ID(required=True)
 
 
 class CreateCatalog(Output, graphene.Mutation):
@@ -36,9 +37,8 @@ class CreateCatalog(Output, graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, catalog_data=None):
-        org_id = info.context.META.get("HTTP_ORGANIZATION")
         try:
-            organization = Organization.objects.get(id=org_id)
+            organization = Organization.objects.get(id=catalog_data.organization)
         except Organization.DoesNotExist as e:
             return {"success": False, "errors": {"id": [{"message": "Organization with given id not found", "code": "404"}]}}
         catalog_instance = Catalog(
