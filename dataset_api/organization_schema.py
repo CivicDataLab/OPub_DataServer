@@ -47,6 +47,7 @@ class Query(graphene.ObjectType):
 
 
 class OrganizationInput(graphene.InputObjectType):
+    id = graphene.ID()
     title = graphene.String(required=True)
     description = graphene.String(required=True)
     logo = Upload(required=False, description="Logo for the Company.")
@@ -59,6 +60,7 @@ class OrganizationInput(graphene.InputObjectType):
 
 
 class ApproveRejectOrganizationApprovalInput(graphene.InputObjectType):
+    id = graphene.ID(required=True)
     status = graphene.Enum.from_enum(OrganizationCreationStatusType)(required=True)
     remark = graphene.String(required=False)
 
@@ -98,6 +100,7 @@ class UpdateOrganization(Output, graphene.Mutation):
     @validate_token
     def mutate(root, info, organization_data: OrganizationInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
+        org_id = organization_data.id if organization_data.id else org_id
         try:
             organization_create_request_instance = (
                 OrganizationCreateRequest.objects.get(
@@ -145,14 +148,11 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
 
     @staticmethod
     @validate_token
-    def mutate(
-            root, info, organization_data: ApproveRejectOrganizationApprovalInput = None
-    ):
-        org_id = info.context.META.get("HTTP_ORGANIZATION")
+    def mutate(root, info, organization_data: ApproveRejectOrganizationApprovalInput = None):
         try:
             organization_create_request_instance = (
                 OrganizationCreateRequest.objects.get(
-                    organization_ptr_id=org_id
+                    organization_ptr_id=organization_data.id
                 )
             )
         except OrganizationCreateRequest.DoesNotExist as e:
