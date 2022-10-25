@@ -48,11 +48,17 @@ def _add_update_attributes_to_dataset(
 
 class Query(graphene.ObjectType):
     all_datasets = graphene.List(DatasetType)
+    org_datasets = graphene.List(DatasetType)
     dataset = graphene.Field(DatasetType, dataset_id=graphene.Int())
     dataset_by_title = graphene.Field(DatasetType, dataset_title=graphene.String())
 
     def resolve_all_datasets(self, info, **kwargs):
         return Dataset.objects.all().order_by("-modified")
+
+    def resolve_org_datasets(self, info, **kwargs):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
+        organization = Organization.objects.get(id=org_id)
+        return Dataset.objects.filter(catalog__organization=organization).order_by("-modified")
 
     def resolve_dataset_by_title(self, info, dataset_title, **kwargs):
         return Dataset.objects.get(title__iexact=dataset_title)
