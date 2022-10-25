@@ -7,7 +7,7 @@ from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
 from .models import Dataset, AdditionalInfo
-from .utils import FORMAT_MAPPING
+from .constants import FORMAT_MAPPING
 
 
 class AdditionalInfoType(DjangoObjectType):

@@ -18,7 +18,7 @@ from .models import (
     FileDetails,
 )
 from .decorators import auth_user_action_resource
-from .utils import FORMAT_MAPPING
+from .constants import FORMAT_MAPPING
 
 
 class ResourceSchemaInputType(graphene.InputObjectType):
@@ -283,12 +283,13 @@ class CreateResource(graphene.Mutation, Output):
         if dataset.dataset_type == "API":
             try:
                 api_source_instance = APISource.objects.get(id=resource_data.api_details.api_source)
-                _create_update_api_details(resource_instance=resource_instance,attribute=resource_data.api_details)
+                _create_update_api_details(resource_instance=resource_instance, attribute=resource_data.api_details)
             except APISource.DoesNotExist as e:
                 resource_instance.delete()
-                return {"success": False, "errors": {"id": [{"message": "API Source with given id not found", "code": "404"}]}}
+                return {"success": False,
+                        "errors": {"id": [{"message": "API Source with given id not found", "code": "404"}]}}
         elif dataset.dataset_type == "FILE":
-            _create_update_file_details(resource_instance=resource_instance,attribute=resource_data.file_details)
+            _create_update_file_details(resource_instance=resource_instance, attribute=resource_data.file_details)
 
         _remove_masked_fields(resource_instance)
         _create_update_schema(resource_data, resource_instance)
@@ -309,7 +310,8 @@ class UpdateResource(graphene.Mutation, Output):
             resource_instance = Resource.objects.get(id=resource_data.id)
             dataset = Dataset.objects.get(id=resource_data.dataset)
         except Resource.DoesNotExist as e:
-            return {"success": False, "errors": {"id": [{"message": "Resource with given id not found", "code": "404"}]}}
+            return {"success": False,
+                    "errors": {"id": [{"message": "Resource with given id not found", "code": "404"}]}}
         except Dataset.DoesNotExist as e:
             return {"success": False, "errors": {"id": [{"message": "Dataset with given id not found", "code": "404"}]}}
         resource_instance.title = resource_data.title
@@ -323,9 +325,10 @@ class UpdateResource(graphene.Mutation, Output):
         if dataset.dataset_type == "API":
             try:
                 api_source_instance = APISource.objects.get(id=resource_data.api_details.api_source)
-                _create_update_api_details(resource_instance=resource_instance,attribute=resource_data.api_details)
+                _create_update_api_details(resource_instance=resource_instance, attribute=resource_data.api_details)
             except APISource.DoesNotExist as e:
-                return {"success": False, "errors": {"id": [{"message": "API Source with given id not found", "code": "404"}]}}
+                return {"success": False,
+                        "errors": {"id": [{"message": "API Source with given id not found", "code": "404"}]}}
         else:
             _create_update_file_details(
                 resource_instance=resource_instance,
@@ -351,7 +354,8 @@ class DeleteResource(graphene.Mutation, Output):
         try:
             resource_instance = Resource.objects.get(id=resource_data.id)
         except Resource.DoesNotExist as e:
-            return {"success": False, "errors": {"id": [{"message": "Resource with given id not found", "code": "404"}]}} 
+            return {"success": False,
+                    "errors": {"id": [{"message": "Resource with given id not found", "code": "404"}]}}
         resource_instance.delete()
         return DeleteResource(success=True)
 

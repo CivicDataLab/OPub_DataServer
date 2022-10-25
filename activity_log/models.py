@@ -61,9 +61,9 @@ class Activity(models.Model):
     )
 
     issued = models.DateTimeField(default=now, db_index=True)
-
     public = models.BooleanField(default=True, db_index=True)
-
+    ip = models.GenericIPAddressField(blank=True, null=True)
+    browser = models.CharField(max_length=200, blank=True, null=True)
     objects = ActivityManager()
 
     class Meta:

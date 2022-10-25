@@ -5,6 +5,7 @@ from graphql_auth.bases import Output
 from activity_log.signal import activity
 from .models import Dataset, Catalog, Tag, Geography, Sector, Organization
 from .decorators import auth_user_action_dataset, map_user_dataset, validate_token
+from .utils import get_client_ip
 
 
 class DatasetType(DjangoObjectType):
@@ -29,7 +30,7 @@ class DatasetStatus(graphene.Enum):
 
 
 def _add_update_attributes_to_dataset(
-    dataset_instance, object_field, attribute_list, attribute_type
+        dataset_instance, object_field, attribute_list, attribute_type
 ):
     if not attribute_list:
         return
@@ -95,10 +96,10 @@ class CreateDataset(Output, graphene.Mutation):
     @auth_user_action_dataset(action="create_dataset")
     @map_user_dataset
     def mutate(
-        root,
-        info,
-        username,
-        dataset_data: DatasetInput = None,
+            root,
+            info,
+            username,
+            dataset_data: DatasetInput = None,
     ):
         try:
             org_id = info.context.META.get("HTTP_ORGANIZATION")
@@ -142,7 +143,7 @@ class CreateDataset(Output, graphene.Mutation):
             dataset_instance, "sector", dataset_data.sector_list, Sector
         )
         activity.send(
-            username, verb="Created", target=dataset_instance, target_group=organization
+            username, verb="Created", target=dataset_instance, target_group=organization, ip=get_client_ip(info)
         )
         return CreateDataset(dataset=dataset_instance)
 

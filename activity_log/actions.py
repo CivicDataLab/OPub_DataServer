@@ -61,7 +61,9 @@ def activity_handler(verb, **kwargs):
         verb=str(verb),
         public=bool(kwargs.pop('public', True)),
         description=kwargs.pop('description', None),
-        issued=kwargs.pop('issued', now())
+        issued=kwargs.pop('issued', now()),
+        ip=kwargs.pop('ip', None),
+        browser=kwargs.pop('browser', None)
     )
 
     for opt in ('target', 'action_object', 'target_group'):
