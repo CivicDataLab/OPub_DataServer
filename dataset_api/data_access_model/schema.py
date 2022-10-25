@@ -27,11 +27,11 @@ class Query(graphene.ObjectType):
     data_access_model = graphene.Field(DataAccessModelType, data_access_model_id=graphene.ID())
 
     @validate_token
-    def resolve_all_data_access_models(self, info, **kwargs):
+    def resolve_all_data_access_models(self, info, username, **kwargs):
         return DataAccessModel.objects.all().order_by("-modified")
 
     @validate_token
-    def resolve_org_data_access_models(self, info, organization_id):
+    def resolve_org_data_access_models(self, info, username, organization_id):
         try:
             organization = Organization.objects.get(pk=organization_id)
         except Organization.DoesNotExist:
@@ -40,7 +40,7 @@ class Query(graphene.ObjectType):
         return DataAccessModel.objects.filter(organization=organization).order_by("-modified")
 
     @validate_token
-    def resolve_data_access_model(self, info, data_access_model_id):
+    def resolve_data_access_model(self, info, data_access_model_id, username=""):
         return DataAccessModel.objects.get(pk=data_access_model_id)
 
 
@@ -193,7 +193,7 @@ class DeleteDataAccessModel(Output, graphene.Mutation):
     @staticmethod
     @validate_token
     @auth_user_action_dam(action="delete_dam")
-    def mutate(root, info, username, data_access_model_data: DeleteDataAccessModelInput):
+    def mutate(root, info, data_access_model_data: DeleteDataAccessModelInput, username=""):
         dam_instance = DataAccessModel.objects.get(id=data_access_model_data.id)
         activity.send(username, verb="Deleted", target=dam_instance, target_group=dam_instance.organization)
         dam_instance.delete()
