@@ -18,9 +18,6 @@ class Dataset(models.Model):
     modified = models.DateTimeField(auto_now=True)
     sector = models.ManyToManyField(Sector, blank=True)
     status = models.CharField(max_length=50, default="Draft")
-    remark = models.CharField(
-        max_length=200, default="Please follow creation instructions"
-    )
     funnel = models.CharField(max_length=50, default="upload")
     action = models.CharField(max_length=50, default="create data")
     geography = models.ManyToManyField(Geography, blank=True)
