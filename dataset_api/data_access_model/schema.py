@@ -4,6 +4,7 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
+from activity_log.signal import activity
 from ..decorators import validate_token
 from ..models.DataAccessModel import DataAccessModel
 from dataset_api.enums import SubscriptionUnits
@@ -107,8 +108,9 @@ class CreateDataAccessModel(Output, graphene.Mutation):
     data_access_model = graphene.Field(DataAccessModelType)
 
     @staticmethod
+    @validate_token
     @auth_user_action_dam(action="create_dam")
-    def mutate(root, info, data_access_model_data: DataAccessModelInput):
+    def mutate(root, info, username, data_access_model_data: DataAccessModelInput):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_instance = Organization.objects.get(id=org_id)
         dam_license = License.objects.get(id=data_access_model_data.license)
@@ -126,6 +128,7 @@ class CreateDataAccessModel(Output, graphene.Mutation):
         )
 
         data_access_model_instance.save()
+        activity.send(username, verb="Created", target=data_access_model_instance, target_group=org_instance)
         try:
             _add_update_license_additions(data_access_model_instance, dam_license, data_access_model_data.additions)
             create_contract(dam_license, data_access_model_data.additions, data_access_model_instance)
@@ -142,8 +145,9 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
     data_access_model = graphene.Field(DataAccessModelType)
 
     @staticmethod
+    @validate_token
     @auth_user_action_dam(action="update_dam")
-    def mutate(root, info, data_access_model_data: DataAccessModelInput):
+    def mutate(root, info, username, data_access_model_data: DataAccessModelInput):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         if not data_access_model_data.id:
             return {"success": False,
@@ -174,7 +178,7 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
             create_contract(dam_license, data_access_model_data.additions, data_access_model_instance)
         except InvalidAddition as e:
             return {"success": False, "errors": {"id": [{str(e)}]}}
-
+        activity.send(username, verb="Updated", target=data_access_model_instance, target_group=org_instance)
         return UpdateDataAccessModel(data_access_model=data_access_model_instance)
 
 
@@ -187,9 +191,11 @@ class DeleteDataAccessModel(Output, graphene.Mutation):
     # resource = graphene.Field(ResourceType)
 
     @staticmethod
+    @validate_token
     @auth_user_action_dam(action="delete_dam")
-    def mutate(root, info, data_access_model_data: DeleteDataAccessModelInput):
+    def mutate(root, info, username, data_access_model_data: DeleteDataAccessModelInput):
         dam_instance = DataAccessModel.objects.get(id=data_access_model_data.id)
+        activity.send(username, verb="Deleted", target=dam_instance, target_group=dam_instance.organization)
         dam_instance.delete()
         return DeleteDataAccessModel(success=True)
 
