@@ -13,23 +13,25 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 from django.views.decorators.csrf import csrf_exempt
 from graphene_file_upload.django import FileUploadGraphQLView
 
+from DatasetServer import settings
 from dataset_api import resource_file, organization_logo, license_file
 from dataset_api.data_access_model import contract_file
 from dataset_api.data_request import data_request_file
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    # re_path(r'^download/(?P<resource_id>\d+)/', resource_file.download),
-    path('download/request/<int:data_request_id>/', data_request_file.download),
-    path('download/<int:resource_id>/', resource_file.download),
-    path('logo/<int:organization_id>/', organization_logo.logo),
-    path('download/license/<int:license_id>/', license_file.download),
-    path('download/contract/<int:model_id>/', contract_file.download),
-    path("graphql", csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True))),
-    path('', include('dataset_api.urls')),
-]
+                  path('admin/', admin.site.urls),
+                  # re_path(r'^download/(?P<resource_id>\d+)/', resource_file.download),
+                  path('download/request/<int:data_request_id>/', data_request_file.download),
+                  path('download/<int:resource_id>/', resource_file.download),
+                  path('logo/<int:organization_id>/', organization_logo.logo),
+                  path('download/license/<int:license_id>/', license_file.download),
+                  path('download/contract/<int:model_id>/', contract_file.download),
+                  path("graphql", csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True))),
+                  path('', include('dataset_api.urls')),
+              ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

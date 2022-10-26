@@ -9,7 +9,7 @@ def _organization_directory_path(org, filename):
 
     org_name = org.title
     _, extension = os.path.splitext(filename)
-    return f"resources/{org_name}/{extension[1:]}/{filename}"
+    return f"public/organizations/{org_name}/{extension[1:]}/{filename}"
 
 
 def _organization_file_directory_path(org, filename):
