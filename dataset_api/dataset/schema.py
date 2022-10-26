@@ -3,9 +3,9 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
 from activity_log.signal import activity
-from .models import Dataset, Catalog, Tag, Geography, Sector, Organization
-from .decorators import auth_user_action_dataset, map_user_dataset, validate_token
-from .utils import get_client_ip
+from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization
+from dataset_api.decorators import auth_user_action_dataset, map_user_dataset, validate_token
+from dataset_api.utils import get_client_ip
 
 
 class DatasetType(DjangoObjectType):

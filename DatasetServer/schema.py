@@ -1,5 +1,5 @@
 import graphene
-import dataset_api.dataset_schema
+import dataset_api.dataset.schema
 import dataset_api.organization_schema
 import dataset_api.catalog_schema
 import dataset_api.resource_schema
@@ -22,7 +22,7 @@ import dataset_api.organization_request_schema
 import activity_log.activity_schema
 
 
-class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Query, dataset_api.catalog_schema.Query,
+class Query(dataset_api.dataset.schema.Query, dataset_api.organization_schema.Query, dataset_api.catalog_schema.Query,
             dataset_api.resource_schema.Query, dataset_api.tag_schema.Query, dataset_api.geography_schema.Query,
             dataset_api.api_source_schema.Query, dataset_api.rating_schema.Query,
             dataset_api.license.license_schema.Query,
@@ -37,7 +37,7 @@ class Query(dataset_api.dataset_schema.Query, dataset_api.organization_schema.Qu
     pass
 
 
-class Mutation(dataset_api.dataset_schema.Mutation, dataset_api.organization_schema.Mutation,
+class Mutation(dataset_api.dataset.schema.Mutation, dataset_api.organization_schema.Mutation,
                dataset_api.catalog_schema.Mutation,
                dataset_api.resource_schema.Mutation, dataset_api.tag_schema.Mutation,
                dataset_api.geography_schema.Mutation,
