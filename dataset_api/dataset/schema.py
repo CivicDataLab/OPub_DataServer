@@ -52,6 +52,7 @@ class Query(graphene.ObjectType):
                                  status=DatasetStatus(required=False))
     dataset = graphene.Field(DatasetType, dataset_id=graphene.Int())
     dataset_by_title = graphene.Field(DatasetType, dataset_title=graphene.String())
+    dataset_by_slug = graphene.Field(DatasetType, dataset_slug=graphene.String())
 
     def resolve_all_datasets(self, info, **kwargs):
         return Dataset.objects.all().order_by("-modified")
@@ -72,6 +73,10 @@ class Query(graphene.ObjectType):
 
     def resolve_dataset_by_title(self, info, dataset_title, **kwargs):
         return Dataset.objects.get(title__iexact=dataset_title)
+
+    def resolve_dataset_by_slug(self, info, dataset_slug: str, **kwargs):
+        dataset_id = dataset_slug.split('_')[-1]
+        return Dataset.objects.get(id=dataset_id)
 
     def resolve_dataset(self, info, dataset_id):
         return Dataset.objects.get(pk=dataset_id)
