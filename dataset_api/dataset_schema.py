@@ -48,17 +48,22 @@ def _add_update_attributes_to_dataset(
 
 class Query(graphene.ObjectType):
     all_datasets = graphene.List(DatasetType)
-    org_datasets = graphene.List(DatasetType, first=graphene.Int(), skip=graphene.Int())
+    org_datasets = graphene.List(DatasetType, first=graphene.Int(), skip=graphene.Int(),
+                                 status=DatasetStatus(required=False))
     dataset = graphene.Field(DatasetType, dataset_id=graphene.Int())
     dataset_by_title = graphene.Field(DatasetType, dataset_title=graphene.String())
 
     def resolve_all_datasets(self, info, **kwargs):
         return Dataset.objects.all().order_by("-modified")
 
-    def resolve_org_datasets(self, info, first=None, skip=None, **kwargs):
+    def resolve_org_datasets(self, info, first=None, skip=None, status: DatasetStatus = None, **kwargs):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         organization = Organization.objects.get(id=org_id)
-        query = Dataset.objects.filter(catalog__organization=organization).order_by("-modified")
+        if status:
+            query = Dataset.objects.filter(catalog__organization=organization, status=status).order_by(
+                "-modified")
+        else:
+            query = Dataset.objects.filter(catalog__organization=organization).order_by("-modified")
         if skip:
             query = query[skip:]
         if first:
