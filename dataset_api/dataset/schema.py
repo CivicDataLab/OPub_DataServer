@@ -5,13 +5,18 @@ from graphql_auth.bases import Output
 from activity_log.signal import activity
 from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization
 from dataset_api.decorators import auth_user_action_dataset, map_user_dataset, validate_token
-from dataset_api.utils import get_client_ip
+from dataset_api.utils import get_client_ip, dataset_slug
 
 
 class DatasetType(DjangoObjectType):
+    slug = graphene.String()
+
     class Meta:
         model = Dataset
         fields = "__all__"
+
+    def resolve_slug(self: Dataset, info):
+        return dataset_slug(self.id)
 
 
 class DataType(graphene.Enum):
