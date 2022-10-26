@@ -2,22 +2,30 @@ import graphene
 from graphene_django import DjangoObjectType
 
 from activity_log.models import Activity
-from dataset_api.models import Organization
+from dataset_api.models import Organization, Dataset
+from dataset_api.utils import dataset_slug
 
 
 class ActivityType(DjangoObjectType):
     passed_time = graphene.String()
     target_type = graphene.String()
+    slug = graphene.String()
 
     class Meta:
         model = Activity
         fields = "__all__"
 
-    def resolve_passed_time(self, info):
+    def resolve_passed_time(self: Activity, info):
         return self.timesince()
 
-    def resolve_target_type(self, info):
+    def resolve_target_type(self: Activity, info):
         return str(self.target_content_type).split("|")[1].strip()
+
+    def resolve_slug(self: Activity, info):
+        target_type = str(self.target_content_type).split("|")[1].strip()
+        if target_type is 'dataset':
+            return dataset_slug(self.target_object_id)
+        return None
 
 
 class Query(graphene.ObjectType):
