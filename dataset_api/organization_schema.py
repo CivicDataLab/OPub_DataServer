@@ -3,9 +3,11 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
+from activity_log.signal import activity
 from .models import Organization, OrganizationCreateRequest
 from .decorators import validate_token, create_user_org
 from .enums import OrganizationTypes, OrganizationCreationStatusType
+from .utils import get_client_ip
 
 
 class CreateOrganizationType(DjangoObjectType):
@@ -153,7 +155,7 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
 
     @staticmethod
     @validate_token
-    def mutate(root, info, organization_data: ApproveRejectOrganizationApprovalInput = None):
+    def mutate(root, info, username="", organization_data: ApproveRejectOrganizationApprovalInput = None):
         try:
             organization_create_request_instance = (
                 OrganizationCreateRequest.objects.get(
@@ -182,6 +184,8 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
             )
         organization_create_request_instance.remark = organization_data.remark
         organization_create_request_instance.save()
+        activity.send(username, verb=organization_data.status, target=organization_create_request_instance,
+                      target_group=organization_create_request_instance, ip=get_client_ip(info))
         return ApproveRejectOrganizationApproval(
             organization=organization_create_request_instance
         )
