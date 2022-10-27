@@ -6,7 +6,7 @@ from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelReque
 from dataset_api.file_paths import _data_request_directory_path
 from dataset_api.models.Resource import Resource
 
-fs = FileSystemStorage(location=settings.PRIVATE_FILE_LOCATION)
+fs = FileSystemStorage(location=settings.PRIVATE_FILE_LOCATION, base_url=settings.PRIVATE_FILE_URL)
 
 
 class DataRequest(models.Model):
