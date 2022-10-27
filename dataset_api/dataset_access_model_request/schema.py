@@ -62,9 +62,9 @@ class DataAccessModelRequestUpdateInput(graphene.InputObjectType):
     remark = graphene.String(required=False)
 
 
-def create_dataset_access_model_request(access_model, description, purpose, username):
+def create_dataset_access_model_request(access_model, description, purpose, username, status="REQUESTED"):
     data_access_model_request_instance = DatasetAccessModelRequest(
-        status="REQUESTED",
+        status=status,
         purpose=purpose,
         description=description,
         user=username,
@@ -88,8 +88,8 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
         purpose = data_access_model_request.purpose
         description = data_access_model_request.description
         access_model = DatasetAccessModel.objects.get(id=data_access_model_request.access_model)
-        data_access_model_request_instance = DataAccessModelRequestMutation.create_dataset_access_model_request(
-            access_model, description, purpose, username)
+        data_access_model_request_instance = create_dataset_access_model_request(access_model, description, purpose,
+                                                                                 username)
         return DataAccessModelRequestMutation(data_access_model_request=data_access_model_request_instance)
 
 
