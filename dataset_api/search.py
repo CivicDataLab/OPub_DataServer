@@ -249,6 +249,7 @@ def reindex_data():
             doc["resource_title"] = resources.title
             doc["resource_description"] = resources.description
             doc["resource_status"] = resources.status
+            doc["slug"] = dataset_slug(resources.dataset.id)
 
             geography = resources.dataset.geography.all()
             sector = resources.dataset.sector.all()
