@@ -12,7 +12,7 @@ def create_access_jwt_token(data_request: DataRequest, username):
         'data_request': data_request.id,
         'dam': data_request.dataset_access_model_request.access_model.id,
         'resource_id': data_request.resource.id,
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(days=0, minutes=5),
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(days=0, minutes=settings.ACCESS_TOKEN_EXPIRY_MINS),
         'iat': datetime.datetime.utcnow(),
     }
     access_token = jwt.encode(access_token_payload,

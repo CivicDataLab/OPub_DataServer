@@ -56,5 +56,5 @@ def refresh_token(request):
         username = token_payload.get("username")
         data_request_instance = DataRequest.objects.get(pk=data_request_id)
         access_token = create_access_jwt_token(data_request_instance, username)
-        return HttpResponse({'access_token': access_token}, content_type='application/json')
+        return HttpResponse(access_token, content_type='text/plain')
     return HttpResponse("Something went wrong request again!!", content_type='text/plain')
