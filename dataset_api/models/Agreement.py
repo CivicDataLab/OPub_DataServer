@@ -7,7 +7,7 @@ from dataset_api.models.DatasetAccessModel import DatasetAccessModel
 
 
 class Agreement(models.Model):
-    dataset_access_model = models.ForeignKey(DatasetAccessModel, on_delete=models.CASCADE)
+    dataset_access_model = models.ForeignKey(DatasetAccessModel, on_delete=models.CASCADE, related_name="agreements")
     status = models.CharField(choices=AgreementStatus.choices, max_length=15)
     accepted_agreement = models.FileField(upload_to=_agreement_directory_path, blank=True, null=True)
     username = models.CharField(max_length=50, blank=True, null=True)
