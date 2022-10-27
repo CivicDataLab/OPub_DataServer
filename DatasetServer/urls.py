@@ -28,6 +28,8 @@ urlpatterns = [
                   path('admin/', admin.site.urls),
                   # re_path(r'^download/(?P<resource_id>\d+)/', resource_file.download),
                   path('download/request/<int:data_request_id>/', data_request_file.download),
+                  path('getresource/', data_request_file.get_resource),
+                  path('refreshtoken/', data_request_file.refresh_token),
                   path('download/<int:resource_id>/', resource_file.download),
                   path('logo/<int:organization_id>/', organization_logo.logo),
                   path('download/license/<int:license_id>/', license_file.download),
