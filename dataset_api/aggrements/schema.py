@@ -31,9 +31,11 @@ class AgreementMutation(graphene.Mutation, Output):
     @validate_token_or_none
     def mutate(root, info, agreement_request: AgreementInput, username):
         dataset_access_model = DatasetAccessModel.objects.get(id=agreement_request.dataset_access_model)
+        status = "APPROVED" if dataset_access_model.data_access_model.type == "OPEN" else "REQUESTED"
         dataset_access_model_request = create_dataset_access_model_request(dataset_access_model,
                                                                            agreement_request.description,
-                                                                           agreement_request.purpose, username)
+                                                                           agreement_request.purpose, username,
+                                                                           status)
         agreement_instance = Agreement(dataset_access_model=dataset_access_model, username=username,
                                        status=AgreementStatus.ACCEPTED.value,
                                        dataset_access_model_request=dataset_access_model_request)
