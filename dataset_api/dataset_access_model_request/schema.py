@@ -43,7 +43,8 @@ class Query(graphene.ObjectType):
     def resolve_data_access_model_request_user(self, info, username, **kwargs):
         return DatasetAccessModelRequest.objects.filter(user=username).order_by("-modified")
 
-    def resolve_data_access_model_request_org(self, info, org_id):
+    def resolve_data_access_model_request_org(self, info):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
         return DatasetAccessModelRequest.objects.filter(Q(access_model__data_access_model__organization=org_id),
                                                         Q(status__exact="APPROVED"))
 
