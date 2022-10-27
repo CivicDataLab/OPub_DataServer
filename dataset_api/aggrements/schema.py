@@ -31,14 +31,14 @@ class AgreementMutation(graphene.Mutation, Output):
     @validate_token_or_none
     def mutate(root, info, agreement_request: AgreementInput, username):
         dataset_access_model = DatasetAccessModel(id=agreement_request.dataset_access_model)
-        agreement_instance = Agreement(dataset_access_model=dataset_access_model, username=username,
-                                       status=AgreementStatus.ACCEPTED.value)
-
-        agreement_instance.save()
         dataset_access_model_request = create_dataset_access_model_request(dataset_access_model,
                                                                            agreement_request.description,
                                                                            agreement_request.purpose, username)
-        agreement_instance.dataset_access_model_request = dataset_access_model_request
+        agreement_instance = Agreement(dataset_access_model=dataset_access_model, username=username,
+                                       status=AgreementStatus.ACCEPTED.value,
+                                       dataset_access_model_request=dataset_access_model_request)
+
+        agreement_instance.save()
         create_agreement(dataset_access_model, username, agreement_instance)
         return AgreementMutation(agreement=agreement_instance)
 
