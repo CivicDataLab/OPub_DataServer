@@ -48,7 +48,7 @@ def create_agreement(dataset_access_model: DatasetAccessModel, username, agreeme
     if not username:
         username = "Open User"
     data_access_model = dataset_access_model.data_access_model
-    additions = data_access_model.license_additions
+    additions = data_access_model.license_additions.all()
     model_license = data_access_model.license
     text = f"This is agreement between{username} and {data_access_model.organization.title} for dataset " \
            f"{dataset_access_model.dataset.title} "
