@@ -6,16 +6,9 @@ import json
 # from django.utils.datastructures import MultiValueDictKeyError
 
 # import warnings
-
 # warnings.filterwarnings("ignore")
 
-from .models import (
-    Catalog,
-    Organization,
-    Resource,
-    FileDetails,
-    APIDetails,
-)
+from .models import Catalog, Organization, Resource, FileDetails, APIDetails, Dataset
 
 es_client = Elasticsearch(settings.ELASTICSEARCH)
 # print(es_client.info())
@@ -28,7 +21,6 @@ def index_data(dataset_obj):
         "dataset_id": dataset_obj.id,
         "action": dataset_obj.action,
         "funnel": dataset_obj.funnel,
-        "status": dataset_obj.status,
         "period_from": dataset_obj.period_from,
         "period_to": dataset_obj.period_to,
         "update_frequency": dataset_obj.update_frequency,
@@ -58,34 +50,48 @@ def index_data(dataset_obj):
     doc["org_id"] = catalog_instance.organization_id
 
     resource_instance = Resource.objects.filter(dataset_id=dataset_obj.id)
+    resource_title = []
+    resource_description = []
+    auth_required = []
+    auth_type = []
+    format = []
     for resources in resource_instance:
-        doc["resource_title"] = resources.title
-        doc["resource_description"] = resources.description
-        doc["resource_status"] = resources.status
+        resource_title.append(resources.title)
+        resource_description.append(resources.description)
         # Checks based on datasets_type.
         if dataset_obj.dataset_type == "API":
             try:
                 api_details_obj = APIDetails.objects.get(resource_id=resources.id)
-                doc["auth_required"] = api_details_obj.auth_required
-                doc["auth_type"] = api_details_obj.api_source.auth_type
+                auth_required.append(api_details_obj.auth_required)
+                auth_type.append(api_details_obj.api_source.auth_type)
             except APIDetails.DoesNotExist as e:
                 pass
         else:
             try:
                 file_details_obj = FileDetails.objects.get(resource_id=resources.id)
-                doc["format"] = file_details_obj.format
+                format.append(file_details_obj.format)
             except FileDetails.DoesNotExist as e:
                 pass
 
-        # Check if Resource already exists.
-        resp = es_client.exists(index="dataset", id=resources.id)
-        if resp:
-            # Delete the Resource.
-            resp = es_client.delete(index="dataset", id=resources.id)
-            print(resp["result"])
-        # Index the Resource.
-        resp = es_client.index(index="dataset", id=resources.id, document=doc)
-        print(resp["result"])
+    # Index all resources of a dataset.
+    doc["resource_title"] = resource_title
+    doc["resource_description"] = resource_description
+    if auth_required:
+        doc["auth_required"] = auth_required
+    if auth_type:
+        doc["auth_type"] = auth_type
+    if format:
+        doc["format"] = format
+    # Check if Dataset already exists.
+    resp = es_client.exists(index="dataset", id=dataset_obj.id)
+    if resp:
+        # Delete the Dataset.
+        resp = es_client.delete(index="dataset", id=dataset_obj.id)
+        # print(resp["result"])
+    # Index the Dataset.
+    resp = es_client.index(index="dataset", id=dataset_obj.id, document=doc)
+    # print(resp["result"])
+    return resp["result"]
 
 
 # def get_doc(doc_id):
@@ -226,64 +232,11 @@ def more_like_this(request):
 
 
 def reindex_data():
-    resource_obj = Resource.objects.all()
-    doc = {}
-    for resources in resource_obj:
-        if resources.dataset.status == "PUBLISHED":
-            doc["dataset_title"] = resources.dataset.title
-            doc["dataset_description"] = resources.dataset.description
-            doc["dataset_id"] = resources.dataset.id
-            doc["action"] = resources.dataset.action
-            doc["funnel"] = resources.dataset.funnel
-            doc["status"] = resources.dataset.status
-            doc["period_from"] = resources.dataset.period_from
-            doc["period_to"] = resources.dataset.period_to
-            doc["update_frequency"] = resources.dataset.update_frequency
-            doc["dataset_type"] = resources.dataset.dataset_type
-            doc["remote_issued"] = resources.dataset.remote_issued
-            doc["remote_modified"] = resources.dataset.remote_modified
-            doc["resource_title"] = resources.title
-            doc["resource_description"] = resources.description
-            doc["resource_status"] = resources.status
-
-            geography = resources.dataset.geography.all()
-            sector = resources.dataset.sector.all()
-            dataset_geography = []
-            dataset_sector = []
-            for geo in geography:
-                dataset_geography.append(geo.name)
-            for sec in sector:
-                dataset_sector.append(sec.name)
-            doc["geography"] = dataset_geography
-            doc["sector"] = dataset_sector
-
-            catalog_instance = Catalog.objects.get(id=resources.dataset.catalog_id)
-            doc["catalog_title"] = catalog_instance.title
-            doc["catalog_description"] = catalog_instance.description
-
-            org_instance = Organization.objects.get(id=catalog_instance.organization_id)
-            doc["org_title"] = org_instance.title
-            doc["org_description"] = org_instance.description
-            doc["org_id"] = catalog_instance.organization_id
-
-            # Checks based on datasets_type.
-            if resources.dataset.dataset_type == "API":
-                try:
-                    api_details_obj = APIDetails.objects.get(resource_id=resources.id)
-                    doc["auth_required"] = api_details_obj.auth_required
-                    doc["auth_type"] = api_details_obj.api_source.auth_type
-                except APIDetails.DoesNotExist as e:
-                    pass
+    dataset_obj = Dataset.objects.all()
+    for datasets in dataset_obj:
+        if datasets.status == "PUBLISHED":
+            resp = index_data(datasets)
+            if resp == "created":
+                print("Dataset_id --", datasets.id)
             else:
-                try:
-                    file_details_obj = FileDetails.objects.get(resource_id=resources.id)
-                    doc["format"] = file_details_obj.format
-                except FileDetails.DoesNotExist as e:
-                    pass
-
-            print("Resource_id --", resources.id)
-            # if es_client.exists(index="dataset", id=resources.id):
-            #     pass
-            # else:
-            resp = es_client.index(index="dataset", id=resources.id, document=doc)
-            print("Index --", resp["result"])
+                print("Re-indexing failed!")
