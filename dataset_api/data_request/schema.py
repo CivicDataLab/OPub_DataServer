@@ -39,7 +39,7 @@ class Query(graphene.ObjectType):
 
 
 class DataRequestInput(graphene.InputObjectType):
-    data_access_model_request = graphene.ID(required=True)
+    dataset_access_model_request = graphene.ID(required=True)
     resource = graphene.ID(required=True)
 
 
@@ -60,7 +60,7 @@ class DataRequestMutation(graphene.Mutation, Output):
     def mutate(root, info, data_request: DataRequestInput = None, username=""):
         try:
             resource = Resource.objects.get(id=data_request.resource)
-            dam_request = DatasetAccessModelRequest(id=data_request.data_access_model_request)
+            dam_request = DatasetAccessModelRequest(id=data_request.dataset_access_model_request)
         except (Resource.DoesNotExist, DatasetAccessModelRequest.DoesNotExist) as e:
             return {"success": False,
                     "errors": {
@@ -69,7 +69,7 @@ class DataRequestMutation(graphene.Mutation, Output):
             status="REQUESTED",
             user=username,
             resource=resource,
-            data_access_model_request=dam_request
+            dataset_access_model_request=dam_request
         )
         data_request_instance.save()
         # TODO: fix magic strings
