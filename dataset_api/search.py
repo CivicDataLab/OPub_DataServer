@@ -6,6 +6,7 @@ import json
 # from django.utils.datastructures import MultiValueDictKeyError
 
 # import warnings
+
 # warnings.filterwarnings("ignore")
 
 from .models import (
@@ -33,7 +34,7 @@ def index_data(dataset_obj):
         "update_frequency": dataset_obj.update_frequency,
         "dataset_type": dataset_obj.dataset_type,
         "remote_issued": dataset_obj.remote_issued,
-        "remote_modified": dataset_obj.remote_modified
+        "remote_modified": dataset_obj.remote_modified,
     }
 
     geography = dataset_obj.geography.all()
@@ -100,6 +101,7 @@ def delete_data(id):
 
 def facets(request):
     filters = []  # List of queries for elasticsearch to filter up on.
+    selected_facets = []  # List of facets that are selected.
     facet = ["license", "geography", "sector", "format", "status", "rating"]
     size = request.GET.get("size", "10")
     paginate_from = request.GET.get("from", "0")
@@ -121,8 +123,11 @@ def facets(request):
     for value in facet:
         if request.GET.get(value):
             filters.append({"match": {f"{value}": request.GET.get(value)}})
+            selected_facets.append({f"{value}": request.GET.get(value).split(" ")})
     if org:
         filters.append({"match": {"org_title": {"query": org, "operator": "AND"}}})
+        selected_facets.append({"org_title": org})
+
     if start_date and end_date:
         filters.append(
             {
@@ -137,15 +142,14 @@ def facets(request):
 
     # Query for aggregations (facets).
     agg = {
-        "license": {"terms": {"field": "license.keyword"}},
-        "geography": {"terms": {"field": "geography.keyword"}},
-        "sector": {"terms": {"field": "sector.keyword"}},
-        "format": {"terms": {"field": "format.keyword"}},
-        "status": {"terms": {"field": "status.keyword"}},
-        "rating": {"terms": {"field": "rating.keyword"}},
-        "organization": {"terms": {"field": "org_title.keyword"}},
+        "Licenses": {"terms": {"field": "license.keyword"}},
+        "Geographies": {"terms": {"field": "geography.keyword"}},
+        "Sectors": {"terms": {"field": "sector.keyword"}},
+        "File Type": {"terms": {"field": "format.keyword"}},
+        "Status": {"terms": {"field": "status.keyword"}},
+        "Rating": {"terms": {"field": "rating.keyword"}},
+        "Providers": {"terms": {"field": "org_title.keyword"}},
     }
-
     if not query_string:
         # For filter search
         if len(request.GET.keys()) >= 1:
@@ -158,6 +162,7 @@ def facets(request):
                 from_=paginate_from,
                 sort=sort_mapping,
             )
+            resp["selected_facets"] = selected_facets
             return HttpResponse(json.dumps(resp))
         else:
             # For getting facets.
@@ -177,6 +182,7 @@ def facets(request):
             from_=paginate_from,
             sort=sort_mapping,
         )
+        resp["selected_facets"] = selected_facets
         return HttpResponse(json.dumps(resp["hits"]))
 
 
