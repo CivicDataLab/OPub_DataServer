@@ -21,3 +21,4 @@ from dataset_api.models.Resource import Resource
 from dataset_api.models.ResourceSchema import ResourceSchema
 from dataset_api.models.Sector import Sector
 from dataset_api.models.Tag import Tag
+from dataset_api.models.Agreement import Agreement

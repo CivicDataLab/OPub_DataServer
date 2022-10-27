@@ -1,14 +1,19 @@
+from django.conf import settings
+from django.core.files.storage import FileSystemStorage
 from django.db import models
 
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
 from dataset_api.file_paths import _data_request_directory_path
 from dataset_api.models.Resource import Resource
 
+fs = FileSystemStorage(location=settings.PRIVATE_FILE_LOCATION)
+
 
 class DataRequest(models.Model):
     status = models.CharField(max_length=20)
     resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
     file = models.FileField(
+        storage=fs,
         upload_to=_data_request_directory_path, blank=True, null=True
     )
     creation_date = models.DateTimeField(auto_now_add=True, null=True)

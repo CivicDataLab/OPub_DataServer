@@ -58,7 +58,6 @@ class DataRequestMutation(graphene.Mutation, Output):
     @staticmethod
     @validate_token
     def mutate(root, info, data_request: DataRequestInput = None, username=""):
-        # TODO: Check if resource id's provided exists!!
         try:
             resource = Resource.objects.get(id=data_request.resource)
             dam_request = DatasetAccessModelRequest(id=data_request.data_access_model_request)

@@ -35,6 +35,25 @@ def validate_token(func):
     return inner
 
 
+def validate_token_or_none(func):
+    def inner(*args, **kwargs):
+        username = None
+        user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+        if user_token == "":
+            print("Whoops! Empty user")
+        else:
+            body = json.dumps({"access_token": user_token})
+            response_json = request_to_server(body, verify_token_url)
+            username = response_json["preferred_username"]
+            if not response_json["success"]:
+                raise GraphQLError(response_json["error_description"])
+
+        kwargs["username"] = username
+        return func(*args, **kwargs)
+
+    return inner
+
+
 def auth_user_action_dataset(action):
     def accept_func(func):
         def inner(*args, **kwargs):

@@ -43,7 +43,8 @@ class Query(graphene.ObjectType):
     def resolve_data_access_model_request_user(self, info, username, **kwargs):
         return DatasetAccessModelRequest.objects.filter(user=username).order_by("-modified")
 
-    def resolve_data_access_model_request_org(self, info, org_id):
+    def resolve_data_access_model_request_org(self, info):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
         return DatasetAccessModelRequest.objects.filter(Q(access_model__data_access_model__organization=org_id),
                                                         Q(status__exact="APPROVED"))
 
@@ -61,6 +62,19 @@ class DataAccessModelRequestUpdateInput(graphene.InputObjectType):
     remark = graphene.String(required=False)
 
 
+def create_dataset_access_model_request(access_model, description, purpose, username):
+    data_access_model_request_instance = DatasetAccessModelRequest(
+        status="REQUESTED",
+        purpose=purpose,
+        description=description,
+        user=username,
+        access_model=access_model,
+    )
+    data_access_model_request_instance.save()
+    access_model.save()
+    return data_access_model_request_instance
+
+
 class DataAccessModelRequestMutation(graphene.Mutation, Output):
     class Arguments:
         data_access_model_request = DataAccessModelRequestInput()
@@ -70,17 +84,12 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
     @staticmethod
     @validate_token
     def mutate(root, info, data_access_model_request: DataAccessModelRequestInput = None, username=""):
-        access_model = DatasetAccessModel.objects.get(id=data_access_model_request.access_model)
         # TODO: fix magic strings
-        data_access_model_request_instance = DatasetAccessModelRequest(
-            status="REQUESTED",
-            purpose=data_access_model_request.purpose,
-            description=data_access_model_request.description,
-            user=username,
-            access_model=access_model,
-        )
-        data_access_model_request_instance.save()
-        access_model.save()
+        purpose = data_access_model_request.purpose
+        description = data_access_model_request.description
+        access_model = DatasetAccessModel.objects.get(id=data_access_model_request.access_model)
+        data_access_model_request_instance = DataAccessModelRequestMutation.create_dataset_access_model_request(
+            access_model, description, purpose, username)
         return DataAccessModelRequestMutation(data_access_model_request=data_access_model_request_instance)
 
 

@@ -18,6 +18,7 @@ import dataset_api.license.license_schema
 import dataset_api.stats_schema
 import dataset_api.dataset_moderation
 import dataset_api.organization_request_schema
+import dataset_api.aggrements.schema
 
 import activity_log.activity_schema
 
@@ -46,7 +47,7 @@ class Mutation(dataset_api.dataset.schema.Mutation, dataset_api.organization_sch
                dataset_api.sector_schema.Mutation, dataset_api.additional_info_schema.Mutation,
                dataset_api.data_request.schema.Mutation, dataset_api.organization_request_schema.Mutation,
                dataset_api.data_access_model.schema.Mutation, dataset_api.dataset_moderation.Mutation,
-               dataset_api.dataset_access_model_resource.schema.Mutation,
+               dataset_api.dataset_access_model_resource.schema.Mutation, dataset_api.aggrements.schema.Mutation,
                graphene.ObjectType):
     pass
 
