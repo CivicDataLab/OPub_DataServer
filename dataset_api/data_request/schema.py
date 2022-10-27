@@ -1,22 +1,32 @@
+import datetime
 import os
 
 import graphene
+import jwt
 import requests
+from django.conf import settings
 from django.core.files import File
 from graphene_django import DjangoObjectType
-from graphql_auth.bases import Output
 from graphene_file_upload.scalars import Upload
+from graphql_auth.bases import Output
 
+from dataset_api.decorators import validate_token, validate_token_or_none
 from dataset_api.models import Resource
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
-from dataset_api.decorators import validate_token
 
 
 class DataRequestType(DjangoObjectType):
+    access_token = graphene.String()
+    refresh_token = graphene.String()
+
     class Meta:
         model = DataRequest
         fields = "__all__"
+
+    @validate_token_or_none
+    def resolve_access_token(self: DataRequest, info, username):
+        return create_access_jwt_token(self, username)
 
 
 class StatusType(graphene.Enum):
@@ -50,6 +60,33 @@ class DataRequestUpdateInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
     status = StatusType()
     file = Upload(required=False)
+
+
+def create_access_jwt_token(data_request: DataRequest, username):
+    access_token_payload = {
+        'username': username,
+        'dam': data_request.dataset_access_model_request.access_model.id,
+        'resource_id': data_request.resource.id,
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(days=0, minutes=5),
+        'iat': datetime.datetime.utcnow(),
+    }
+    access_token = jwt.encode(access_token_payload,
+                              settings.SECRET_KEY, algorithm='HS256').decode('utf-8')
+    return access_token
+
+
+def generate_refresh_token(data_request: DataRequest, username):
+    refresh_token_payload = {
+        'username': username,
+        'dam': data_request.dataset_access_model_request.access_model.id,
+        'resource_id': data_request.resource.id,
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(days=0, minutes=5),
+        'iat': datetime.datetime.utcnow(),
+    }
+    refresh_token = jwt.encode(
+        refresh_token_payload, settings.REFRESH_TOKEN_SECRET, algorithm='HS256').decode('utf-8')
+
+    return refresh_token
 
 
 class DataRequestMutation(graphene.Mutation, Output):
