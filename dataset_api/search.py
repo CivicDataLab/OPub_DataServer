@@ -200,7 +200,7 @@ def facets(request):
             sort=sort_mapping,
         )
         resp["selected_facets"] = selected_facets
-        return HttpResponse(json.dumps(resp["hits"]))
+        return HttpResponse(json.dumps(resp))
 
 
 def search(request):
