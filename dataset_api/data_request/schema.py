@@ -16,7 +16,7 @@ class DataRequestType(DjangoObjectType):
         fields = "__all__"
 
 
-class StatusType(graphene.Enum):
+class DatasetRequestStatusType(graphene.Enum):
     REQUESTED = "REQUESTED"
     FULFILLED = "FULFILLED"
     FETCHED = "FETCHED"
@@ -45,7 +45,7 @@ class DataRequestInput(graphene.InputObjectType):
 
 class DataRequestUpdateInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
-    status = StatusType()
+    status = DatasetRequestStatusType()
     file = Upload(required=False)
 
 

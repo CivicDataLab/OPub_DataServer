@@ -23,6 +23,7 @@ class DataType(graphene.Enum):
 class DatasetStatus(graphene.Enum):
     DRAFT = "DRAFT"
     UNDERREVIEW = "UNDERREVIEW"
+    REVIEWED = "REVIEWED"
     PUBLISHED = "PUBLISHED"
     UNDERMODERATION = "UNDERMODERATION"
     READYTOPUBLISH = "READYTOPUBLISH"
