@@ -16,8 +16,11 @@ from .models import (
     FileDetails,
     APIDetails,
 )
+from .utils import dataset_slug
 
 es_client = Elasticsearch(settings.ELASTICSEARCH)
+
+
 # print(es_client.info())
 
 # TODO: New flow for rating, only update will be there.
@@ -35,6 +38,7 @@ def index_data(dataset_obj):
         "dataset_type": dataset_obj.dataset_type,
         "remote_issued": dataset_obj.remote_issued,
         "remote_modified": dataset_obj.remote_modified,
+        "slug": dataset_slug(dataset_obj.id)
     }
 
     geography = dataset_obj.geography.all()
