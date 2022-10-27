@@ -73,3 +73,12 @@ def _data_request_directory_path(request, filename):
     """
     _, extension = os.path.splitext(filename)
     return f"request/{request.id}/{extension[1:]}/{filename}"
+
+
+def _agreement_directory_path(agreement, filename):
+    """
+    Create a directory path to receive the request data.
+
+    """
+    _, extension = os.path.splitext(filename)
+    return f"request/{agreement.id}/{extension[1:]}/{filename}"
