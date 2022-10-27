@@ -16,7 +16,7 @@ def create_access_jwt_token(data_request: DataRequest, username):
         'iat': datetime.datetime.utcnow(),
     }
     access_token = jwt.encode(access_token_payload,
-                              settings.SECRET_KEY, algorithm='HS256')
+                              settings.SECRET_KEY, algorithm='HS256').decode('utf-8')
     return access_token
 
 
@@ -30,6 +30,6 @@ def generate_refresh_token(data_request: DataRequest, username):
         'iat': datetime.datetime.utcnow(),
     }
     refresh_token = jwt.encode(
-        refresh_token_payload, settings.REFRESH_TOKEN_SECRET, algorithm='HS256')
+        refresh_token_payload, settings.REFRESH_TOKEN_SECRET, algorithm='HS256').decode('utf-8')
 
     return refresh_token
