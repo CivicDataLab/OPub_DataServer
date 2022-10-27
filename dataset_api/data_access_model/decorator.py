@@ -11,14 +11,7 @@ check_action_url = "https://auth.idp.civicdatalab.in/users/check_user_access"
 def auth_user_action_dam(action):
     def accept_func(func):
         def inner(*args, **kwargs):
-            for keys in kwargs:
-                try:
-                    org_id = kwargs[keys]["organization"]
-                except:
-                    dam_id = kwargs[keys]["id"]
-                    org_id = DataAccessModel.objects.get(id=dam_id).organization.id
-                break
-
+            org_id = args[1].context.META.get("HTTP_ORGANIZATION")
             user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
             if user_token == "":
                 raise GraphQLError("Empty User")
