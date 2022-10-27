@@ -1,5 +1,8 @@
+import os
+
 import graphene
 import requests
+from django.core.files import File
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from graphene_file_upload.scalars import Upload
@@ -82,7 +85,9 @@ class DataRequestMutation(graphene.Mutation, Output):
             response = requests.request("GET", url, headers=headers, data=payload)
             print(response.text)
         elif resource and resource.dataset.dataset_type == "FILE":
-            data_request_instance.file = resource.filedetails.file
+
+            data_request_instance.file = File(resource.filedetails.file,
+                                              os.path.basename(resource.filedetails.file.path))
             data_request_instance.status = "FETCHED"
         data_request_instance.save()
         return DataRequestMutation(data_request=data_request_instance)
