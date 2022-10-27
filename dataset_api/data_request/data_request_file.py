@@ -38,7 +38,7 @@ def get_resource(request):
     except IndexError:
         return HttpResponse("Token prefix missing", content_type='text/plain')
     if token_payload:
-        get_request_file(token_payload.get("data_request"))
+        return get_request_file(token_payload.get("data_request"))
 
     return HttpResponse(json.dumps(token_payload), content_type='application/json')
 
