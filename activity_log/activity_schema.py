@@ -23,7 +23,7 @@ class ActivityType(DjangoObjectType):
 
     def resolve_slug(self: Activity, info):
         target_type = str(self.target_content_type).split("|")[1].strip()
-        if target_type is 'dataset':
+        if target_type == 'dataset':
             return dataset_slug(self.target_object_id)
         return None
 
