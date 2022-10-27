@@ -77,7 +77,6 @@ class DataRequestMutation(graphene.Mutation, Output):
         data_request_instance.save()
         # TODO: fix magic strings
         # TODO: Move pipeline url to config
-        print(resource, resource.dataset, resource.dataset.dataset_type)
         if resource and resource.dataset.dataset_type == "API":
             url = f"https://pipeline.ndp.civicdatalab.in/transformer/api_source_query?api_source_id={resource.id}&request_id={data_request_instance.id}"
             payload = {}

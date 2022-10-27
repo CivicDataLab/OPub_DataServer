@@ -5,7 +5,7 @@ from django.db import models
 from .Resource import Resource
 from ..file_paths import _resource_directory_path
 
-fs = FileSystemStorage(location=settings.PRIVATE_FILE_LOCATION)
+fs = FileSystemStorage(location=settings.PRIVATE_FILE_LOCATION, base_url=settings.PRIVATE_FILE_URL)
 
 
 class FileDetails(models.Model):
