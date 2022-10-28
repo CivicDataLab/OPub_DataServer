@@ -22,6 +22,11 @@ class SubscriptionUnits(models.TextChoices):
     YEARLY = "YEARLY"
 
 
+class ReviewType(models.TextChoices):
+    REVIEW = "REVIEW"
+    MODERATION = "MODERATION"
+
+
 class AuthLocation(models.TextChoices):
     HEADER = "HEADER"
     PARAM = "PARAM"
