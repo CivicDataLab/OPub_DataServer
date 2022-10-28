@@ -130,7 +130,7 @@ def facets(request):
 
     if sort_order:
         if sort_order == "last_modified":
-            sort_mapping = {"dataset_modified": {"order": "desc"}}
+            sort_mapping = {"remote_modified": {"order": "desc"}}
         else:
             sort_mapping = {"resource_title.keyword": {"order": sort_order}}
     else:
@@ -159,13 +159,13 @@ def facets(request):
 
     # Query for aggregations (facets).
     agg = {
-        "Licenses": {"terms": {"field": "license.keyword"}},
-        "Geographies": {"terms": {"field": "geography.keyword"}},
-        "Sectors": {"terms": {"field": "sector.keyword"}},
-        "File Type": {"terms": {"field": "format.keyword"}},
-        "Status": {"terms": {"field": "status.keyword"}},
-        "Rating": {"terms": {"field": "rating.keyword"}},
-        "Providers": {"terms": {"field": "org_title.keyword"}},
+        "license": {"terms": {"field": "license.keyword"}},
+        "geography": {"terms": {"field": "geography.keyword"}},
+        "sector": {"terms": {"field": "sector.keyword"}},
+        "format": {"terms": {"field": "format.keyword"}},
+        "status": {"terms": {"field": "status.keyword"}},
+        "rating": {"terms": {"field": "rating.keyword"}},
+        "organization": {"terms": {"field": "org_title.keyword"}},
     }
     if not query_string:
         # For filter search
@@ -211,7 +211,7 @@ def search(request):
 
     if sort_order:
         if sort_order == "last_modified":
-            sort_mapping = {"dataset_modified": {"order": "desc"}}
+            sort_mapping = {"remote_modified": {"order": "desc"}}
         else:
             sort_mapping = {"resource_title.keyword": {"order": sort_order}}
     else:
