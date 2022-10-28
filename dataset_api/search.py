@@ -59,6 +59,7 @@ def index_data(dataset_obj):
     doc["org_title"] = org_instance.title
     doc["org_description"] = org_instance.description
     doc["org_id"] = catalog_instance.organization_id
+    doc["org_logo"] = org_instance.logo.path
 
     resource_instance = Resource.objects.filter(dataset_id=dataset_obj.id)
     resource_title = []
