@@ -128,7 +128,7 @@ def facets(request):
     org = request.GET.get("organization", None)
     start_date = request.GET.get("start_date", None)
     end_date = request.GET.get("end_date", None)
-    sector = request.get("sector", None)
+    sector = request.GET.get("sector", None)
 
     if sort_order:
         if sort_order == "last_modified":
