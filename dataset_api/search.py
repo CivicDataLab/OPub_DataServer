@@ -210,15 +210,15 @@ def facets(request):
 
 def search(request):
     query_string = request.GET.get("q", None)
-    size = request.GET.get("size", "10")
+    size = request.GET.get("size", "5")
     paginate_from = request.GET.get("from", "0")
-    sort_order = request.GET.get("sort", None)
+    sort_order: str = request.GET.get("sort", None)
 
     if sort_order:
         if sort_order == "last_modified":
             sort_mapping = {"remote_modified": {"order": "desc"}}
         else:
-            sort_mapping = {"resource_title.keyword": {"order": sort_order}}
+            sort_mapping = {"dataset_title.keyword": {"order": sort_order}}
     else:
         sort_mapping = {}
 
