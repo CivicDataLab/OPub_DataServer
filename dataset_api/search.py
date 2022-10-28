@@ -14,7 +14,8 @@ from .models import (
     Resource,
     FileDetails,
     APIDetails,
-    Dataset
+    Dataset,
+    DatasetAccessModel,
 )
 from .utils import dataset_slug
 
@@ -28,7 +29,6 @@ def index_data(dataset_obj):
     doc = {
         "dataset_title": dataset_obj.title,
         "dataset_description": dataset_obj.description,
-        "dataset_id": dataset_obj.id,
         "action": dataset_obj.action,
         "funnel": dataset_obj.funnel,
         "period_from": dataset_obj.period_from,
@@ -37,7 +37,7 @@ def index_data(dataset_obj):
         "dataset_type": dataset_obj.dataset_type,
         "remote_issued": dataset_obj.remote_issued,
         "remote_modified": dataset_obj.remote_modified,
-        "slug": dataset_slug(dataset_obj.id)
+        "slug": dataset_slug(dataset_obj.id),
     }
 
     geography = dataset_obj.geography.all()
@@ -84,7 +84,6 @@ def index_data(dataset_obj):
                 format.append(file_details_obj.format)
             except FileDetails.DoesNotExist as e:
                 pass
-
     # Index all resources of a dataset.
     doc["resource_title"] = resource_title
     doc["resource_description"] = resource_description
@@ -94,6 +93,24 @@ def index_data(dataset_obj):
         doc["auth_type"] = auth_type
     if format:
         doc["format"] = format
+
+    # Index Data Access Model.
+    dam_instance = DatasetAccessModel.objects.filter(dataset_id=dataset_obj.id)
+    data_access_model_id = []
+    data_access_model_title = []
+    data_access_model_type = []
+    for dam in dam_instance:
+        data_access_model_id.append(dam.data_access_model.id)
+        data_access_model_title.append(dam.data_access_model.title)
+        data_access_model_type.append(dam.data_access_model.type)
+
+    if data_access_model_id:
+        doc["data_access_model_id"] = data_access_model_id
+    if data_access_model_title:
+        doc["data_access_model_title"] = data_access_model_title
+    if data_access_model_type:
+        doc["data_access_model_type"] = data_access_model_type
+
     # Check if Dataset already exists.
     resp = es_client.exists(index="dataset", id=dataset_obj.id)
     if resp:
