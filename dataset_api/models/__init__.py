@@ -13,7 +13,7 @@ from dataset_api.models.FileDetails import FileDetails
 from dataset_api.models.Geography import Geography
 from dataset_api.models.License import License
 from dataset_api.models.LicenseAddition import LicenseAddition
-from dataset_api.models.ModerationRequest import ModerationRequest
+from dataset_api.models.DatasetReviewRequest import DatasetReviewRequest
 from dataset_api.models.Organization import Organization
 from dataset_api.models.OrganizationCreateRequest import OrganizationCreateRequest
 from dataset_api.models.OrganizationRequest import OrganizationRequest
