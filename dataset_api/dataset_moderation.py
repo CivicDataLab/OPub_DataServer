@@ -123,7 +123,6 @@ class ReviewRequestMutation(graphene.Mutation, Output):
         review_request_instance = DatasetReviewRequest(
             status=review_request.status,
             description=review_request.description,
-            remark=review_request.remark,
             user=username,
         )
         dataset = Dataset.objects.get(id=review_request.dataset)
