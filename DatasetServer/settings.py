@@ -98,7 +98,9 @@ DATABASES = {
     }
 }
 
-ELASTICSEARCH = 'http://elasticsearch:9200'
+ELASTICSEARCH = env('ES_URL')
+
+AUTH_URL = env('AUTH_URL')
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
