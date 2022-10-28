@@ -159,13 +159,13 @@ def facets(request):
 
     # Query for aggregations (facets).
     agg = {
-        "Licenses": {"terms": {"field": "license.keyword"}},
-        "Geographies": {"terms": {"field": "geography.keyword"}},
-        "Sectors": {"terms": {"field": "sector.keyword"}},
-        "File Type": {"terms": {"field": "format.keyword"}},
+        "License": {"terms": {"field": "license.keyword"}},
+        "Geography": {"terms": {"field": "geography.keyword"}},
+        "Sector": {"terms": {"field": "sector.keyword"}},
+        "Format": {"terms": {"field": "format.keyword"}},
         "Status": {"terms": {"field": "status.keyword"}},
         "Rating": {"terms": {"field": "rating.keyword"}},
-        "Providers": {"terms": {"field": "org_title.keyword"}},
+        "Organization": {"terms": {"field": "org_title.keyword"}},
     }
     if not query_string:
         # For filter search
