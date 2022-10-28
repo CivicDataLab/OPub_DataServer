@@ -130,7 +130,7 @@ def facets(request):
 
     if sort_order:
         if sort_order == "last_modified":
-            sort_mapping = {"dataset_modified": {"order": "desc"}}
+            sort_mapping = {"remote_modified": {"order": "desc"}}
         else:
             sort_mapping = {"resource_title.keyword": {"order": sort_order}}
     else:
