@@ -7,7 +7,7 @@ from graphql_auth.bases import Output
 from .decorators import validate_token
 from .enums import ReviewType
 from .models import Dataset
-from .models.ModerationRequest import DatasetReviewRequest
+from .models import DatasetReviewRequest
 
 from .search import index_data
 
