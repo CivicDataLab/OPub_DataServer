@@ -137,7 +137,7 @@ def delete_data(id):
 def facets(request):
     filters = []  # List of queries for elasticsearch to filter up on.
     selected_facets = []  # List of facets that are selected.
-    facet = ["license", "geography", "format", "status", "rating"]
+    facet = ["license", "geography", "format", "status", "rating", "sector"]
     size = request.GET.get("size", "5")
     paginate_from = request.GET.get("from", "0")
     query_string = request.GET.get("q")
@@ -145,7 +145,6 @@ def facets(request):
     org = request.GET.get("organization", None)
     start_date = request.GET.get("start_date", None)
     end_date = request.GET.get("end_date", None)
-    sector = request.GET.get("sector", None)
 
     if sort_order:
         if sort_order == "last_modified":
@@ -158,14 +157,11 @@ def facets(request):
     # Creating query for faceted search (filters).
     for value in facet:
         if request.GET.get(value):
-            filters.append({"match": {f"{value}": request.GET.get(value)}})
-            selected_facets.append({f"{value}": request.GET.get(value).split(" ")})
-    if sector:
-        filters.append({"match": {f"sector": sector.replace("||", " ")}})
-        selected_facets.append({f"sector": sector.split("||")})
+            filters.append({"match": {f"{value}": request.GET.get(value).replace("||", " ")}})
+            selected_facets.append({f"{value}": request.GET.get(value).split("||")})
     if org:
         filters.append({"match": {"org_title": {"query": org, "operator": "AND"}}})
-        selected_facets.append({"org_title": org})
+        selected_facets.append({"organization": org.split('||')})
 
     if start_date and end_date:
         filters.append(
@@ -178,6 +174,8 @@ def facets(request):
                 }
             }
         )
+        selected_facets.append({"start_date": start_date})
+        selected_facets.append({"end_date": end_date})
 
     # Query for aggregations (facets).
     agg = {
