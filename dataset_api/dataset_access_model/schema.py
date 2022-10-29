@@ -24,6 +24,7 @@ class Query(graphene.ObjectType):
                                              queryset=DatasetAccessModelRequest.objects.filter(user=username))
             return DatasetAccessModel.objects.filter(dataset=dataset).order_by("-modified").prefetch_related(
                 prefetch_agreements, prefetch_dam_requests)
+        # TODO: don't send requests and agreements when non logged in
         return DatasetAccessModel.objects.filter(dataset=dataset).order_by("-modified")
 
     def resolve_dataset_access_model_by_id(self, info, dataset_access_model_id):

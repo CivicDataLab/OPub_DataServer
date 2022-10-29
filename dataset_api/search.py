@@ -95,7 +95,7 @@ def index_data(dataset_obj):
         doc["format"] = format
 
     # Index Data Access Model.
-    dam_instance = DatasetAccessModel.objects.filter(dataset_id=dataset_obj.id)
+    dam_instance = DatasetAccessModel.objects.filter(dataset=dataset_obj)
     data_access_model_id = []
     data_access_model_title = []
     data_access_model_type = []
@@ -104,12 +104,9 @@ def index_data(dataset_obj):
         data_access_model_title.append(dam.data_access_model.title)
         data_access_model_type.append(dam.data_access_model.type)
 
-    if data_access_model_id:
-        doc["data_access_model_id"] = data_access_model_id
-    if data_access_model_title:
-        doc["data_access_model_title"] = data_access_model_title
-    if data_access_model_type:
-        doc["data_access_model_type"] = data_access_model_type
+    doc["data_access_model_id"] = data_access_model_id
+    doc["data_access_model_title"] = data_access_model_title
+    doc["data_access_model_type"] = data_access_model_type
 
     # Check if Dataset already exists.
     resp = es_client.exists(index="dataset", id=dataset_obj.id)
