@@ -220,3 +220,4 @@ class Mutation(graphene.ObjectType):
     moderation_request = ModerationRequestMutation.Field()
     review_request = ReviewRequestMutation.Field()
     approve_reject_moderation_requests = ApproveRejectModerationRequests.Field()
+    approve_reject_review_request = ApproveRejectReviewRequests.Field()

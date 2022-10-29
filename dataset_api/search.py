@@ -138,7 +138,7 @@ def facets(request):
     filters = []  # List of queries for elasticsearch to filter up on.
     selected_facets = []  # List of facets that are selected.
     facet = ["license", "geography", "format", "status", "rating"]
-    size = request.GET.get("size", "10")
+    size = request.GET.get("size", "5")
     paginate_from = request.GET.get("from", "0")
     query_string = request.GET.get("q")
     sort_order = request.GET.get("sort", None)
