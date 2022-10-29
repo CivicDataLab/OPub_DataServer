@@ -185,9 +185,9 @@ def facets(request):
         "format": {"terms": {"field": "format.keyword"}},
         "status": {"terms": {"field": "status.keyword"}},
         "rating": {"terms": {"field": "rating.keyword"}},
-        "organization": {"terms": {"field": "org_title.keyword"}},
-        "min_duration": {"min": {"field": "period_from", "format": "yyyy-MM-dd"}},
-        "max_duration": {"max": {"field": "period_to", "format": "yyyy-MM-dd"}}
+        "organization": {"global": {}, "aggs": {"organization": {"terms": {"field": "org_title.keyword"}}}},
+        "min_duration": {"global": {}, "aggs": {"duration": {"min": {"field": "period_from", "format": "yyyy-MM-dd"}}}},
+        "max_duration": {"global": {}, "aggs": {"duration": {"max": {"field": "period_to", "format": "yyyy-MM-dd"}}}},
     }
     if not query_string:
         # For filter search
