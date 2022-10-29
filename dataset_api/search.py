@@ -143,8 +143,8 @@ def facets(request):
     query_string = request.GET.get("q")
     sort_order = request.GET.get("sort", None)
     org = request.GET.get("organization", None)
-    start_date = request.GET.get("start_date", None)
-    end_date = request.GET.get("end_date", None)
+    start_duration = request.GET.get("start_duration", None)
+    end_duration = request.GET.get("end_duration", None)
 
     if sort_order:
         if sort_order == "last_modified":
@@ -163,19 +163,19 @@ def facets(request):
         filters.append({"match": {"org_title": {"query": org, "operator": "AND"}}})
         selected_facets.append({"organization": org.split('||')})
 
-    if start_date and end_date:
+    if start_duration and end_duration:
         filters.append(
             {
                 "bool": {
                     "must_not": [
-                        {"range": {"period_to": {"lte": start_date}}},
-                        {"range": {"period_from": {"gte": end_date}}},
+                        {"range": {"period_to": {"lte": start_duration}}},
+                        {"range": {"period_from": {"gte": end_duration}}},
                     ]
                 }
             }
         )
-        selected_facets.append({"start_date": start_date})
-        selected_facets.append({"end_date": end_date})
+        selected_facets.append({"start_duration": start_duration})
+        selected_facets.append({"end_duration": end_duration})
 
     # Query for aggregations (facets).
     agg = {
@@ -186,6 +186,8 @@ def facets(request):
         "status": {"terms": {"field": "status.keyword"}},
         "rating": {"terms": {"field": "rating.keyword"}},
         "organization": {"terms": {"field": "org_title.keyword"}},
+        "min_duration": {"min": {"field": "period_from", "format": "yyyy-MM-dd"}},
+        "max_duration": {"max": {"field": "period_to", "format": "yyyy-MM-dd"}}
     }
     if not query_string:
         # For filter search
@@ -199,12 +201,9 @@ def facets(request):
                 from_=paginate_from,
                 sort=sort_mapping,
             )
-            resp["selected_facets"] = selected_facets
-            return HttpResponse(json.dumps(resp))
         else:
             # For getting facets.
             resp = es_client.search(index="dataset", aggs=agg, size=0)
-            return HttpResponse(json.dumps(resp))
     else:
         # For faceted search with query string.
         filters.append(
@@ -219,8 +218,8 @@ def facets(request):
             from_=paginate_from,
             sort=sort_mapping,
         )
-        resp["selected_facets"] = selected_facets
-        return HttpResponse(json.dumps(resp))
+    resp["selected_facets"] = selected_facets
+    return HttpResponse(json.dumps(resp))
 
 
 def search(request):
