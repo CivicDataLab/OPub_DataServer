@@ -19,6 +19,7 @@ class AccessModelResourceType(DjangoObjectType):
 
 class DatasetAccessModelType(DjangoObjectType):
     resource_formats = graphene.List(of_type=graphene.String)
+    usage = graphene.Int()
 
     class Meta:
         model = DatasetAccessModel
@@ -33,6 +34,9 @@ class DatasetAccessModelType(DjangoObjectType):
             if has_resource and hasattr(dam_resource.resource, "filedetails"):
                 formats.append(dam_resource.resource.filedetails.format)
         return list(set(formats))
+
+    def resolve_usage(self: DatasetAccessModel, info):
+        return self.datasetaccessmodelrequest_set.datarequest_set.filter(status="FETCHED").count()
 
 
 class ResourceFieldInput(graphene.InputObjectType):
