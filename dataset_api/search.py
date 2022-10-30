@@ -1,14 +1,13 @@
-from django.conf import settings
-from django.db.models import Avg
-from elasticsearch import Elasticsearch
-from django.http import HttpResponse
 import json
 
-# from django.utils.datastructures import MultiValueDictKeyError
+from django.conf import settings
+from django.db.models import Avg
+from django.http import HttpResponse
+from elasticsearch import Elasticsearch
 
 # import warnings
 # warnings.filterwarnings("ignore")
-
+from .enums import RatingStatus
 from .models import (
     Catalog,
     Organization,
@@ -16,15 +15,19 @@ from .models import (
     FileDetails,
     APIDetails,
     Dataset,
-    DatasetAccessModel,
-)
+    DatasetAccessModel, )
 from .utils import dataset_slug
+
+# from django.utils.datastructures import MultiValueDictKeyError
 
 es_client = Elasticsearch(settings.ELASTICSEARCH)
 
 
 def _get_average_rating(dataset):
-    stars_average = dataset.datasetratings_set.aggregate(Avg('data_quality')).values()[0]
+    ratings = dataset.datasetratings_set.filter(status=RatingStatus.PUBLISHED.value).aggregate(Avg('data_quality'))
+    if ratings:
+        return ratings.values()[0]
+    return 0
 
 
 # TODO: New flow for rating, only update will be there.
