@@ -28,9 +28,9 @@ class DatasetAccessModelType(DjangoObjectType):
         formats = []
         for dam_resource in self.datasetaccessmodelresource_set.all():
             resource = dam_resource.resource
-            if resource and resource.apidetails:
+            if resource and hasattr(resource, "apidetails"):
                 formats.append(dam_resource.ressource.apidetails.format)
-            if resource and resource.filedetails:
+            if resource and hasattr(resource, "filedetails"):
                 formats.append(dam_resource.ressource.filedetails.format)
         return list(set(formats))
 
