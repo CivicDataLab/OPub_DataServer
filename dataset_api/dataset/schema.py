@@ -4,7 +4,8 @@ from graphql_auth.bases import Output
 
 from activity_log.signal import activity
 from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization
-from dataset_api.decorators import auth_user_action_dataset, map_user_dataset, validate_token
+from .decorators import auth_user_action_dataset, map_user_dataset
+from dataset_api.decorators import validate_token
 from dataset_api.utils import get_client_ip, dataset_slug
 
 
@@ -36,7 +37,7 @@ class DatasetStatus(graphene.Enum):
 
 
 def _add_update_attributes_to_dataset(
-        dataset_instance, object_field, attribute_list, attribute_type
+    dataset_instance, object_field, attribute_list, attribute_type
 ):
     if not attribute_list:
         return
@@ -54,8 +55,12 @@ def _add_update_attributes_to_dataset(
 
 class Query(graphene.ObjectType):
     all_datasets = graphene.List(DatasetType)
-    org_datasets = graphene.List(DatasetType, first=graphene.Int(), skip=graphene.Int(),
-                                 status=DatasetStatus(required=False))
+    org_datasets = graphene.List(
+        DatasetType,
+        first=graphene.Int(),
+        skip=graphene.Int(),
+        status=DatasetStatus(required=False),
+    )
     dataset = graphene.Field(DatasetType, dataset_id=graphene.Int())
     dataset_by_title = graphene.Field(DatasetType, dataset_title=graphene.String())
     dataset_by_slug = graphene.Field(DatasetType, dataset_slug=graphene.String())
@@ -63,14 +68,19 @@ class Query(graphene.ObjectType):
     def resolve_all_datasets(self, info, **kwargs):
         return Dataset.objects.all().order_by("-modified")
 
-    def resolve_org_datasets(self, info, first=None, skip=None, status: DatasetStatus = None, **kwargs):
+    def resolve_org_datasets(
+        self, info, first=None, skip=None, status: DatasetStatus = None, **kwargs
+    ):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         organization = Organization.objects.get(id=org_id)
         if status:
-            query = Dataset.objects.filter(catalog__organization=organization, status=status).order_by(
-                "-modified")
+            query = Dataset.objects.filter(
+                catalog__organization=organization, status=status
+            ).order_by("-modified")
         else:
-            query = Dataset.objects.filter(catalog__organization=organization).order_by("-modified")
+            query = Dataset.objects.filter(catalog__organization=organization).order_by(
+                "-modified"
+            )
         if skip:
             query = query[skip:]
         if first:
@@ -81,7 +91,7 @@ class Query(graphene.ObjectType):
         return Dataset.objects.get(title__iexact=dataset_title)
 
     def resolve_dataset_by_slug(self, info, dataset_slug: str, **kwargs):
-        dataset_id = dataset_slug.split('_')[-1]
+        dataset_id = dataset_slug.split("_")[-1]
         return Dataset.objects.get(id=dataset_id)
 
     def resolve_dataset(self, info, dataset_id):
@@ -122,10 +132,10 @@ class CreateDataset(Output, graphene.Mutation):
     @auth_user_action_dataset(action="create_dataset")
     @map_user_dataset
     def mutate(
-            root,
-            info,
-            username,
-            dataset_data: DatasetInput = None,
+        root,
+        info,
+        username,
+        dataset_data: DatasetInput = None,
     ):
         try:
             org_id = info.context.META.get("HTTP_ORGANIZATION")
@@ -169,7 +179,11 @@ class CreateDataset(Output, graphene.Mutation):
             dataset_instance, "sector", dataset_data.sector_list, Sector
         )
         activity.send(
-            username, verb="Created", target=dataset_instance, target_group=organization, ip=get_client_ip(info)
+            username,
+            verb="Created",
+            target=dataset_instance,
+            target_group=organization,
+            ip=get_client_ip(info),
         )
         return CreateDataset(dataset=dataset_instance)
 
