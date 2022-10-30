@@ -36,8 +36,8 @@ class DataRequestType(DjangoObjectType):
     @validate_token_or_none
     def resolve_spec(self: DataRequest, info, username):
         spec = DATAREQUEST_SWAGGER_SPEC.copy()
-        spec["paths"]["/refreshtoken"]["parameters"][0]["example"] = generate_refresh_token(self, username)
-        spec["paths"]["/getresource"]["parameters"][0]["example"] = create_access_jwt_token(self, username)
+        spec["paths"]["/refreshtoken"]["get"]["parameters"][0]["example"] = generate_refresh_token(self, username)
+        spec["paths"]["/getresource"]["get"]["parameters"][0]["example"] = create_access_jwt_token(self, username)
         return spec
 
 
