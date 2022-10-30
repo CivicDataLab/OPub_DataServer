@@ -107,6 +107,8 @@ class DatasetInput(graphene.InputObjectType):
 
 class PatchDatasetInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
+    title = graphene.String(required=True)
+    description = graphene.String(required=True)
     funnel = graphene.String(default=None)
     status = graphene.String(default=None)
 
@@ -263,6 +265,10 @@ class PatchDataset(Output, graphene.Mutation):
             dataset_instance.status = dataset_data.status
         if dataset_data.funnel:
             dataset_instance.funnel = dataset_data.funnel
+        if dataset_data.title:
+            dataset_instance.title = dataset_data.title
+        if dataset_data.description:
+            dataset_instance.description = dataset_data.description
         dataset_instance.save()
         activity.send(
             username,

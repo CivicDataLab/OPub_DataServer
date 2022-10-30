@@ -22,8 +22,6 @@ from .utils import dataset_slug
 es_client = Elasticsearch(settings.ELASTICSEARCH)
 
 
-# print(es_client.info())
-
 # TODO: New flow for rating, only update will be there.
 def index_data(dataset_obj):
     doc = {
@@ -95,11 +93,11 @@ def index_data(dataset_obj):
         doc["format"] = format
 
     # Index Data Access Model.
-    dam_instance = DatasetAccessModel.objects.filter(dataset=dataset_obj)
+    dam_instances = DatasetAccessModel.objects.filter(dataset=dataset_obj)
     data_access_model_id = []
     data_access_model_title = []
     data_access_model_type = []
-    for dam in dam_instance:
+    for dam in dam_instances:
         data_access_model_id.append(dam.data_access_model.id)
         data_access_model_title.append(dam.data_access_model.title)
         data_access_model_type.append(dam.data_access_model.type)
@@ -136,7 +134,7 @@ def facets(request):
     facet = ["license", "geography", "format", "status", "rating", "sector"]
     size = request.GET.get("size")
     if not size:
-        size = 5 
+        size = 5
     paginate_from = request.GET.get("from", 0)
     query_string = request.GET.get("q")
     sort_order = request.GET.get("sort", None)
@@ -217,8 +215,8 @@ def facets(request):
 
 def search(request):
     query_string = request.GET.get("q", None)
-    size = request.GET.get("size", "5")
-    paginate_from = request.GET.get("from", "0")
+    size = request.GET.get("size", 5)
+    paginate_from = request.GET.get("from", 0)
     sort_order: str = request.GET.get("sort", None)
 
     if sort_order:
@@ -255,11 +253,10 @@ def more_like_this(request):
 
 
 def reindex_data():
-    dataset_obj = Dataset.objects.all()
+    dataset_obj = Dataset.objects.filter(status="PUBLISHED")
     for datasets in dataset_obj:
-        if datasets.status == "PUBLISHED":
-            resp = index_data(datasets)
-            if resp == "created":
-                print("Dataset_id --", datasets.id)
-            else:
-                print("Re-indexing failed!")
+        resp = index_data(datasets)
+        if resp == "created":
+            print("Dataset_id --", datasets.id)
+        else:
+            print("Re-indexing failed!")
