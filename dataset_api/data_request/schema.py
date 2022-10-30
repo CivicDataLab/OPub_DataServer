@@ -7,6 +7,7 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
+from dataset_api.constants import DATAREQUEST_SWAGGER_SPEC
 from dataset_api.data_request.token_handler import create_access_jwt_token, generate_refresh_token
 from dataset_api.decorators import validate_token, validate_token_or_none
 from dataset_api.enums import DataType
@@ -18,6 +19,7 @@ from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelReque
 class DataRequestType(DjangoObjectType):
     access_token = graphene.String()
     refresh_token = graphene.String()
+    spec = graphene.JSONString()
 
     class Meta:
         model = DataRequest
@@ -30,6 +32,13 @@ class DataRequestType(DjangoObjectType):
     @validate_token_or_none
     def resolve_refresh_token(self: DataRequest, info, username):
         return generate_refresh_token(self, username)
+
+    @validate_token_or_none
+    def resolve_spec(self: DataRequest, info, username):
+        spec = DATAREQUEST_SWAGGER_SPEC.copy()
+        spec["paths"]["/refreshtoken"]["parameters"][0]["example"] = generate_refresh_token(self, username)
+        spec["paths"]["/getresource"]["parameters"][0]["example"] = create_access_jwt_token(self, username)
+        return spec
 
 
 class DatasetRequestStatusType(graphene.Enum):
