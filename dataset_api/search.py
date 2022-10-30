@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db.models import Avg
 from elasticsearch import Elasticsearch
 from django.http import HttpResponse
 import json
@@ -22,6 +23,10 @@ from .utils import dataset_slug
 es_client = Elasticsearch(settings.ELASTICSEARCH)
 
 
+def _get_average_rating(dataset):
+    stars_average = dataset.datasetratings_set.aggregate(Avg('data_quality')).values()[0]
+
+
 # TODO: New flow for rating, only update will be there.
 def index_data(dataset_obj):
     doc = {
@@ -37,6 +42,7 @@ def index_data(dataset_obj):
         "remote_modified": dataset_obj.remote_modified,
         "slug": dataset_slug(dataset_obj.id),
         "highlights": dataset_obj.highlights,
+        "average_rating": _get_average_rating(dataset_obj)
     }
 
     geography = dataset_obj.geography.all()
