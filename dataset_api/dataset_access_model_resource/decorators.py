@@ -3,13 +3,16 @@ import json
 from graphql import GraphQLError
 
 from dataset_api.decorators import request_to_server
-from ..models.DataAccessModel import DataAccessModel
 
 
-def auth_user_action_dam(action):
+def auth_action_dam_resource(action):
     def accept_func(func):
         def inner(*args, **kwargs):
-            org_id = args[1].context.META.get("HTTP_ORGANIZATION")
+            for keys in kwargs:
+                try:
+                    dataset_id = kwargs[keys]["dataset_id"]
+                except:
+                    pass
             user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
             if user_token == "":
                 raise GraphQLError("Empty User")
@@ -18,8 +21,8 @@ def auth_user_action_dam(action):
                 {
                     "access_token": user_token,
                     "access_req": action,
-                    "access_org_id": org_id,
-                    "access_data_id": "",
+                    "access_org_id": "",
+                    "access_data_id": dataset_id,
                 }
             )
             response_json = request_to_server(body, "check_user_access")

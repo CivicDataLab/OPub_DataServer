@@ -8,8 +8,7 @@ from dataset_api.enums import LicenseStatus
 from dataset_api.models import Organization
 from dataset_api.models.LicenseAddition import LicenseAddition
 from dataset_api.models.License import License
-from dataset_api.decorators import check_license_role
-
+from dataset_api.decorators import check_license_role, auth_user_by_org
 
 class LicenseAdditionType(DjangoObjectType):
     class Meta:
@@ -177,6 +176,7 @@ class ApproveRejectLicense(graphene.Mutation, Output):
     license_requests = graphene.List(LicenseType)
 
     @staticmethod
+    @auth_user_by_org(action="approve_license")
     def mutate(root, info, license_data: LicenseApproveRejectInput = None):
         errors = []
         license_requests = []

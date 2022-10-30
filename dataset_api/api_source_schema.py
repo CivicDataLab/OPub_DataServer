@@ -4,7 +4,7 @@ from graphql_auth.bases import Output
 
 from .models import APISource
 from .enums import AuthLocation, AuthType
-
+from .decorators import auth_user_by_org
 
 class APISourceType(DjangoObjectType):
     class Meta:
@@ -49,6 +49,7 @@ class CreateAPISource(Output, graphene.Mutation):
     API_source = graphene.Field(APISourceType)
 
     @staticmethod
+    @auth_user_by_org(action="create_api_source")
     def mutate(root, info, api_source_data=None):
         api_source_instance = APISource(
             title=api_source_data.title,
