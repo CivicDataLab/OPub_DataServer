@@ -91,6 +91,7 @@ class DatasetInput(graphene.InputObjectType):
     period_from = graphene.Date()
     period_to = graphene.Date()
     update_frequency = graphene.String()
+    highlights = graphene.List(of_type=graphene.String, required=True)
     dataset_type = graphene.Enum.from_enum(DataType)(required=True)
     funnel = graphene.String(required=False, default_value="upload")
     action = graphene.String(required=False, default_value="create data")
@@ -132,14 +133,10 @@ class CreateDataset(Output, graphene.Mutation):
             return {
                 "success": False,
                 "errors": {
-                    "id": [
-                        {
-                            "message": "Organization with given id not found",
-                            "code": "404",
-                        }
-                    ]
-                },
-            }
+                    "id": [{
+                        "message": "Organization with given id not found",
+                        "code": "404",
+                    }]}}
         dataset_instance = Dataset(
             title=dataset_data.title,
             description=dataset_data.description,
@@ -148,6 +145,7 @@ class CreateDataset(Output, graphene.Mutation):
             funnel=dataset_data.funnel,
             action=dataset_data.action,
             status="DRAFT",
+            highlights=dataset_data.highlights,
             catalog=catalog,
             period_to=dataset_data.period_to,
             period_from=dataset_data.period_from,
@@ -217,6 +215,7 @@ class UpdateDataset(Output, graphene.Mutation):
         dataset_instance.period_from = dataset_data.period_from
         dataset_instance.dataset_type = dataset_data.dataset_type
         dataset_instance.update_frequency = dataset_data.update_frequency
+        dataset_instance.highlights = dataset_data.highlights
 
         dataset_instance.save()
         _add_update_attributes_to_dataset(
