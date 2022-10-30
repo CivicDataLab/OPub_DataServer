@@ -9,6 +9,7 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
+from .enums import DataType
 from .models import (
     APISource,
     Resource,
@@ -17,8 +18,9 @@ from .models import (
     APIDetails,
     FileDetails,
 )
-from .decorators import auth_user_action_resource
+from .decorators import auth_user_action_resource, validate_token
 from .constants import FORMAT_MAPPING
+from .utils import log_activity, get_client_ip
 
 
 class ResourceSchemaInputType(graphene.InputObjectType):
@@ -259,8 +261,9 @@ class CreateResource(graphene.Mutation, Output):
     resource = graphene.Field(ResourceType)
 
     @staticmethod
+    @validate_token
     @auth_user_action_resource(action="create_resource")
-    def mutate(root, info, resource_data: ResourceInput = None):
+    def mutate(root, info, username, resource_data: ResourceInput = None, ):
         """
 
         :type resource_data: List of dictionary
@@ -280,7 +283,7 @@ class CreateResource(graphene.Mutation, Output):
         resource_instance.save()
 
         # Create either api or file object.
-        if dataset.dataset_type == "API":
+        if dataset.dataset_type == DataType.API.value:
             try:
                 api_source_instance = APISource.objects.get(id=resource_data.api_details.api_source)
                 _create_update_api_details(resource_instance=resource_instance, attribute=resource_data.api_details)
@@ -288,11 +291,13 @@ class CreateResource(graphene.Mutation, Output):
                 resource_instance.delete()
                 return {"success": False,
                         "errors": {"id": [{"message": "API Source with given id not found", "code": "404"}]}}
-        elif dataset.dataset_type == "FILE":
+        elif dataset.dataset_type == DataType.FILE.value:
             _create_update_file_details(resource_instance=resource_instance, attribute=resource_data.file_details)
 
         _remove_masked_fields(resource_instance)
         _create_update_schema(resource_data, resource_instance)
+        log_activity(target_obj=resource_instance, ip=get_client_ip(info), target_group=dataset.catalog.organization,
+                     username=username, verb="Created")
 
         return CreateResource(success=True, resource=resource_instance)
 
@@ -304,8 +309,9 @@ class UpdateResource(graphene.Mutation, Output):
     resource = graphene.Field(ResourceType)
 
     @staticmethod
+    @validate_token
     @auth_user_action_resource(action="update_resource")
-    def mutate(root, info, resource_data: ResourceInput = None):
+    def mutate(root, info, username, resource_data: ResourceInput = None):
         try:
             resource_instance = Resource.objects.get(id=resource_data.id)
             dataset = Dataset.objects.get(id=resource_data.dataset)
@@ -337,6 +343,8 @@ class UpdateResource(graphene.Mutation, Output):
         resource_instance.save()
         _remove_masked_fields(resource_instance)
         _create_update_schema(resource_data, resource_instance)
+        log_activity(target_obj=resource_instance, ip=get_client_ip(info), target_group=dataset.catalog.organization,
+                     username=username, verb="Updated")
         return UpdateResource(success=True, resource=resource_instance)
 
 
@@ -349,13 +357,17 @@ class DeleteResource(graphene.Mutation, Output):
     # resource = graphene.Field(ResourceType)
 
     @staticmethod
+    @validate_token
     @auth_user_action_resource(action="delete_resource")
-    def mutate(root, info, resource_data: DeleteResourceInput = None):
+    def mutate(root, info, username, resource_data: DeleteResourceInput = None):
         try:
             resource_instance = Resource.objects.get(id=resource_data.id)
         except Resource.DoesNotExist as e:
             return {"success": False,
                     "errors": {"id": [{"message": "Resource with given id not found", "code": "404"}]}}
+        log_activity(target_obj=resource_instance, ip=get_client_ip(info),
+                     target_group=resource_instance.dataset.catalog.organization,
+                     username=username, verb="Deleted")
         resource_instance.delete()
         return DeleteResource(success=True)
 

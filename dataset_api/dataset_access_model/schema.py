@@ -18,14 +18,13 @@ class Query(graphene.ObjectType):
         except Dataset.DoesNotExist as e:
             return {"success": False,
                     "errors": {"organization_id": [{"message": "Dataset with id not found", "code": "404"}]}}
-        if not username: username=""
+        if not username:
+            username = ""
         prefetch_agreements = Prefetch("agreements", queryset=Agreement.objects.filter(username=username))
         prefetch_dam_requests = Prefetch("datasetaccessmodelrequest_set",
                                          queryset=DatasetAccessModelRequest.objects.filter(user=username))
         return DatasetAccessModel.objects.filter(dataset=dataset).order_by("-modified").prefetch_related(
             prefetch_agreements, prefetch_dam_requests)
-        # TODO: don't send requests and agreements when non logged in
-        #return DatasetAccessModel.objects.filter(dataset=dataset).order_by("-modified")
 
     def resolve_dataset_access_model_by_id(self, info, dataset_access_model_id):
         return DatasetAccessModel.objects.get(pk=dataset_access_model_id)

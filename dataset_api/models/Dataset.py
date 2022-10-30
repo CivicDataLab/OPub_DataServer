@@ -1,5 +1,7 @@
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
+from dataset_api.enums import DataType
 from dataset_api.models.Geography import Geography
 from dataset_api.models.Tag import Tag
 from dataset_api.models.Sector import Sector
@@ -10,6 +12,7 @@ class Dataset(models.Model):
     title = models.CharField(max_length=100, blank=True)
     description = models.CharField(max_length=500, blank=True)
     issued = models.DateTimeField(auto_now_add=True)
+    highlights = ArrayField(models.CharField(max_length=100, blank=True, null=True), blank=True, null=True)
     remote_issued = models.DateField(blank=True, null=True)
     remote_modified = models.DateTimeField(blank=True, null=True)
     period_from = models.DateField(blank=True, null=True)
@@ -23,4 +26,4 @@ class Dataset(models.Model):
     geography = models.ManyToManyField(Geography, blank=True)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE)
     tags = models.ManyToManyField(Tag, blank=True)
-    dataset_type = models.CharField(max_length=500, default="")
+    dataset_type = models.CharField(max_length=50, default=DataType.FILE.value, choices=DataType.choices)

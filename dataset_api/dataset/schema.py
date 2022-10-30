@@ -6,7 +6,8 @@ from activity_log.signal import activity
 from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization
 from .decorators import auth_user_action_dataset, map_user_dataset
 from dataset_api.decorators import validate_token
-from dataset_api.utils import get_client_ip, dataset_slug
+from dataset_api.utils import get_client_ip, dataset_slug, log_activity
+from dataset_api.enums import DataType
 
 
 class DatasetType(DjangoObjectType):
@@ -18,12 +19,6 @@ class DatasetType(DjangoObjectType):
 
     def resolve_slug(self: Dataset, info):
         return dataset_slug(self.id)
-
-
-class DataType(graphene.Enum):
-    API = "API"
-    FILE = "FILE"
-    DATASET = "DATASET"
 
 
 class DatasetStatus(graphene.Enum):
@@ -107,7 +102,8 @@ class DatasetInput(graphene.InputObjectType):
     period_from = graphene.Date()
     period_to = graphene.Date()
     update_frequency = graphene.String()
-    dataset_type = DataType(required=True)
+    highlights = graphene.List(of_type=graphene.String, required=True)
+    dataset_type = graphene.Enum.from_enum(DataType)(required=True)
     funnel = graphene.String(required=False, default_value="upload")
     action = graphene.String(required=False, default_value="create data")
     tags_list = graphene.List(of_type=graphene.String, default=[], required=False)
@@ -117,6 +113,8 @@ class DatasetInput(graphene.InputObjectType):
 
 class PatchDatasetInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
+    title = graphene.String(required=True)
+    description = graphene.String(required=True)
     funnel = graphene.String(default=None)
     status = graphene.String(default=None)
 
@@ -162,6 +160,7 @@ class CreateDataset(Output, graphene.Mutation):
             funnel=dataset_data.funnel,
             action=dataset_data.action,
             status="DRAFT",
+            highlights=dataset_data.highlights,
             catalog=catalog,
             period_to=dataset_data.period_to,
             period_from=dataset_data.period_from,
@@ -178,12 +177,12 @@ class CreateDataset(Output, graphene.Mutation):
         _add_update_attributes_to_dataset(
             dataset_instance, "sector", dataset_data.sector_list, Sector
         )
-        activity.send(
-            username,
-            verb="Created",
-            target=dataset_instance,
-            target_group=organization,
+        log_activity(
+            target_obj=dataset_instance,
             ip=get_client_ip(info),
+            target_group=organization,
+            username=username,
+            verb="Created",
         )
         return CreateDataset(dataset=dataset_instance)
 
@@ -231,10 +230,12 @@ class UpdateDataset(Output, graphene.Mutation):
         dataset_instance.funnel = dataset_data.funnel
         dataset_instance.action = dataset_data.action
         dataset_instance.catalog = catalog
+        dataset_instance.status = "DRAFT"
         dataset_instance.period_to = dataset_data.period_to
         dataset_instance.period_from = dataset_data.period_from
         dataset_instance.dataset_type = dataset_data.dataset_type
         dataset_instance.update_frequency = dataset_data.update_frequency
+        dataset_instance.highlights = dataset_data.highlights
 
         dataset_instance.save()
         _add_update_attributes_to_dataset(
@@ -246,9 +247,14 @@ class UpdateDataset(Output, graphene.Mutation):
         _add_update_attributes_to_dataset(
             dataset_instance, "sector", dataset_data.sector_list, Sector
         )
-        activity.send(
-            username, verb="Updated", target=dataset_instance, target_group=organization
+        log_activity(
+            target_obj=dataset_instance,
+            ip=get_client_ip(info),
+            target_group=organization,
+            username=username,
+            verb="Updated",
         )
+
         return UpdateDataset(dataset=dataset_instance)
 
 
@@ -277,13 +283,19 @@ class PatchDataset(Output, graphene.Mutation):
             dataset_instance.status = dataset_data.status
         if dataset_data.funnel:
             dataset_instance.funnel = dataset_data.funnel
+        if dataset_data.title:
+            dataset_instance.title = dataset_data.title
+        if dataset_data.description:
+            dataset_instance.description = dataset_data.description
         dataset_instance.save()
-        activity.send(
-            username,
-            verb="Updated",
-            target=dataset_instance,
+        log_activity(
+            target_obj=dataset_instance,
+            ip=get_client_ip(info),
             target_group=dataset_instance.catalog.organization,
+            username=username,
+            verb="Updated",
         )
+
         return PatchDataset(success=True, dataset=dataset_instance)
 
 
