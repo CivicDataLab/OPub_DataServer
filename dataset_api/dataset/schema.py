@@ -5,11 +5,12 @@ from graphql_auth.bases import Output
 from dataset_api.decorators import auth_user_action_dataset, map_user_dataset, validate_token
 from dataset_api.enums import DataType
 from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization
-from dataset_api.utils import get_client_ip, dataset_slug, log_activity
+from dataset_api.utils import get_client_ip, dataset_slug, log_activity, get_average_rating
 
 
 class DatasetType(DjangoObjectType):
     slug = graphene.String()
+    average_rating = graphene.Float()
 
     class Meta:
         model = Dataset
@@ -17,6 +18,9 @@ class DatasetType(DjangoObjectType):
 
     def resolve_slug(self: Dataset, info):
         return dataset_slug(self.id)
+
+    def resolve_average_rating(self: Dataset, info):
+        return get_average_rating(dataset=self)
 
 
 class DatasetStatus(graphene.Enum):
