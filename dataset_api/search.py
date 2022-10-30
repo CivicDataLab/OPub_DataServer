@@ -103,7 +103,6 @@ def index_data(dataset_obj):
         data_access_model_id.append(dam.data_access_model.id)
         data_access_model_title.append(dam.data_access_model.title)
         data_access_model_type.append(dam.data_access_model.type)
-
     doc["data_access_model_id"] = data_access_model_id
     doc["data_access_model_title"] = data_access_model_title
     doc["data_access_model_type"] = data_access_model_type
@@ -135,14 +134,15 @@ def facets(request):
     filters = []  # List of queries for elasticsearch to filter up on.
     selected_facets = []  # List of facets that are selected.
     facet = ["license", "geography", "format", "status", "rating", "sector"]
-    size = request.GET.get("size", "5")
-    paginate_from = request.GET.get("from", "0")
+    size = request.GET.get("size")
+    if not size:
+        size = 5 
+    paginate_from = request.GET.get("from", 0)
     query_string = request.GET.get("q")
     sort_order = request.GET.get("sort", None)
     org = request.GET.get("organization", None)
     start_duration = request.GET.get("start_duration", None)
     end_duration = request.GET.get("end_duration", None)
-
     if sort_order:
         if sort_order == "last_modified":
             sort_mapping = {"remote_modified": {"order": "desc"}}
@@ -188,19 +188,15 @@ def facets(request):
     }
     if not query_string:
         # For filter search
-        if len(request.GET.keys()) >= 1:
-            query = {"bool": {"must": filters}}
-            resp = es_client.search(
-                index="dataset",
-                aggs=agg,
-                query=query,
-                size=size,
-                from_=paginate_from,
-                sort=sort_mapping,
-            )
-        else:
-            # For getting facets.
-            resp = es_client.search(index="dataset", aggs=agg, size=0)
+        query = {"bool": {"must": filters}}
+        resp = es_client.search(
+            index="dataset",
+            aggs=agg,
+            query=query,
+            size=size,
+            from_=paginate_from,
+            sort=sort_mapping,
+        )
     else:
         # For faceted search with query string.
         filters.append(
