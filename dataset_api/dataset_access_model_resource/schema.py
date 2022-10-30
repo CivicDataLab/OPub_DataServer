@@ -26,7 +26,7 @@ class DatasetAccessModelType(DjangoObjectType):
 
     def resolve_resource_formats(self: DatasetAccessModel, info):
         formats = []
-        for resource in self.datasetaccessmodelresource_set:
+        for resource in self.datasetaccessmodelresource_set.all():
             if resource.resource.apidetails:
                 formats.append(resource.ressource.apidetails.format)
             if resource.resource.filedetails:
