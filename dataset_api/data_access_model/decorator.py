@@ -2,10 +2,8 @@ import json
 
 from graphql import GraphQLError
 
-from ..decorators import request_to_server
+from dataset_api.decorators import request_to_server
 from ..models.DataAccessModel import DataAccessModel
-
-check_action_url = "https://auth.idp.civicdatalab.in/users/check_user_access"
 
 
 def auth_user_action_dam(action):
@@ -24,7 +22,7 @@ def auth_user_action_dam(action):
                     "access_data_id": "",
                 }
             )
-            response_json = request_to_server(body, check_action_url)
+            response_json = request_to_server(body, "check_user_access")
             if not response_json["Success"]:
                 raise GraphQLError(response_json["error_description"])
             if response_json["access_allowed"]:
