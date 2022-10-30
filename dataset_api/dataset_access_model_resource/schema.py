@@ -26,12 +26,12 @@ class DatasetAccessModelType(DjangoObjectType):
 
     def resolve_resource_formats(self: DatasetAccessModel, info):
         formats = []
-        for resource in self.datasetaccessmodelresource_set.all():
-            if resource.resource.apidetails:
-                formats.append(resource.ressource.apidetails.format)
-            if resource.resource.filedetails:
-                formats.append(resource.ressource.filedetails.format)
-        return set(formats)
+        for dam_resource in self.datasetaccessmodelresource_set.all():
+            if dam_resource.resource.apidetails:
+                formats.append(dam_resource.ressource.apidetails.format)
+            if dam_resource.resource.filedetails:
+                formats.append(dam_resource.ressource.filedetails.format)
+        return list(set(formats))
 
 
 class ResourceFieldInput(graphene.InputObjectType):
