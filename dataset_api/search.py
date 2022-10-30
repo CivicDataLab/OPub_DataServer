@@ -36,6 +36,7 @@ def index_data(dataset_obj):
         "remote_issued": dataset_obj.remote_issued,
         "remote_modified": dataset_obj.remote_modified,
         "slug": dataset_slug(dataset_obj.id),
+        "highlights": dataset_obj.highlights,
     }
 
     geography = dataset_obj.geography.all()
