@@ -14,7 +14,8 @@ from .models import (
     Resource,
     FileDetails,
     APIDetails,
-    Dataset
+    Dataset,
+    DatasetAccessModel,
 )
 from .utils import dataset_slug
 
@@ -28,7 +29,6 @@ def index_data(dataset_obj):
     doc = {
         "dataset_title": dataset_obj.title,
         "dataset_description": dataset_obj.description,
-        "dataset_id": dataset_obj.id,
         "action": dataset_obj.action,
         "funnel": dataset_obj.funnel,
         "period_from": dataset_obj.period_from,
@@ -37,7 +37,7 @@ def index_data(dataset_obj):
         "dataset_type": dataset_obj.dataset_type,
         "remote_issued": dataset_obj.remote_issued,
         "remote_modified": dataset_obj.remote_modified,
-        "slug": dataset_slug(dataset_obj.id)
+        "slug": dataset_slug(dataset_obj.id),
     }
 
     geography = dataset_obj.geography.all()
@@ -59,6 +59,7 @@ def index_data(dataset_obj):
     doc["org_title"] = org_instance.title
     doc["org_description"] = org_instance.description
     doc["org_id"] = catalog_instance.organization_id
+    doc["org_logo"] = str(org_instance.logo) if org_instance.logo else ""
 
     resource_instance = Resource.objects.filter(dataset_id=dataset_obj.id)
     resource_title = []
@@ -83,7 +84,6 @@ def index_data(dataset_obj):
                 format.append(file_details_obj.format)
             except FileDetails.DoesNotExist as e:
                 pass
-
     # Index all resources of a dataset.
     doc["resource_title"] = resource_title
     doc["resource_description"] = resource_description
@@ -93,6 +93,20 @@ def index_data(dataset_obj):
         doc["auth_type"] = auth_type
     if format:
         doc["format"] = format
+
+    # Index Data Access Model.
+    dam_instance = DatasetAccessModel.objects.filter(dataset=dataset_obj)
+    data_access_model_id = []
+    data_access_model_title = []
+    data_access_model_type = []
+    for dam in dam_instance:
+        data_access_model_id.append(dam.data_access_model.id)
+        data_access_model_title.append(dam.data_access_model.title)
+        data_access_model_type.append(dam.data_access_model.type)
+    doc["data_access_model_id"] = data_access_model_id
+    doc["data_access_model_title"] = data_access_model_title
+    doc["data_access_model_type"] = data_access_model_type
+
     # Check if Dataset already exists.
     resp = es_client.exists(index="dataset", id=dataset_obj.id)
     if resp:
@@ -119,72 +133,70 @@ def delete_data(id):
 def facets(request):
     filters = []  # List of queries for elasticsearch to filter up on.
     selected_facets = []  # List of facets that are selected.
-    facet = ["license", "geography", "sector", "format", "status", "rating"]
-    size = request.GET.get("size", "10")
-    paginate_from = request.GET.get("from", "0")
+    facet = ["license", "geography", "format", "status", "rating", "sector"]
+    size = request.GET.get("size")
+    if not size:
+        size = 5 
+    paginate_from = request.GET.get("from", 0)
     query_string = request.GET.get("q")
     sort_order = request.GET.get("sort", None)
     org = request.GET.get("organization", None)
-    start_date = request.GET.get("start_date", None)
-    end_date = request.GET.get("end_date", None)
-
+    start_duration = request.GET.get("start_duration", None)
+    end_duration = request.GET.get("end_duration", None)
     if sort_order:
         if sort_order == "last_modified":
-            sort_mapping = {"dataset_modified": {"order": "desc"}}
+            sort_mapping = {"remote_modified": {"order": "desc"}}
         else:
-            sort_mapping = {"resource_title.keyword": {"order": sort_order}}
+            sort_mapping = {"dataset_title.keyword": {"order": sort_order}}
     else:
         sort_mapping = {}
 
     # Creating query for faceted search (filters).
     for value in facet:
         if request.GET.get(value):
-            filters.append({"match": {f"{value}": request.GET.get(value)}})
-            selected_facets.append({f"{value}": request.GET.get(value).split(" ")})
+            filters.append({"match": {f"{value}": request.GET.get(value).replace("||", " ")}})
+            selected_facets.append({f"{value}": request.GET.get(value).split("||")})
     if org:
         filters.append({"match": {"org_title": {"query": org, "operator": "AND"}}})
-        selected_facets.append({"org_title": org})
+        selected_facets.append({"organization": org.split('||')})
 
-    if start_date and end_date:
+    if start_duration and end_duration:
         filters.append(
             {
                 "bool": {
                     "must_not": [
-                        {"range": {"period_to": {"lte": start_date}}},
-                        {"range": {"period_from": {"gte": end_date}}},
+                        {"range": {"period_to": {"lte": start_duration}}},
+                        {"range": {"period_from": {"gte": end_duration}}},
                     ]
                 }
             }
         )
+        selected_facets.append({"start_duration": start_duration})
+        selected_facets.append({"end_duration": end_duration})
 
     # Query for aggregations (facets).
     agg = {
-        "Licenses": {"terms": {"field": "license.keyword"}},
-        "Geographies": {"terms": {"field": "geography.keyword"}},
-        "Sectors": {"terms": {"field": "sector.keyword"}},
-        "File Type": {"terms": {"field": "format.keyword"}},
-        "Status": {"terms": {"field": "status.keyword"}},
-        "Rating": {"terms": {"field": "rating.keyword"}},
-        "Providers": {"terms": {"field": "org_title.keyword"}},
+        "license": {"terms": {"field": "license.keyword"}},
+        "geography": {"terms": {"field": "geography.keyword"}},
+        "sector": {"terms": {"field": "sector.keyword"}},
+        "format": {"terms": {"field": "format.keyword"}},
+        "status": {"terms": {"field": "status.keyword"}},
+        "rating": {"terms": {"field": "rating.keyword"}},
+        "organization": {"global": {}, "aggs": {"all": {"terms": {"field": "org_title.keyword"}}}},
+        "duration": {"global": {}, "aggs": {"min": {"min": {"field": "period_from", "format": "yyyy-MM-dd"}},
+                                            "max": {"max": {"field": "period_to", "format": "yyyy-MM-dd"}}}},
     }
     if not query_string:
         # For filter search
-        if len(request.GET.keys()) >= 1:
-            query = {"bool": {"must": filters}}
-            resp = es_client.search(
-                index="dataset",
-                aggs=agg,
-                query=query,
-                size=size,
-                from_=paginate_from,
-                sort=sort_mapping,
-            )
-            resp["selected_facets"] = selected_facets
-            return HttpResponse(json.dumps(resp))
-        else:
-            # For getting facets.
-            resp = es_client.search(index="dataset", aggs=agg, size=0)
-            return HttpResponse(json.dumps(resp))
+        query = {"bool": {"must": filters}}
+        resp = es_client.search(
+            index="dataset",
+            aggs=agg,
+            query=query,
+            size=size,
+            from_=paginate_from,
+            sort=sort_mapping,
+        )
     else:
         # For faceted search with query string.
         filters.append(
@@ -199,21 +211,21 @@ def facets(request):
             from_=paginate_from,
             sort=sort_mapping,
         )
-        resp["selected_facets"] = selected_facets
-        return HttpResponse(json.dumps(resp))
+    resp["selected_facets"] = selected_facets
+    return HttpResponse(json.dumps(resp))
 
 
 def search(request):
     query_string = request.GET.get("q", None)
-    size = request.GET.get("size", "10")
+    size = request.GET.get("size", "5")
     paginate_from = request.GET.get("from", "0")
-    sort_order = request.GET.get("sort", None)
+    sort_order: str = request.GET.get("sort", None)
 
     if sort_order:
         if sort_order == "last_modified":
-            sort_mapping = {"dataset_modified": {"order": "desc"}}
+            sort_mapping = {"remote_modified": {"order": "desc"}}
         else:
-            sort_mapping = {"resource_title.keyword": {"order": sort_order}}
+            sort_mapping = {"dataset_title.keyword": {"order": sort_order}}
     else:
         sort_mapping = {}
 

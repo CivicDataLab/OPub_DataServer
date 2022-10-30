@@ -28,6 +28,7 @@ class DataType(graphene.Enum):
 class DatasetStatus(graphene.Enum):
     DRAFT = "DRAFT"
     UNDERREVIEW = "UNDERREVIEW"
+    REVIEWED = "REVIEWED"
     PUBLISHED = "PUBLISHED"
     UNDERMODERATION = "UNDERMODERATION"
     READYTOPUBLISH = "READYTOPUBLISH"
@@ -99,7 +100,6 @@ class DatasetInput(graphene.InputObjectType):
     dataset_type = DataType(required=True)
     funnel = graphene.String(required=False, default_value="upload")
     action = graphene.String(required=False, default_value="create data")
-    status = graphene.String(required=True)
     tags_list = graphene.List(of_type=graphene.String, default=[], required=False)
     geo_list = graphene.List(of_type=graphene.String, default=[], required=False)
     sector_list = graphene.List(of_type=graphene.String, default=[], required=False)
@@ -151,7 +151,7 @@ class CreateDataset(Output, graphene.Mutation):
             remote_modified=dataset_data.remote_modified,
             funnel=dataset_data.funnel,
             action=dataset_data.action,
-            status=dataset_data.status,
+            status="DRAFT",
             catalog=catalog,
             period_to=dataset_data.period_to,
             period_from=dataset_data.period_from,
@@ -216,7 +216,6 @@ class UpdateDataset(Output, graphene.Mutation):
         dataset_instance.remote_modified = dataset_data.remote_modified
         dataset_instance.funnel = dataset_data.funnel
         dataset_instance.action = dataset_data.action
-        dataset_instance.status = dataset_data.status
         dataset_instance.catalog = catalog
         dataset_instance.period_to = dataset_data.period_to
         dataset_instance.period_from = dataset_data.period_from
