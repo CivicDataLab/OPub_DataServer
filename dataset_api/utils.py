@@ -1,7 +1,9 @@
+from django.db.models import Avg
 from django.utils.text import slugify
 from numpy.compat import unicode
 
 from activity_log.signal import activity
+from dataset_api.enums import RatingStatus
 from dataset_api.models import Dataset
 
 
@@ -23,3 +25,9 @@ def log_activity(target_obj, verb, target_group=None, username="anonymous", ip="
     activity.send(
         username, verb=verb, target=target_obj, target_group=target_group, ip=ip
     )
+
+
+def get_average_rating(dataset):
+    ratings = dataset.datasetratings_set.filter(status=RatingStatus.PUBLISHED.value).aggregate(Avg('data_quality'))[
+        'data_quality__avg']
+    return ratings if ratings else 0

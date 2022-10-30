@@ -1,13 +1,11 @@
 import json
 
 from django.conf import settings
-from django.db.models import Avg
 from django.http import HttpResponse
 from elasticsearch import Elasticsearch
 
 # import warnings
 # warnings.filterwarnings("ignore")
-from .enums import RatingStatus
 from .models import (
     Catalog,
     Organization,
@@ -16,18 +14,11 @@ from .models import (
     APIDetails,
     Dataset,
     DatasetAccessModel, )
-from .utils import dataset_slug
+from .utils import dataset_slug, get_average_rating
 
 # from django.utils.datastructures import MultiValueDictKeyError
 
 es_client = Elasticsearch(settings.ELASTICSEARCH)
-
-
-def _get_average_rating(dataset):
-    ratings = dataset.datasetratings_set.filter(status=RatingStatus.PUBLISHED.value).aggregate(Avg('data_quality'))
-    if ratings:
-        return ratings.values()[0]
-    return 0
 
 
 # TODO: New flow for rating, only update will be there.
@@ -45,7 +36,7 @@ def index_data(dataset_obj):
         "remote_modified": dataset_obj.remote_modified,
         "slug": dataset_slug(dataset_obj.id),
         "highlights": dataset_obj.highlights,
-        "average_rating": _get_average_rating(dataset_obj)
+        "average_rating": get_average_rating(dataset_obj)
     }
 
     geography = dataset_obj.geography.all()

@@ -6,12 +6,14 @@ from activity_log.signal import activity
 from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization
 from .decorators import auth_user_action_dataset, map_user_dataset
 from dataset_api.decorators import validate_token
-from dataset_api.utils import get_client_ip, dataset_slug, log_activity
+from dataset_api.utils import get_client_ip, dataset_slug, log_activity, get_average_rating
 from dataset_api.enums import DataType
+
 
 
 class DatasetType(DjangoObjectType):
     slug = graphene.String()
+    average_rating = graphene.Float()
 
     class Meta:
         model = Dataset
@@ -19,6 +21,9 @@ class DatasetType(DjangoObjectType):
 
     def resolve_slug(self: Dataset, info):
         return dataset_slug(self.id)
+
+    def resolve_average_rating(self: Dataset, info):
+        return get_average_rating(dataset=self)
 
 
 class DatasetStatus(graphene.Enum):

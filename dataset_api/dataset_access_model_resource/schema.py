@@ -18,9 +18,20 @@ class AccessModelResourceType(DjangoObjectType):
 
 
 class DatasetAccessModelType(DjangoObjectType):
+    resource_formats = graphene.List(of_type=graphene.String)
+
     class Meta:
         model = DatasetAccessModel
         fields = "__all__"
+
+    def resolve_resource_formats(self: DatasetAccessModel, info):
+        formats = []
+        for resource in self.datasetaccessmodelresource_set:
+            if resource.resource.apidetails:
+                formats.append(resource.ressource.apidetails.format)
+            if resource.resource.filedetails:
+                formats.append(resource.ressource.filedetails.format)
+        return set(formats)
 
 
 class ResourceFieldInput(graphene.InputObjectType):
