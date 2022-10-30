@@ -219,6 +219,7 @@ class UpdateDataset(Output, graphene.Mutation):
         dataset_instance.funnel = dataset_data.funnel
         dataset_instance.action = dataset_data.action
         dataset_instance.catalog = catalog
+        dataset_instance.status = "DRAFT"
         dataset_instance.period_to = dataset_data.period_to
         dataset_instance.period_from = dataset_data.period_from
         dataset_instance.dataset_type = dataset_data.dataset_type
