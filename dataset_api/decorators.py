@@ -1,19 +1,18 @@
+from django.conf import settings
 import json
-
 import requests
 from graphql import GraphQLError
 
 from .models import Resource
 
-verify_token_url = "https://auth.idp.civicdatalab.in/users/verify_user_token"
-check_action_url = "https://auth.idp.civicdatalab.in/users/check_user_access"
-create_user_url = "https://auth.idp.civicdatalab.in/users/create_user_role"
-dataset_owner_url = "https://auth.idp.civicdatalab.in/users/update_dataset_owner"
+auth_url = settings.AUTH_URL
 
 
 def request_to_server(body, server_url):
     headers = {"Content-type": "application/json"}
-    response = requests.request("POST", server_url, data=body, headers=headers)
+    response = requests.request(
+        "POST", auth_url + server_url, data=body, headers=headers
+    )
     response_json = json.loads(response.text)
     return response_json
 
@@ -25,7 +24,7 @@ def validate_token(func):
             print("Whoops! Empty user")
             raise GraphQLError("Empty User")
         body = json.dumps({"access_token": user_token})
-        response_json = request_to_server(body, verify_token_url)
+        response_json = request_to_server(body, "verify_user_token")
         if not response_json["success"]:
             raise GraphQLError(response_json["error_description"])
 
@@ -43,7 +42,7 @@ def validate_token_or_none(func):
             print("Whoops! Empty user")
         else:
             body = json.dumps({"access_token": user_token})
-            response_json = request_to_server(body, verify_token_url)
+            response_json = request_to_server(body, "verify_user_token")
             username = response_json["preferred_username"]
             if not response_json["success"]:
                 raise GraphQLError(response_json["error_description"])
@@ -52,46 +51,6 @@ def validate_token_or_none(func):
         return func(*args, **kwargs)
 
     return inner
-
-
-def auth_user_action_dataset(action):
-    def accept_func(func):
-        def inner(*args, **kwargs):
-            dataset_id = None
-            for keys in kwargs:
-                try:
-                    dataset_id = kwargs[keys]["id"]
-                    # org_id = kwargs[keys]["organization"]
-                except:
-                    pass
-                break
-            user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
-            org_id = args[1].context.META.get("HTTP_ORGANIZATION")
-            if user_token == "":
-                print("Whoops! Empty user")
-                raise GraphQLError("Empty User")
-            request_body = {
-                "access_token": user_token,
-                "access_req": action,
-                "access_org_id": org_id,
-            }
-            if dataset_id:
-                request_body['access_data_id'] = dataset_id
-            body = json.dumps(
-                request_body
-            )
-            response_json = request_to_server(body, check_action_url)
-
-            if not response_json["Success"]:
-                raise GraphQLError(response_json["error_description"])
-            if response_json["access_allowed"]:
-                return func(*args, **kwargs)
-            else:
-                raise GraphQLError("Access Denied")
-
-        return inner
-
-    return accept_func
 
 
 def auth_user_action_resource(action):
@@ -105,8 +64,10 @@ def auth_user_action_resource(action):
                     dataset_id = Resource.objects.get(id=resource_id).dataset.id
                 break
 
-            user_token = args[1].context.META.get('HTTP_AUTHORIZATION')
-            org_id = args[1].context.META.get('HTTP_ORGANIZATION')  # Required from Frontend.
+            user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+            org_id = args[1].context.META.get(
+                "HTTP_ORGANIZATION"
+            )  # Required from Frontend.
             if user_token == "":
                 print("Whoops! Empty user")
                 raise GraphQLError("Empty User")
@@ -118,13 +79,39 @@ def auth_user_action_resource(action):
                     "access_data_id": dataset_id,
                 }
             )
-            response_json = request_to_server(body, check_action_url)
+            response_json = request_to_server(body, "check_user_access")
             if not response_json["Success"]:
                 raise GraphQLError(response_json["error_description"])
             if response_json["access_allowed"]:
                 return func(*args, **kwargs)
             else:
                 raise GraphQLError("Access Denied.")
+
+        return inner
+
+    return accept_func
+
+
+def auth_user_by_org(action):
+    def accept_func(func):
+        def inner(*args, **kwargs):
+            org_id = args[1].context.META.get("HTTP_ORGANIZATION")
+            user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+            body = json.dumps(
+                {
+                    "access_token": user_token,
+                    "access_org_id": org_id,
+                    "access_data_id": "",
+                    "access_req": action,
+                }
+            )
+            response_json = request_to_server(body, "check_user_access")
+            if not response_json["Success"]:
+                raise GraphQLError(response_json["error_description"])
+            if response_json["access_allowed"]:
+                return func(*args, **kwargs)
+            else:
+                raise GraphQLError("Access Denied")
 
         return inner
 
@@ -144,27 +131,9 @@ def create_user_org(func):
                 "org_title": org_title,
             }
         )
-        response_json = request_to_server(body, create_user_url)
-        print(response_json)
-        return value
-
-    return inner
-
-
-def map_user_dataset(func):
-    def inner(*args, **kwargs):
-        value = func(*args, **kwargs)
-        dataset_id = value.dataset.id
-        user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
-        body = json.dumps(
-            {
-                "access_token": user_token,
-                "dataset_id": dataset_id,
-                "action": "create",
-            }
-        )
-        response_json = request_to_server(body, dataset_owner_url)
-        return value
+        response_json = request_to_server(body, "create_user_role")
+        if response_json["Success"]:
+            return value
 
     return inner
 
@@ -172,7 +141,6 @@ def map_user_dataset(func):
 def check_license_role(func):
     def inner(*args, **kwargs):
         user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
-        # user_token = args[1].context.headers.get("Authorization").replace("Bearer ", "")
         for keys in kwargs:
             try:
                 org_id = kwargs[keys]["organization"]
@@ -187,7 +155,7 @@ def check_license_role(func):
                 "access_data_id": "",
             }
         )
-        response_json = request_to_server(body, check_action_url)
+        response_json = request_to_server(body, "check_user_access")
         if not response_json["Success"]:
             raise GraphQLError(response_json["error_description"])
         if response_json["access_allowed"]:
