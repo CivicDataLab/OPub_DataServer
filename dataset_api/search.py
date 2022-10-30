@@ -24,10 +24,9 @@ es_client = Elasticsearch(settings.ELASTICSEARCH)
 
 
 def _get_average_rating(dataset):
-    ratings = dataset.datasetratings_set.filter(status=RatingStatus.PUBLISHED.value).aggregate(Avg('data_quality'))
-    if ratings:
-        return ratings.values()[0]
-    return 0
+    ratings = dataset.datasetratings_set.filter(status=RatingStatus.PUBLISHED.value).aggregate(Avg('data_quality'))[
+        'data_quality__avg']
+    return ratings if ratings else 0
 
 
 # TODO: New flow for rating, only update will be there.
