@@ -27,10 +27,10 @@ class DatasetAccessModelType(DjangoObjectType):
     def resolve_resource_formats(self: DatasetAccessModel, info):
         formats = []
         for dam_resource in self.datasetaccessmodelresource_set.all():
-            resource = dam_resource.resource
-            if resource and hasattr(resource, "apidetails"):
+            has_resource = hasattr(dam_resource, "resource")
+            if has_resource and hasattr(dam_resource.resource, "apidetails"):
                 formats.append(dam_resource.ressource.apidetails.format)
-            if resource and hasattr(resource, "filedetails"):
+            if has_resource and hasattr(dam_resource.resource, "filedetails"):
                 formats.append(dam_resource.ressource.filedetails.format)
         return list(set(formats))
 
