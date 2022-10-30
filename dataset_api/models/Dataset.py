@@ -1,3 +1,4 @@
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 from dataset_api.enums import DataType
@@ -11,6 +12,7 @@ class Dataset(models.Model):
     title = models.CharField(max_length=100, blank=True)
     description = models.CharField(max_length=500, blank=True)
     issued = models.DateTimeField(auto_now_add=True)
+    highlights = ArrayField(models.CharField(max_length=100, blank=True, null=True), blank=True, null=True)
     remote_issued = models.DateField(blank=True, null=True)
     remote_modified = models.DateTimeField(blank=True, null=True)
     period_from = models.DateField(blank=True, null=True)
