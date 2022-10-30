@@ -5,7 +5,7 @@ from graphql_auth.bases import Output
 
 from activity_log.signal import activity
 from .models import Organization, OrganizationCreateRequest
-from .decorators import validate_token, create_user_org
+from .decorators import validate_token, create_user_org, auth_user_org
 from .enums import OrganizationTypes, OrganizationCreationStatusType
 from .utils import get_client_ip
 
@@ -104,15 +104,13 @@ class UpdateOrganization(Output, graphene.Mutation):
     organization = graphene.Field(CreateOrganizationType)
 
     @staticmethod
-    @validate_token
+    @auth_user_org(action = "update_organization")
     def mutate(root, info, organization_data: OrganizationInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_id = organization_data.id if organization_data.id else org_id
         try:
             organization_create_request_instance = (
-                OrganizationCreateRequest.objects.get(
-                    organization_ptr_id=org_id
-                )
+                OrganizationCreateRequest.objects.get(organization_ptr_id=org_id)
             )
         except OrganizationCreateRequest.DoesNotExist as e:
             return {
@@ -155,7 +153,13 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
 
     @staticmethod
     @validate_token
-    def mutate(root, info, username="", organization_data: ApproveRejectOrganizationApprovalInput = None):
+    @auth_user_org(action = "approve_organization")
+    def mutate(
+        root,
+        info,
+        username="",
+        organization_data: ApproveRejectOrganizationApprovalInput = None,
+    ):
         try:
             organization_create_request_instance = (
                 OrganizationCreateRequest.objects.get(
@@ -184,8 +188,13 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
             )
         organization_create_request_instance.remark = organization_data.remark
         organization_create_request_instance.save()
-        activity.send(username, verb=organization_data.status, target=organization_create_request_instance,
-                      target_group=organization_create_request_instance, ip=get_client_ip(info))
+        activity.send(
+            username,
+            verb=organization_data.status,
+            target=organization_create_request_instance,
+            target_group=organization_create_request_instance,
+            ip=get_client_ip(info),
+        )
         return ApproveRejectOrganizationApproval(
             organization=organization_create_request_instance
         )
