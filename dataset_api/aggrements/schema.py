@@ -41,7 +41,7 @@ class AgreementMutation(graphene.Mutation, Output):
                                        dataset_access_model_request=dataset_access_model_request)
 
         agreement_instance.save()
-        create_agreement(dataset_access_model, username, agreement_instance)
+        #create_agreement(dataset_access_model, username, agreement_instance)
         return AgreementMutation(agreement=agreement_instance)
 
 
