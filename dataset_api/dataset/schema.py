@@ -2,10 +2,9 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
-from activity_log.signal import activity
-from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization
 from dataset_api.decorators import auth_user_action_dataset, map_user_dataset, validate_token
-from dataset_api.utils import get_client_ip, dataset_slug
+from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization
+from dataset_api.utils import get_client_ip, dataset_slug, log_activity
 
 
 class DatasetType(DjangoObjectType):
@@ -170,9 +169,8 @@ class CreateDataset(Output, graphene.Mutation):
         _add_update_attributes_to_dataset(
             dataset_instance, "sector", dataset_data.sector_list, Sector
         )
-        activity.send(
-            username, verb="Created", target=dataset_instance, target_group=organization, ip=get_client_ip(info)
-        )
+        log_activity(target_obj=dataset_instance, ip=get_client_ip(info), target_group=organization, username=username,
+                     verb="Created")
         return CreateDataset(dataset=dataset_instance)
 
 
@@ -235,9 +233,9 @@ class UpdateDataset(Output, graphene.Mutation):
         _add_update_attributes_to_dataset(
             dataset_instance, "sector", dataset_data.sector_list, Sector
         )
-        activity.send(
-            username, verb="Updated", target=dataset_instance, target_group=organization
-        )
+        log_activity(target_obj=dataset_instance, ip=get_client_ip(info), target_group=organization, username=username,
+                     verb="Updated")
+
         return UpdateDataset(dataset=dataset_instance)
 
 
@@ -271,12 +269,10 @@ class PatchDataset(Output, graphene.Mutation):
         if dataset_data.description:
             dataset_instance.description = dataset_data.description
         dataset_instance.save()
-        activity.send(
-            username,
-            verb="Updated",
-            target=dataset_instance,
-            target_group=dataset_instance.catalog.organization,
-        )
+        log_activity(target_obj=dataset_instance, ip=get_client_ip(info),
+                     target_group=dataset_instance.catalog.organization, username=username,
+                     verb="Updated")
+
         return PatchDataset(success=True, dataset=dataset_instance)
 
 
