@@ -5,7 +5,7 @@ from graphql_auth.bases import Output
 
 from activity_log.signal import activity
 from .models import Organization, OrganizationCreateRequest
-from .decorators import validate_token, create_user_org, auth_user_org
+from .decorators import validate_token, create_user_org, auth_user_by_org
 from .enums import OrganizationTypes, OrganizationCreationStatusType
 from .utils import get_client_ip
 
@@ -104,7 +104,7 @@ class UpdateOrganization(Output, graphene.Mutation):
     organization = graphene.Field(CreateOrganizationType)
 
     @staticmethod
-    @auth_user_org(action = "update_organization")
+    @auth_user_by_org(action = "update_organization")
     def mutate(root, info, organization_data: OrganizationInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_id = organization_data.id if organization_data.id else org_id
@@ -153,7 +153,7 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
 
     @staticmethod
     @validate_token
-    @auth_user_org(action = "approve_organization")
+    @auth_user_by_org(action = "approve_organization")
     def mutate(
         root,
         info,
