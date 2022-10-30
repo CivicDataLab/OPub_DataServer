@@ -9,6 +9,7 @@ from graphql_auth.bases import Output
 
 from dataset_api.data_request.token_handler import create_access_jwt_token, generate_refresh_token
 from dataset_api.decorators import validate_token, validate_token_or_none
+from dataset_api.enums import DataType
 from dataset_api.models import Resource
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
@@ -95,7 +96,7 @@ class DataRequestMutation(graphene.Mutation, Output):
             headers = {}
             response = requests.request("GET", url, headers=headers, data=payload)
             print(response.text)
-        elif resource and resource.dataset.dataset_type == "FILE":
+        elif resource and resource.dataset.dataset_type == DataType.FILE.value:
 
             data_request_instance.file = File(resource.filedetails.file,
                                               os.path.basename(resource.filedetails.file.path))

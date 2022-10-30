@@ -1,5 +1,6 @@
 from django.db import models
 
+from dataset_api.enums import DataType
 from dataset_api.models.Geography import Geography
 from dataset_api.models.Tag import Tag
 from dataset_api.models.Sector import Sector
@@ -23,4 +24,4 @@ class Dataset(models.Model):
     geography = models.ManyToManyField(Geography, blank=True)
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE)
     tags = models.ManyToManyField(Tag, blank=True)
-    dataset_type = models.CharField(max_length=500, default="")
+    dataset_type = models.CharField(max_length=50, default=DataType.FILE.value, choices=DataType.choices)

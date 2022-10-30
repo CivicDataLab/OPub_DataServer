@@ -43,6 +43,7 @@ class OrganizationRequestStatusType(models.TextChoices):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
 
+
 class OrganizationCreationStatusType(models.TextChoices):
     REQUESTED = "REQUESTED"
     APPROVED = "APPROVED"
@@ -54,3 +55,8 @@ class OrganizationTypes(models.TextChoices):
     GOVERNMENT = "GOVERNMENT"
     CORPORATIONS = "CORPORATIONS"
     NGO = "NGO"
+
+
+class DataType(models.TextChoices):
+    API = "API"
+    FILE = "FILE"

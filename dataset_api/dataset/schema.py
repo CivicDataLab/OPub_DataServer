@@ -3,6 +3,7 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
 from dataset_api.decorators import auth_user_action_dataset, map_user_dataset, validate_token
+from dataset_api.enums import DataType
 from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization
 from dataset_api.utils import get_client_ip, dataset_slug, log_activity
 
@@ -16,12 +17,6 @@ class DatasetType(DjangoObjectType):
 
     def resolve_slug(self: Dataset, info):
         return dataset_slug(self.id)
-
-
-class DataType(graphene.Enum):
-    API = "API"
-    FILE = "FILE"
-    DATASET = "DATASET"
 
 
 class DatasetStatus(graphene.Enum):
@@ -96,7 +91,7 @@ class DatasetInput(graphene.InputObjectType):
     period_from = graphene.Date()
     period_to = graphene.Date()
     update_frequency = graphene.String()
-    dataset_type = DataType(required=True)
+    dataset_type = graphene.Enum.from_enum(DataType)(required=True)
     funnel = graphene.String(required=False, default_value="upload")
     action = graphene.String(required=False, default_value="create data")
     tags_list = graphene.List(of_type=graphene.String, default=[], required=False)

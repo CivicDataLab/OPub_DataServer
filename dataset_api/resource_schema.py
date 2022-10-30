@@ -280,7 +280,7 @@ class CreateResource(graphene.Mutation, Output):
         resource_instance.save()
 
         # Create either api or file object.
-        if dataset.dataset_type == "API":
+        if dataset.dataset_type == DataType.API.value:
             try:
                 api_source_instance = APISource.objects.get(id=resource_data.api_details.api_source)
                 _create_update_api_details(resource_instance=resource_instance, attribute=resource_data.api_details)
@@ -288,7 +288,7 @@ class CreateResource(graphene.Mutation, Output):
                 resource_instance.delete()
                 return {"success": False,
                         "errors": {"id": [{"message": "API Source with given id not found", "code": "404"}]}}
-        elif dataset.dataset_type == "FILE":
+        elif dataset.dataset_type == DataType.FILE.value:
             _create_update_file_details(resource_instance=resource_instance, attribute=resource_data.file_details)
 
         _remove_masked_fields(resource_instance)
