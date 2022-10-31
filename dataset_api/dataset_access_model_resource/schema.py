@@ -122,14 +122,14 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
     @auth_action_dam_resource(action="update_dam_resource")
     def mutate(root, info, access_model_resource_data: AccessModelResourceInput):
         try:
-            access_map_instance = DatasetAccessModel.objects.get(
+            dataset_access_model_instance = DatasetAccessModel.objects.get(
                 pk=access_model_resource_data.id
             )
             for resources in access_model_resource_data.resource_map:
                 try:
                     access_model_resource_instance = (
                         DatasetAccessModelResource.objects.get(
-                            id=access_model_resource_data.id,
+                            dataset_access_model=dataset_access_model_instance,
                             resource_id=resources.resource_id,
                         )
                     )
@@ -141,7 +141,7 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                         access_model_resource_instance = DatasetAccessModelResource(
                             resource_id=resources.resource_id,
                             fields=resources.fields,
-                            dataset_access_map=access_map_instance,
+                            dataset_access_map=dataset_access_model_instance,
                         )
                         access_model_resource_instance.save()
                     except Resource.DoesNotExist as e:
@@ -153,7 +153,7 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                                 ]
                             },
                         }
-            return UpdateAccessModelResource(access_model_resource=access_map_instance)
+            return UpdateAccessModelResource(access_model_resource=dataset_access_model_instance)
         except DatasetAccessModel.DoesNotExist as e:
             return {
                 "success": False,
