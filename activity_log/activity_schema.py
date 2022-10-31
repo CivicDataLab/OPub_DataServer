@@ -10,6 +10,7 @@ class ActivityType(DjangoObjectType):
     passed_time = graphene.String()
     target_type = graphene.String()
     slug = graphene.String()
+    title = graphene.String()
 
     class Meta:
         model = Activity
@@ -27,18 +28,34 @@ class ActivityType(DjangoObjectType):
             return dataset_slug(self.target_object_id)
         return None
 
+    def resolve_title(self: Activity, info):
+        if hasattr(self.target, "title"):
+            return self.target.title
+
 
 class Query(graphene.ObjectType):
-    org_activity = graphene.List(ActivityType, organization_id=graphene.ID())
-    user_activity = graphene.List(ActivityType, user=graphene.String())
+    org_activity = graphene.List(ActivityType, organization_id=graphene.ID(), first=graphene.Int(),
+                                 skip=graphene.Int())
+    user_activity = graphene.List(ActivityType, user=graphene.String(), first=graphene.Int(),
+                                  skip=graphene.Int(), )
 
-    def resolve_org_activity(self, info, organization_id):
+    def resolve_org_activity(self, info, organization_id, first=None, skip=None):
         try:
             organization = Organization.objects.get(pk=organization_id)
         except Organization.DoesNotExist:
             return {"success": False,
                     "errors": {"organization_id": [{"message": "Organization id not found", "code": "404"}]}}
-        return Activity.objects.target_group(organization)
+        query = Activity.objects.target_group(organization)
+        if skip:
+            query = query[skip:]
+        if first:
+            query = query[:first]
+        return query
 
-    def resolve_user_activity(self, info, user):
-        return Activity.objects.actor(user)
+    def resolve_user_activity(self, info, user, first=None, skip=None):
+        query = Activity.objects.actor(user)
+        if skip:
+            query = query[skip:]
+        if first:
+            query = query[:first]
+        return query
