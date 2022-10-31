@@ -23,6 +23,8 @@ es_client = Elasticsearch(settings.ELASTICSEARCH)
 
 # TODO: New flow for rating, only update will be there.
 def index_data(dataset_obj):
+    if not dataset_obj.status == "PUBLISHED":
+        return
     doc = {
         "dataset_title": dataset_obj.title,
         "dataset_description": dataset_obj.description,

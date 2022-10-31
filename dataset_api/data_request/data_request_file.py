@@ -9,6 +9,7 @@ from django.http import HttpResponse
 
 from dataset_api.data_request.token_handler import create_access_jwt_token
 from dataset_api.models.DataRequest import DataRequest
+from dataset_api.search import index_data
 
 
 def download(request, data_request_id):
@@ -20,7 +21,8 @@ def update_download_count(access_token, data_request: DataRequest):
     dataset = data_request.dataset_access_model_request.access_model.dataset
     count = dataset.download_count
     dataset.download_count = count + 1
-
+    dataset.save()
+    index_data(dataset)
     # update download count in user datasetreq table
     headers = {}
     auth_url = settings.AUTH_URL + "update_datasetreq"
