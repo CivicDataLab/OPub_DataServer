@@ -167,7 +167,8 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
     for schema in resource_schema_instances:
         schema_ids.append(schema.id)
     for schema in resource_data.schema:
-        schema_ids.remove(schema.id)
+        if schema.id:
+            schema_ids.remove(int(schema.id))
     # Delete schema which were not updated or created.
     if schema_ids:
         ResourceSchema.objects.filter(id__in=schema_ids).delete()
@@ -181,7 +182,6 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
                 schema_instance.description = schema.description
                 schema_instance.resource = resource_instance
                 schema_instance.save()
-                schema_ids.remove(int(schema.id))  # Remove id from the list
             else:
                 # Add new schema
                 schema_instance = _create_resource_schema_instance(
