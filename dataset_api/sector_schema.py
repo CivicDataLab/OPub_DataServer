@@ -1,7 +1,7 @@
 import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
-from django.db.models import Q
+from django.db.models import Q, Sum
 
 from .models import Sector, Dataset, Catalog
 
@@ -10,6 +10,7 @@ class SectorType(DjangoObjectType):
     dataset_count = graphene.Int()
     api_count = graphene.Int()
     organization_count = graphene.Int()
+    downloads = graphene.Int()
 
     class Meta:
         model = Sector
@@ -34,6 +35,9 @@ class SectorType(DjangoObjectType):
         for catalog in dataset_obj:
             org_list.append(Catalog.objects.get(id=catalog.catalog_id).organization.id)
         return len(set(org_list))
+
+    def resolve_downloads(self, info):
+        return Dataset.objects.filter(sector__pk=self.id).aggregate(Sum("download_count"))
 
 
 class Query(graphene.ObjectType):
