@@ -1,14 +1,39 @@
 import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
+from django.db.models import Q
 
-from .models import Sector
+from .models import Sector, Dataset, Catalog
 
 
 class SectorType(DjangoObjectType):
+    dataset_count = graphene.Int()
+    api_count = graphene.Int()
+    organization_count = graphene.Int()
+
     class Meta:
         model = Sector
         fields = "__all__"
+
+    def resolve_dataset_count(self, info):
+        try:
+            dataset_count = Sector.objects.get(pk=self.id).dataset_set.count()
+            return dataset_count
+        except Sector.DoesNotExist as e:
+            return None
+
+    def resolve_api_count(self, info):
+        api_count = Dataset.objects.filter(
+            Q(dataset_type__exact="API"), Q(sector__pk=self.id)
+        ).count()
+        return api_count
+
+    def resolve_organization_count(self, info):
+        dataset_obj = Dataset.objects.filter(sector__pk=self.id)
+        org_list = []
+        for catalog in dataset_obj:
+            org_list.append(Catalog.objects.get(id=catalog.catalog_id).organization.id)
+        return len(set(org_list))
 
 
 class Query(graphene.ObjectType):
@@ -24,7 +49,9 @@ class Query(graphene.ObjectType):
 
 class SectorInput(graphene.InputObjectType):
     id = graphene.ID()
-    name = graphene.String()
+    name = graphene.String(required=True)
+    description = graphene.String()
+    highlights = graphene.List(of_type=graphene.String)
     # organization = graphene.String()
 
 
@@ -38,6 +65,8 @@ class CreateSector(Output, graphene.Mutation):
     def mutate(root, info, sector_data=None):
         sector_instance = Sector(
             name=sector_data.name,
+            description=sector_data.description,
+            highlights=sector_data.highlights,
         )
         sector_instance.save()
         return CreateSector(sector=sector_instance)
