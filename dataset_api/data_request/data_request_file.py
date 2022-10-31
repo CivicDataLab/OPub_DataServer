@@ -38,7 +38,7 @@ def update_download_count(access_token, data_request: DataRequest):
         headers=headers,
     )
     response_json = json.loads(response.text)
-    if not response_json["success"]:
+    if not response_json["Success"]:
         return {
             "Success": False,
             "error": response_json["error"],
