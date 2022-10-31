@@ -16,7 +16,7 @@ class ResourceSchema(models.Model):
         unique=False,
         blank=True,
         null=True,
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         related_name="parent_field",
     )
     array_field = models.OneToOneField(
@@ -24,6 +24,6 @@ class ResourceSchema(models.Model):
         unique=False,
         blank=True,
         null=True,
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         related_name="array_item",
     )
