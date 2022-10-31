@@ -45,6 +45,21 @@ class ActivityType(DjangoObjectType):
             return self.target.title
 
 
+def add_pagination_filters(first, query, skip):
+    if skip:
+        query = query[skip:]
+    if first:
+        query = query[:first]
+    return query
+
+
+def get_filter_args(filters):
+    kwargs = {}
+    for filter in filters:
+        kwargs[filter.type] = filter.value
+    return kwargs
+
+
 class Query(graphene.ObjectType):
     org_activity = graphene.List(ActivityType, organization_id=graphene.ID(), first=graphene.Int(),
                                  skip=graphene.Int(),
@@ -59,27 +74,14 @@ class Query(graphene.ObjectType):
         except Organization.DoesNotExist:
             return {"success": False,
                     "errors": {"organization_id": [{"message": "Organization id not found", "code": "404"}]}}
-        kwargs = self.get_filter_args(filters)
+        kwargs = get_filter_args(filters)
         query = Activity.objects.target_group(organization, **kwargs)
-        query = self.add_pagination_filters(first, query, skip)
+        query = add_pagination_filters(first, query, skip)
         return query
-
-    def add_pagination_filters(self, first, query, skip):
-        if skip:
-            query = query[skip:]
-        if first:
-            query = query[:first]
-        return query
-
-    def get_filter_args(self, filters):
-        kwargs = {}
-        for filter in filters:
-            kwargs[filter.type] = filter.value
-        return kwargs
 
     def resolve_user_activity(self, info, user, filters: [ActivityFilter] = [], first=None, skip=None):
         query = Activity.objects.actor(user)
-        kwargs = self.get_filter_args(filters)
+        kwargs = get_filter_args(filters)
         query = Activity.objects.actor(user ** kwargs)
-        query = self.add_pagination_filters(first, query, skip)
+        query = add_pagination_filters(first, query, skip)
         return query
