@@ -2,15 +2,27 @@ import graphene
 from graphene_django import DjangoObjectType
 
 from activity_log.models import Activity
-from dataset_api.models import Organization, Dataset
+from dataset_api.models import Organization
 from dataset_api.utils import dataset_slug
+
+
+class FieldTypes(graphene.Enum):
+    ip = "ip"
+    actor = "actor"
+    browser = "browser"
+    verb = "verb"
+
+
+class ActivityFilter(graphene.InputObjectType):
+    type = FieldTypes()
+    value = graphene.String()
 
 
 class ActivityType(DjangoObjectType):
     passed_time = graphene.String()
     target_type = graphene.String()
     slug = graphene.String()
-    title = graphene.String()
+    target_title = graphene.String()
 
     class Meta:
         model = Activity
@@ -28,34 +40,46 @@ class ActivityType(DjangoObjectType):
             return dataset_slug(self.target_object_id)
         return None
 
-    def resolve_title(self: Activity, info):
+    def resolve_target_title(self: Activity, info):
         if hasattr(self.target, "title"):
             return self.target.title
 
 
 class Query(graphene.ObjectType):
     org_activity = graphene.List(ActivityType, organization_id=graphene.ID(), first=graphene.Int(),
-                                 skip=graphene.Int())
+                                 skip=graphene.Int(),
+                                 filters=graphene.Argument(type=graphene.List(of_type=ActivityFilter), required=False))
     user_activity = graphene.List(ActivityType, user=graphene.String(), first=graphene.Int(),
-                                  skip=graphene.Int(), )
+                                  skip=graphene.Int(),
+                                  filters=graphene.Argument(graphene.List(of_type=ActivityFilter), required=False))
 
-    def resolve_org_activity(self, info, organization_id, first=None, skip=None):
+    def resolve_org_activity(self, info, organization_id, filters: [ActivityFilter] = [], first=None, skip=None):
         try:
             organization = Organization.objects.get(pk=organization_id)
         except Organization.DoesNotExist:
             return {"success": False,
                     "errors": {"organization_id": [{"message": "Organization id not found", "code": "404"}]}}
-        query = Activity.objects.target_group(organization)
+        kwargs = self.get_filter_args(filters)
+        query = Activity.objects.target_group(organization, **kwargs)
+        query = self.add_pagination_filters(first, query, skip)
+        return query
+
+    def add_pagination_filters(self, first, query, skip):
         if skip:
             query = query[skip:]
         if first:
             query = query[:first]
         return query
 
-    def resolve_user_activity(self, info, user, first=None, skip=None):
+    def get_filter_args(self, filters):
+        kwargs = {}
+        for filter in filters:
+            kwargs[filter.type] = filter.value
+        return kwargs
+
+    def resolve_user_activity(self, info, user, filters: [ActivityFilter] = [], first=None, skip=None):
         query = Activity.objects.actor(user)
-        if skip:
-            query = query[skip:]
-        if first:
-            query = query[:first]
+        kwargs = self.get_filter_args(filters)
+        query = Activity.objects.actor(user ** kwargs)
+        query = self.add_pagination_filters(first, query, skip)
         return query
