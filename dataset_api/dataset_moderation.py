@@ -101,6 +101,7 @@ class ModerationRequestMutation(graphene.Mutation, Output):
             description=moderation_request.description,
             remark=moderation_request.remark,
             user=username,
+            request_type=ReviewType.MODERATION.value
         )
         dataset = Dataset.objects.get(id=moderation_request.dataset)
         moderation_request_instance.dataset = dataset
