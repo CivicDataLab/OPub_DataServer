@@ -95,13 +95,15 @@ class Query(graphene.ObjectType):
 
     def resolve_resource_columns(self, info, resource_id):
         resource = Resource.objects.get(pk=resource_id)
-        if (
-                resource.filedetails.file
-                and len(resource.filedetails.file.path)
-                and "csv" in resource.filedetails.format.lower()
-        ):
-            file = pd.read_csv(resource.filedetails.file.path)
-            return file.columns.tolist()
+        if resource.dataset.dataset_type == DataType.FILE.value:
+            if (
+                    resource.filedetails.file
+                    and len(resource.filedetails.file.path)
+                    and "csv" in resource.filedetails.format.lower()
+            ):
+                file = pd.read_csv(resource.filedetails.file.path)
+                return file.columns.tolist()
+        return []
 
     def resolve_resource_dataset(self, info, dataset_id):
         return Resource.objects.filter(dataset=dataset_id).order_by("-modified")
@@ -164,7 +166,12 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
     resource_schema_instances = ResourceSchema.objects.filter(resource=resource_data.id)
     for schema in resource_schema_instances:
         schema_ids.append(schema.id)
-
+    for schema in resource_data.schema:
+        if schema.id:
+            schema_ids.remove(int(schema.id))
+    # Delete schema which were not updated or created.
+    if schema_ids:
+        ResourceSchema.objects.filter(id__in=schema_ids).delete()
     for schema in resource_data.schema:
         try:
             # Update existing schema
@@ -175,7 +182,6 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
                 schema_instance.description = schema.description
                 schema_instance.resource = resource_instance
                 schema_instance.save()
-                schema_ids.remove(int(schema.id))  # Remove id from the list
             else:
                 # Add new schema
                 schema_instance = _create_resource_schema_instance(
@@ -185,11 +191,7 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
             schema_instance = _create_resource_schema_instance(
                 resource_instance, schema
             )
-    # Delete schema which were not updated or created.
-    if schema_ids:
-        for ids in schema_ids:
-            schema_obj = ResourceSchema.objects.get(id=ids)
-            schema_obj.delete()
+
     for schema in resource_data.schema:
         schema_instance = ResourceSchema.objects.get(
             resource_id=resource_instance.id, key=schema.key
