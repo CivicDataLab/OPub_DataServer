@@ -10,7 +10,7 @@ import pathlib
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('dataset_api', '0069_dataset_highlights_alter_dataset_dataset_type'),
+        ('dataset_api', '0073_alter_resourceschema_array_field_and_more'),
     ]
 
     operations = [
