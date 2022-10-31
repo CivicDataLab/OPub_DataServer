@@ -4,6 +4,9 @@ from dataset_api.models.Resource import Resource
 
 
 class ResourceSchema(models.Model):
+    class Meta:
+        unique_together = ('id', 'key')
+
     key = models.CharField(max_length=100)
     format = models.CharField(max_length=100)
     description = models.CharField(max_length=500)
