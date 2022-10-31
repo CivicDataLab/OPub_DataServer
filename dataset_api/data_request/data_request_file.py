@@ -49,13 +49,7 @@ def update_download_count(access_token, data_request: DataRequest):
 
 
 def get_request_file(access_token, data_request_id):
-    data_request = DataRequest.objects.get(pk=data_request_id).values(
-        "id",
-        "file",
-        "dataset_access_model_request",
-        "dataset_access_model_request__access_model",
-        "dataset_access_model_request__access_model__dataset",
-    )
+    data_request = DataRequest.objects.get(pk=data_request_id)
     file_path = data_request.file.path
     if len(file_path):
         mime_type = mimetypes.guess_type(file_path)[0]
