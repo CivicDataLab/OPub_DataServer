@@ -39,12 +39,16 @@ class SectorType(DjangoObjectType):
 class Query(graphene.ObjectType):
     all_sector = graphene.List(SectorType)
     sector = graphene.Field(SectorType, sector_id=graphene.Int())
+    sector_by_title = graphene.Field(SectorType, sector_title=graphene.String())
 
     def resolve_all_sector(self, info, **kwargs):
         return Sector.objects.all()
 
     def resolve_sector(self, info, sector_id):
         return Sector.objects.get(pk=sector_id)
+
+    def resolve_sector_by_title(self, info, sector_title):
+        return Sector.objects.get(title__iexact=sector_title)
 
 
 class SectorInput(graphene.InputObjectType):
