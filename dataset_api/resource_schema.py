@@ -95,13 +95,15 @@ class Query(graphene.ObjectType):
 
     def resolve_resource_columns(self, info, resource_id):
         resource = Resource.objects.get(pk=resource_id)
-        if (
-                resource.filedetails.file
-                and len(resource.filedetails.file.path)
-                and "csv" in resource.filedetails.format.lower()
-        ):
-            file = pd.read_csv(resource.filedetails.file.path)
-            return file.columns.tolist()
+        if resource.dataset.dataset_type == DataType.FILE.value:
+            if (
+                    resource.filedetails.file
+                    and len(resource.filedetails.file.path)
+                    and "csv" in resource.filedetails.format.lower()
+            ):
+                file = pd.read_csv(resource.filedetails.file.path)
+                return file.columns.tolist()
+        return []
 
     def resolve_resource_dataset(self, info, dataset_id):
         return Resource.objects.filter(dataset=dataset_id).order_by("-modified")
