@@ -48,7 +48,7 @@ class Query(graphene.ObjectType):
         return Sector.objects.get(pk=sector_id)
 
     def resolve_sector_by_title(self, info, sector_title):
-        return Sector.objects.get(title__iexact=sector_title)
+        return Sector.objects.get(name__iexact=sector_title)
 
 
 class SectorInput(graphene.InputObjectType):
