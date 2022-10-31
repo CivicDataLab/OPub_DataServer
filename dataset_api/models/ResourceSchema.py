@@ -8,7 +8,7 @@ class ResourceSchema(models.Model):
     format = models.CharField(max_length=100)
     description = models.CharField(max_length=500)
     resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
-    parent = models.OneToOneField(
+    parent = models.ForeignKey(
         "self",
         unique=False,
         blank=True,
