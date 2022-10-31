@@ -82,6 +82,6 @@ class Query(graphene.ObjectType):
     def resolve_user_activity(self, info, user, filters: [ActivityFilter] = [], first=None, skip=None):
         query = Activity.objects.actor(user)
         kwargs = get_filter_args(filters)
-        query = Activity.objects.actor(user ** kwargs)
+        query = Activity.objects.actor(user, **kwargs)
         query = add_pagination_filters(first, query, skip)
         return query
