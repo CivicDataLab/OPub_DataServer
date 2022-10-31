@@ -4,10 +4,10 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
-from dataset_api.models import Dataset, Resource
-from dataset_api.models.DataAccessModel import DataAccessModel
-from dataset_api.models.DatasetAccessModelResource import DatasetAccessModelResource
-from dataset_api.models.DatasetAccessModel import DatasetAccessModel
+from dataset_api.models import DataAccessModel, DataRequest
+from dataset_api.models import Dataset, Resource, DatasetAccessModelRequest
+from dataset_api.models import DatasetAccessModel
+from dataset_api.models import DatasetAccessModelResource
 from .decorators import auth_action_dam_resource
 
 
@@ -36,7 +36,10 @@ class DatasetAccessModelType(DjangoObjectType):
         return list(set(formats))
 
     def resolve_usage(self: DatasetAccessModel, info):
-        return self.datasetaccessmodelrequest_set.datarequest_set.filter(status="FETCHED").count()
+        try:
+            return self.datasetaccessmodelrequest_set.datarequest_set.filter(status="FETCHED").count()
+        except (DatasetAccessModelRequest.DoesNotExist, DataRequest.DoesNotExist) as e:
+            return 0
 
 
 class ResourceFieldInput(graphene.InputObjectType):
