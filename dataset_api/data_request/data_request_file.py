@@ -1,57 +1,44 @@
 import json
 import mimetypes
 import os
-import requests
+
 import jwt
+import requests
 from django.conf import settings
 from django.http import HttpResponse
 
-
 from dataset_api.data_request.token_handler import create_access_jwt_token
 from dataset_api.models.DataRequest import DataRequest
-from dataset_api.models.Dataset import Dataset
-
-auth_url = settings.AUTH_URL
 
 
 def download(request, data_request_id):
-    return get_request_file(request.META.get("HTTP_ORGANIZATION"), data_request_id)
+    return get_request_file(request.META.get("HTTP_AUTHORIZATION"), data_request_id)
 
 
-
-def update_download_count(access_token, request):
-
+def update_download_count(access_token, data_request: DataRequest):
     # update download count in dataset
-    DatasetObjs = Dataset.objects.filter(
-        id=request["dataset_access_model_request__access_model__dataset"]
-    )
-    count = DatasetObjs[0]["download_count"]
-    DatasetObjs.update(download_count=count + 1)
+    dataset = data_request.dataset_access_model_request.access_model.dataset
+    count = dataset.download_count
+    dataset.download_count = count + 1
 
     # update download count in user datasetreq table
     headers = {}
-    auth_url = auth_url + "update_datasetreq"
+    auth_url = settings.AUTH_URL + "update_datasetreq"
     response = requests.post(
         auth_url,
         data=json.dumps(
             {
                 "access_token": access_token,
-                "data_request_id": request["id"],
-                "dataset_access_model_request_id": request[
-                    "dataset_access_model_request"
-                ],
-                "dataset_access_model_id": request[
-                    "dataset_access_model_request__access_model"
-                ],
-                "dataset_id": request[
-                    "dataset_access_model_request__access_model__dataset"
-                ],
+                "data_request_id": data_request.id,
+                "dataset_access_model_request_id": data_request.dataset_access_model_request.id,
+                "dataset_access_model_id": data_request.dataset_access_model_request.access_model.id,
+                "dataset_id": dataset.id,
             }
         ),
         headers=headers,
     )
     response_json = json.loads(response.text)
-    if response_json["success"] == False:
+    if not response_json["success"]:
         return {
             "Success": False,
             "error": response_json["error"],
@@ -62,26 +49,26 @@ def update_download_count(access_token, request):
 
 
 def get_request_file(access_token, data_request_id):
-    request = DataRequest.objects.get(pk=data_request_id).values(
+    data_request = DataRequest.objects.get(pk=data_request_id).values(
         "id",
         "file",
         "dataset_access_model_request",
         "dataset_access_model_request__access_model",
         "dataset_access_model_request__access_model__dataset",
     )
-    file_path = request.file.path
+    file_path = data_request.file.path
     if len(file_path):
         mime_type = mimetypes.guess_type(file_path)[0]
-        response = HttpResponse(request.file, content_type=mime_type)
+        response = HttpResponse(data_request.file, content_type=mime_type)
         response["Content-Disposition"] = 'attachment; filename="{}"'.format(
             os.path.basename(file_path)
         )
 
-        update_download_count(access_token, request)
+        update_download_count(access_token, data_request)
 
         # TODO: delete file after download
-        # request.file
-        # request.save()
+        # data_request.file
+        # data_request.save()
 
     else:
         response = HttpResponse("file doesnt exist", content_type="text/plain")
@@ -97,7 +84,7 @@ def get_resource(request):
     except IndexError:
         return HttpResponse("Token prefix missing", content_type='text/plain')
     if token_payload:
-        return get_request_file(token_payload.get("data_request"))
+        return get_request_file(token, token_payload.get("data_request"))
 
     return HttpResponse(json.dumps(token_payload), content_type='application/json')
 
