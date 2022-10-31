@@ -27,3 +27,4 @@ class Dataset(models.Model):
     catalog = models.ForeignKey(Catalog, on_delete=models.CASCADE)
     tags = models.ManyToManyField(Tag, blank=True)
     dataset_type = models.CharField(max_length=50, default=DataType.FILE.value, choices=DataType.choices)
+    download_count = models.IntegerField(default=0)
