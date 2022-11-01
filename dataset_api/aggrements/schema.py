@@ -19,6 +19,8 @@ class AgreementInput(graphene.InputObjectType):
     dataset_access_model = graphene.ID(required=True)
     description = graphene.String(required=True)
     purpose = PurposeType(required=True)
+    username = graphene.String(required=False)
+    user_email = graphene.String(required=False)
 
 
 class AgreementMutation(graphene.Mutation, Output):
@@ -32,10 +34,13 @@ class AgreementMutation(graphene.Mutation, Output):
     def mutate(root, info, agreement_request: AgreementInput, username):
         dataset_access_model = DatasetAccessModel.objects.get(id=agreement_request.dataset_access_model)
         status = "REQUESTED" if dataset_access_model.data_access_model.type == "RESTRICTED" else "APPROVED"
+        # TODO: Add check for open dam
+        if not username:
+            username = agreement_request.username
         dataset_access_model_request = create_dataset_access_model_request(dataset_access_model,
                                                                            agreement_request.description,
                                                                            agreement_request.purpose, username,
-                                                                           status)
+                                                                           status, agreement_request.user_email)
         agreement_instance = Agreement(dataset_access_model=dataset_access_model, username=username,
                                        status=AgreementStatus.ACCEPTED.value,
                                        dataset_access_model_request=dataset_access_model_request)

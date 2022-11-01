@@ -12,3 +12,4 @@ class DatasetAccessModelRequest(models.Model):
     purpose = models.CharField(max_length=500, default="")
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
+    user_email = models.EmailField(blank=True, null=True)

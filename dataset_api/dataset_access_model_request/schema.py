@@ -5,7 +5,7 @@ from django.db.models import Q
 
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
 from dataset_api.models.DatasetAccessModel import DatasetAccessModel
-from dataset_api.decorators import validate_token
+from dataset_api.decorators import validate_token, validate_token_or_none
 
 
 class DataAccessModelRequestType(DjangoObjectType):
@@ -54,6 +54,8 @@ class DataAccessModelRequestInput(graphene.InputObjectType):
     description = graphene.String(required=True)
     access_model = graphene.ID(required=True)
     purpose = PurposeType(required=True)
+    username = graphene.String(required=False)
+    user_email = graphene.String(required=False)
 
 
 class DataAccessModelRequestUpdateInput(graphene.InputObjectType):
@@ -62,13 +64,15 @@ class DataAccessModelRequestUpdateInput(graphene.InputObjectType):
     remark = graphene.String(required=False)
 
 
-def create_dataset_access_model_request(access_model, description, purpose, username, status="REQUESTED"):
+def create_dataset_access_model_request(access_model, description, purpose, username, status="REQUESTED",
+                                        user_email=None):
     data_access_model_request_instance = DatasetAccessModelRequest(
         status=status,
         purpose=purpose,
         description=description,
         user=username,
         access_model=access_model,
+        user_email=user_email
     )
     data_access_model_request_instance.save()
     access_model.save()
@@ -82,14 +86,17 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
     data_access_model_request = graphene.Field(DataAccessModelRequestType)
 
     @staticmethod
-    @validate_token
-    def mutate(root, info, data_access_model_request: DataAccessModelRequestInput = None, username=""):
+    @validate_token_or_none
+    def mutate(root, info, data_access_model_request: DataAccessModelRequestInput = None, username=None):
         # TODO: fix magic strings
         purpose = data_access_model_request.purpose
         description = data_access_model_request.description
         access_model = DatasetAccessModel.objects.get(id=data_access_model_request.access_model)
+        if not username:
+            username = data_access_model_request.username
         data_access_model_request_instance = create_dataset_access_model_request(access_model, description, purpose,
-                                                                                 username)
+                                                                                 username,
+                                                                                 user_email=data_access_model_request.user_email)
         return DataAccessModelRequestMutation(data_access_model_request=data_access_model_request_instance)
 
 
