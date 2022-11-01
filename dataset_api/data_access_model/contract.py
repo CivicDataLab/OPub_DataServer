@@ -60,7 +60,7 @@ def extract_text(additions, model_license, data_access_model: DataAccessModel):
 
 def create_agreement(dataset_access_model: DatasetAccessModel, username, agreement_model: Agreement):
     if not username:
-        username = "Open User"
+        username = "Anonymous User"
     data_access_model = dataset_access_model.data_access_model
     additions = data_access_model.license_additions.all()
     model_license = data_access_model.license
