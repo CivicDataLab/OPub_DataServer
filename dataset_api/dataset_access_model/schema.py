@@ -8,21 +8,28 @@ from dataset_api.models import Dataset, Agreement, DatasetAccessModelRequest
 
 
 class Query(graphene.ObjectType):
-    dataset_access_model = graphene.List(DatasetAccessModelType, dataset_id=graphene.ID())
+    dataset_access_model = graphene.List(DatasetAccessModelType, dataset_id=graphene.ID(),
+                                         anonymous_users=graphene.List(graphene.String))
     dataset_access_model_by_id = graphene.Field(DatasetAccessModelType, dataset_access_model_id=graphene.ID())
 
     @validate_token_or_none
-    def resolve_dataset_access_model(self, info, dataset_id, username, **kwargs):
+    def resolve_dataset_access_model(self, info, dataset_id, username, anonymous_users=[], **kwargs):
         try:
             dataset = Dataset.objects.get(id=dataset_id)
         except Dataset.DoesNotExist as e:
             return {"success": False,
                     "errors": {"organization_id": [{"message": "Dataset with id not found", "code": "404"}]}}
-        if not username:
-            username = ""
-        prefetch_agreements = Prefetch("agreements", queryset=Agreement.objects.filter(username=username))
-        prefetch_dam_requests = Prefetch("datasetaccessmodelrequest_set",
-                                         queryset=DatasetAccessModelRequest.objects.filter(user=username))
+
+        if username:
+            prefetch_agreements = Prefetch("agreements", queryset=Agreement.objects.filter(username=username))
+            prefetch_dam_requests = Prefetch("datasetaccessmodelrequest_set",
+                                             queryset=DatasetAccessModelRequest.objects.filter(user=username))
+        else:
+            prefetch_agreements = Prefetch("agreements",
+                                           queryset=Agreement.objects.filter(user_email__in=anonymous_users))
+            prefetch_dam_requests = Prefetch("datasetaccessmodelrequest_set",
+                                             queryset=DatasetAccessModelRequest.objects.filter(
+                                                 user_email__in=anonymous_users))
         return DatasetAccessModel.objects.filter(dataset=dataset).order_by("-modified").prefetch_related(
             prefetch_agreements, prefetch_dam_requests)
 

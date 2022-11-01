@@ -43,7 +43,8 @@ class AgreementMutation(graphene.Mutation, Output):
                                                                            status, agreement_request.user_email)
         agreement_instance = Agreement(dataset_access_model=dataset_access_model, username=username,
                                        status=AgreementStatus.ACCEPTED.value,
-                                       dataset_access_model_request=dataset_access_model_request)
+                                       dataset_access_model_request=dataset_access_model_request,
+                                       user_email=agreement_request.user_email)
 
         agreement_instance.save()
         create_agreement(dataset_access_model, username, agreement_instance)
