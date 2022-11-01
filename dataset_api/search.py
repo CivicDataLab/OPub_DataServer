@@ -250,6 +250,7 @@ def more_like_this(request):
                 "like": [{"_index": "dataset", "_id": id}],
                 "min_term_freq": 1,
                 "max_query_terms": 10,
+                "min_doc_freq": 1
             }
         }
         resp = es_client.search(index="dataset", query=query)
