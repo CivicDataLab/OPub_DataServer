@@ -44,7 +44,7 @@ def extract_text(additions, model_license, data_access_model: DataAccessModel):
     <html>
       <head>
         <meta name="pdfkit-page-size" content="Legal"/>
-        <meta name="pdfkit-orientation" content="Landscape"/>
+        <meta name="pdfkit-orientation" content="Portrait"/>
       </head>
       <h1>Agreeement</h1>
       <h2>{model_license.title} </h2>
