@@ -38,6 +38,7 @@ def validate_token(func):
 def validate_token_or_none(func):
     def inner(*args, **kwargs):
         username = None
+        rest_auth = ""
         if hasattr(args[1], "META"):
             rest_auth = args[1].META.get("HTTP_AUTHORIZATION")
         user_token = args[1].context.META.get("HTTP_AUTHORIZATION", rest_auth)

@@ -67,7 +67,7 @@ def create_agreement(dataset_access_model: DatasetAccessModel, username, agreeme
     text = f"This is agreement between{username} and {data_access_model.organization.title} for dataset " \
            f"{dataset_access_model.dataset.title} "
 
-    text = text + extract_text(additions, model_license)
+    text = text + extract_text(additions, model_license, data_access_model)
 
     pdfkit.from_string(text, 'out.pdf', options=pdf_options)
 
