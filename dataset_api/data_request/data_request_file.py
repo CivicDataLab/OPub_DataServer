@@ -10,13 +10,14 @@ from django.http import HttpResponse
 from dataset_api.data_request.token_handler import create_access_jwt_token
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.search import index_data
+from dataset_api.decorators import validate_token_or_none
+
+@validate_token_or_none
+def download(request, data_request_id, username=None):
+    return get_request_file(username, data_request_id)
 
 
-def download(request, data_request_id):
-    return get_request_file(request.META.get("HTTP_AUTHORIZATION"), data_request_id)
-
-
-def update_download_count(access_token, data_request: DataRequest):
+def update_download_count(username, data_request: DataRequest):
     # update download count in dataset
     dataset = data_request.dataset_access_model_request.access_model.dataset
     count = dataset.download_count
@@ -30,7 +31,7 @@ def update_download_count(access_token, data_request: DataRequest):
         auth_url,
         data=json.dumps(
             {
-                "access_token": access_token,
+                "username": username,
                 "data_request_id": data_request.id,
                 "dataset_access_model_request_id": data_request.dataset_access_model_request.id,
                 "dataset_access_model_id": data_request.dataset_access_model_request.access_model.id,
@@ -50,7 +51,7 @@ def update_download_count(access_token, data_request: DataRequest):
     return {"Success": True, "message": "Dataset download count updated successfully"}
 
 
-def get_request_file(access_token, data_request_id):
+def get_request_file(username, data_request_id):
     data_request = DataRequest.objects.get(pk=data_request_id)
     file_path = data_request.file.path
     if len(file_path):
@@ -60,7 +61,7 @@ def get_request_file(access_token, data_request_id):
             os.path.basename(file_path)
         )
 
-        update_download_count(access_token, data_request)
+        update_download_count(username, data_request)
 
         # TODO: delete file after download
         # data_request.file
@@ -80,7 +81,7 @@ def get_resource(request):
     except IndexError:
         return HttpResponse("Token prefix missing", content_type='text/plain')
     if token_payload:
-        return get_request_file(token, token_payload.get("data_request"))
+        return get_request_file(token_payload.get("username"), token_payload.get("data_request"))
 
     return HttpResponse(json.dumps(token_payload), content_type='application/json')
 
