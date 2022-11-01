@@ -37,7 +37,7 @@ def index_data(dataset_obj):
         "remote_issued": dataset_obj.remote_issued,
         "remote_modified": dataset_obj.remote_modified,
         "slug": dataset_slug(dataset_obj.id),
-        "highlights": dataset_obj.highlights,
+        "highlights": dataset_obj.highlights or [],
         "download_count": dataset_obj.download_count,
         "average_rating": get_average_rating(dataset_obj)
     }

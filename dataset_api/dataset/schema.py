@@ -10,7 +10,6 @@ from dataset_api.utils import get_client_ip, dataset_slug, log_activity, get_ave
 from dataset_api.enums import DataType
 
 
-
 class DatasetType(DjangoObjectType):
     slug = graphene.String()
     average_rating = graphene.Float()
@@ -37,7 +36,7 @@ class DatasetStatus(graphene.Enum):
 
 
 def _add_update_attributes_to_dataset(
-    dataset_instance, object_field, attribute_list, attribute_type
+        dataset_instance, object_field, attribute_list, attribute_type
 ):
     if not attribute_list:
         return
@@ -69,7 +68,7 @@ class Query(graphene.ObjectType):
         return Dataset.objects.all().order_by("-modified")
 
     def resolve_org_datasets(
-        self, info, first=None, skip=None, status: DatasetStatus = None, **kwargs
+            self, info, first=None, skip=None, status: DatasetStatus = None, **kwargs
     ):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         organization = Organization.objects.get(id=org_id)
@@ -107,7 +106,7 @@ class DatasetInput(graphene.InputObjectType):
     period_from = graphene.Date()
     period_to = graphene.Date()
     update_frequency = graphene.String()
-    highlights = graphene.List(of_type=graphene.String, required=True)
+    highlights = graphene.List(of_type=graphene.String, required=True, default=[])
     dataset_type = graphene.Enum.from_enum(DataType)(required=True)
     funnel = graphene.String(required=False, default_value="upload")
     action = graphene.String(required=False, default_value="create data")
@@ -135,10 +134,10 @@ class CreateDataset(Output, graphene.Mutation):
     @auth_user_action_dataset(action="create_dataset")
     @map_user_dataset
     def mutate(
-        root,
-        info,
-        username,
-        dataset_data: DatasetInput = None,
+            root,
+            info,
+            username,
+            dataset_data: DatasetInput = None,
     ):
         try:
             org_id = info.context.META.get("HTTP_ORGANIZATION")
