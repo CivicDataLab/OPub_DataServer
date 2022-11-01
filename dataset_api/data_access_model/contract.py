@@ -23,7 +23,7 @@ pdf_options = {
 def create_contract(model_license: License, additions: List, data_access_model: DataAccessModel):
     if not additions:
         return
-    text = extract_text(additions, model_license)
+    text = extract_text(additions, model_license, data_access_model)
 
     pdfkit.from_string(text, 'out.pdf', options=pdf_options)
 
@@ -34,14 +34,28 @@ def create_contract(model_license: License, additions: List, data_access_model: 
     os.remove("./out.pdf")
 
 
-def extract_text(additions, model_license):
-    text = model_license.title
-    text = text + model_license.description
+def extract_text(additions, model_license, data_access_model: DataAccessModel):
+    text = ""
     for addition_id in additions:
         addition = LicenseAddition.objects.get(id=addition_id)
         text = text + addition.title
         text = text + addition.description
-    return text
+    dam_license_content = body = f"""
+    <html>
+      <head>
+        <meta name="pdfkit-page-size" content="Legal"/>
+        <meta name="pdfkit-orientation" content="Landscape"/>
+      </head>
+      <h1>Agreeement</h1>
+      <h2>{model_license.title} </h2>
+      <p>This document acts as license condition set for the Data Access Model {data_access_model.title} <p>
+      <br/>
+      <p>{model_license.description} </p>
+      <h2>Additional Conditions </h2>
+      <p>{text}<p>
+      </html>
+    """
+    return dam_license_content
 
 
 def create_agreement(dataset_access_model: DatasetAccessModel, username, agreement_model: Agreement):
