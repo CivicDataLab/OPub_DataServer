@@ -2,7 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
-from dataset_api.decorators import validate_token
+from dataset_api.decorators import validate_token, update_user_role
 from dataset_api.enums import OrganizationRequestStatusType
 from dataset_api.models import Organization
 from dataset_api.models import OrganizationRequest
@@ -74,6 +74,7 @@ class ApproveRejectOrganizationRequest(graphene.Mutation, Output):
     organization_request = graphene.Field(OrganizationRequestType)
 
     @staticmethod
+    @update_user_role
     def mutate(root, info, organization_request: OrganizationRequestUpdateInput = None):
         try:
             organization_request_instance = OrganizationRequest.objects.get(id=organization_request.id)
