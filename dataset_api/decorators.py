@@ -37,7 +37,7 @@ def validate_token(func):
 def validate_token_or_none(func):
     def inner(*args, **kwargs):
         username = None
-        user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+        user_token = args[1].context.META.get("HTTP_AUTHORIZATION", args[0].META.get("HTTP_AUTHORIZATION"))
         if user_token == "":
             print("Whoops! Empty user")
         else:
