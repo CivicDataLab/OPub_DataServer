@@ -166,12 +166,7 @@ def update_user_org(func):
 def check_license_role(func):
     def inner(*args, **kwargs):
         user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
-        for keys in kwargs:
-            try:
-                org_id = kwargs[keys]["organization"]
-            except:
-                pass
-            break
+        org_id = args[1].context.META.get("HTTP_ORGANIZATION")
         body = json.dumps(
             {
                 "access_token": user_token,
