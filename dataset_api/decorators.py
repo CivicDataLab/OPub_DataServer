@@ -25,6 +25,7 @@ def validate_token(func):
             raise GraphQLError("Empty User")
         body = json.dumps({"access_token": user_token})
         response_json = request_to_server(body, "verify_user_token")
+        print(response_json)
         if not response_json["success"]:
             raise GraphQLError(response_json["error_description"])
 
@@ -65,9 +66,7 @@ def auth_user_action_resource(action):
                 break
 
             user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
-            org_id = args[1].context.META.get(
-                "HTTP_ORGANIZATION"
-            )  # Required from Frontend.
+            org_id = args[1].context.META.get("HTTP_ORGANIZATION")
             if user_token == "":
                 print("Whoops! Empty user")
                 raise GraphQLError("Empty User")
@@ -106,6 +105,7 @@ def auth_user_by_org(action):
                 }
             )
             response_json = request_to_server(body, "check_user_access")
+            print(response_json)
             if not response_json["Success"]:
                 raise GraphQLError(response_json["error_description"])
             if response_json["access_allowed"]:
@@ -134,6 +134,31 @@ def create_user_org(func):
         response_json = request_to_server(body, "create_user_role")
         if response_json["Success"]:
             return value
+
+    return inner
+
+
+def update_user_org(func):
+    def inner(*args, **kwargs):
+        value = func(*args, **kwargs)
+        if value.organization_request.status == "APPROVED":
+            org_title = value.organization_request.organization.title
+            tgt_user = value.organization_request.user
+            user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+            org_id = args[1].context.META.get("HTTP_ORGANIZATION")
+            body = json.dumps(
+                {
+                    "access_token": user_token,
+                    "org_id": org_id,
+                    "org_title": org_title,
+                    "tgt_user_name": tgt_user,
+                    "role_name": "DP",
+                    "action": "update",
+                }
+            )
+            response_json = request_to_server(body, "update_user_role")
+            if response_json["Success"]:
+                return value
 
     return inner
 

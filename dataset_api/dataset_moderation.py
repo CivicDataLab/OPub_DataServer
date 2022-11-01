@@ -6,9 +6,8 @@ from graphql_auth.bases import Output
 
 from .decorators import validate_token
 from .enums import ReviewType
-from .models import Dataset
-from .models import DatasetReviewRequest
-
+from .models import DatasetReviewRequest, Dataset
+from .decorators import auth_user_by_org, auth_user_action_resource
 from .search import index_data
 
 
@@ -32,28 +31,38 @@ class StatusType(graphene.Enum):
 
 class Query(graphene.ObjectType):
     all_moderation_requests = graphene.List(ModerationRequestType)
-    moderation_request = graphene.Field(ModerationRequestType, moderation_request_id=graphene.Int())
+    moderation_request = graphene.Field(
+        ModerationRequestType, moderation_request_id=graphene.Int()
+    )
     moderation_request_user = graphene.List(ModerationRequestType)
     review_request_user = graphene.List(ModerationRequestType)
     all_review_requests = graphene.List(ReviewRequestType)
     review_request = graphene.Field(ReviewRequestType, review_request_id=graphene.Int())
 
     def resolve_all_moderation_requests(self, info, **kwargs):
-        return DatasetReviewRequest.objects.filter(request_type=ReviewType.MODERATION.value).order_by("-modified_date")
+        return DatasetReviewRequest.objects.filter(
+            request_type=ReviewType.MODERATION.value
+        ).order_by("-modified_date")
 
     def resolve_moderation_request(self, info, moderation_request_id):
         return DatasetReviewRequest.objects.get(pk=moderation_request_id)
 
     @validate_token
     def resolve_review_request_user(self, info, username, **kwargs):
-        return DatasetReviewRequest.objects.filter(user=username).order_by("-modeified_date")
+        return DatasetReviewRequest.objects.filter(user=username).order_by(
+            "-modeified_date"
+        )
 
     @validate_token
     def resolve_moderation_request_user(self, info, username, **kwargs):
-        return DatasetReviewRequest.objects.filter(user=username).order_by("-modified_date")
+        return DatasetReviewRequest.objects.filter(user=username).order_by(
+            "-modified_date"
+        )
 
     def resolve_all_review_requests(self, info, **kwargs):
-        return DatasetReviewRequest.objects.filter(request_type=ReviewType.REVIEW.value).order_by("-modified_date")
+        return DatasetReviewRequest.objects.filter(
+            request_type=ReviewType.REVIEW.value
+        ).order_by("-modified_date")
 
     def resolve_review_request(self, info, request_id):
         return DatasetReviewRequest.objects.get(pk=request_id)
@@ -63,7 +72,7 @@ class ModerationRequestInput(graphene.InputObjectType):
     id = graphene.ID()
     status = StatusType()
     description = graphene.String(required=True)
-    dataset = graphene.String(required=True)
+    dataset = graphene.ID(required=True)
     remark = graphene.String(required=False)
     reject_reason = graphene.String(required=False)
 
@@ -72,7 +81,7 @@ class ReviewRequestInput(graphene.InputObjectType):
     id = graphene.ID()
     status = StatusType()
     description = graphene.String(required=True)
-    dataset = graphene.String(required=True)
+    dataset = graphene.ID(required=True)
 
 
 class ModerationRequestsApproveRejectInput(graphene.InputObjectType):
@@ -95,13 +104,14 @@ class ModerationRequestMutation(graphene.Mutation, Output):
 
     @staticmethod
     @validate_token
+    @auth_user_by_org(action="request_dataset_mod")
     def mutate(root, info, moderation_request: ModerationRequestInput, username=""):
         moderation_request_instance = DatasetReviewRequest(
             status=moderation_request.status,
             description=moderation_request.description,
             remark=moderation_request.remark,
             user=username,
-            request_type=ReviewType.MODERATION.value
+            request_type=ReviewType.MODERATION.value,
         )
         dataset = Dataset.objects.get(id=moderation_request.dataset)
         moderation_request_instance.dataset = dataset
@@ -120,13 +130,25 @@ class ReviewRequestMutation(graphene.Mutation, Output):
 
     @staticmethod
     @validate_token
+    # TODO: Utilizing an existing decorator created for specific use case and not for this. Generalize it.
+    @auth_user_action_resource(action="request_dataset_review")
     def mutate(root, info, review_request: ReviewRequestInput, username=""):
         review_request_instance = DatasetReviewRequest(
             status=review_request.status,
             description=review_request.description,
             user=username,
         )
-        dataset = Dataset.objects.get(id=review_request.dataset)
+        try:
+            dataset = Dataset.objects.get(id=review_request.dataset)
+        except Dataset.DoesNotExist as e:
+            return {
+                "success": False,
+                "errors": {
+                    "id": [
+                        {"message": f"Moderation request with id {review_request.dataset} does not exist", "code": "404"}
+                    ]
+                },
+            }
         review_request_instance.dataset = dataset
         review_request_instance.save()
         # TODO: fix magic string
@@ -142,14 +164,24 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
     moderation_requests = graphene.List(of_type=ModerationRequestType)
 
     @staticmethod
-    def mutate(root, info, moderation_request: ModerationRequestsApproveRejectInput = None):
+    @auth_user_by_org(action="publish_dataset")
+    def mutate(
+        root, info, moderation_request: ModerationRequestsApproveRejectInput = None
+    ):
         errors = []
         moderation_requests = []
         for request_id in moderation_request.ids:
             try:
-                moderation_request_instance = DatasetReviewRequest.objects.get(id=request_id)
+                moderation_request_instance = DatasetReviewRequest.objects.get(
+                    id=request_id
+                )
             except DatasetReviewRequest.DoesNotExist as e:
-                errors.append({"message": f"Moderation request with id {request_id} does not exist", "code": "404"})
+                errors.append(
+                    {
+                        "message": f"Moderation request with id {request_id} does not exist",
+                        "code": "404",
+                    }
+                )
                 continue
 
             if moderation_request_instance:
@@ -170,8 +202,7 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
             moderation_request_instance.save()
             moderation_requests.append(moderation_request_instance)
         if errors:
-            return {"success": False,
-                    "errors": {"ids": errors}}
+            return {"success": False, "errors": {"ids": errors}}
 
         return ApproveRejectModerationRequests(moderation_requests=moderation_requests)
 
@@ -183,14 +214,22 @@ class ApproveRejectReviewRequests(graphene.Mutation, Output):
     review_requests = graphene.List(of_type=ReviewRequestType)
 
     @staticmethod
+    @auth_user_by_org(action="approve_dataset")
     def mutate(root, info, review_request: ReviewRequestsApproveRejectInput = None):
         errors = []
         review_requests = []
         for request_id in review_request.ids:
             try:
-                review_request_instance = DatasetReviewRequest.objects.get(id=request_id)
+                review_request_instance = DatasetReviewRequest.objects.get(
+                    id=request_id
+                )
             except DatasetReviewRequest.DoesNotExist as e:
-                errors.append({"message": f"Review request with id {request_id} does not exist", "code": "404"})
+                errors.append(
+                    {
+                        "message": f"Review request with id {request_id} does not exist",
+                        "code": "404",
+                    }
+                )
                 continue
 
             if review_request_instance:
@@ -211,8 +250,7 @@ class ApproveRejectReviewRequests(graphene.Mutation, Output):
             review_request_instance.save()
             review_requests.append(review_request_instance)
         if errors:
-            return {"success": False,
-                    "errors": {"ids": errors}}
+            return {"success": False, "errors": {"ids": errors}}
 
         return ApproveRejectReviewRequests(review_requests=review_requests)
 
