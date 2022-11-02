@@ -2,6 +2,8 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
+from graphql import GraphQLError
+from django.db.models import Q
 
 from activity_log.signal import activity
 from .models import Organization, OrganizationCreateRequest
@@ -32,25 +34,48 @@ class Query(graphene.ObjectType):
     )
     organizations = graphene.List(OrganizationType)
 
-    requested_organizations = graphene.List(CreateOrganizationType)
+    requested_organizations = graphene.List(OrganizationType)
 
-    # TODO: Allow all org list for PMU?
-    def resolve_all_organizations(self, info, **kwargs):
-        return Organization.objects.all().order_by("-modified")
+    # TODO: Allow all org list for PMU? Current State -- YES
+    @auth_user_by_org(action="query")
+    def resolve_all_organizations(self, info, role, **kwargs):
+        if role == "PMU":
+            return Organization.objects.all().order_by("-modified")
+        else:
+            raise GraphQLError("Access Denied")
 
-    def resolve_organization_by_id(self, info, organization_id):
-        return Organization.objects.get(pk=organization_id)
+    # Access : DPA of that org.
+    @auth_user_by_org(action="query")
+    def resolve_organization_by_id(self, info, role, organization_id):
+        if role == "DPA" or role == "PMU":
+            return Organization.objects.get(pk=organization_id)
+        else:
+            raise GraphQLError("Access Denied")
 
+    # Access : All
     def resolve_organization_by_title(self, info, organization_title):
-        return Organization.objects.get(title__iexact=organization_title)
+        return Organization.objects.get(
+            Q(title__iexact=organization_title),
+            Q(
+                organizationcreaterequest__status=OrganizationCreationStatusType.APPROVED.value
+            ),
+        )
 
+    # Access : All
     def resolve_organizations(self, info, **kwargs):
         return Organization.objects.filter(
             organizationcreaterequest__status=OrganizationCreationStatusType.APPROVED.value
         )
 
-    def resolve_requested_organizations(self, info, **kwargs):
-        return OrganizationCreateRequest.objects.all().order_by("-modified")
+    # Access : PMU
+    @auth_user_by_org(action="query")
+    def resolve_requested_organizations(self, info, role, **kwargs):
+        if role == "PMU":
+            return Organization.objects.filter(
+                organizationcreaterequest__status=OrganizationCreationStatusType.REQUESTED.value
+            ).order_by("-modified")
+        else:
+            raise GraphQLError("Access Denied")
 
 
 class OrganizationInput(graphene.InputObjectType):
@@ -104,7 +129,7 @@ class UpdateOrganization(Output, graphene.Mutation):
     organization = graphene.Field(CreateOrganizationType)
 
     @staticmethod
-    @auth_user_by_org(action = "update_organization")
+    @auth_user_by_org(action="update_organization")
     def mutate(root, info, organization_data: OrganizationInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_id = organization_data.id if organization_data.id else org_id
@@ -153,7 +178,7 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
 
     @staticmethod
     @validate_token
-    @auth_user_by_org(action = "approve_organization")
+    @auth_user_by_org(action="approve_organization")
     def mutate(
         root,
         info,

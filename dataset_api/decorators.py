@@ -97,7 +97,7 @@ def auth_user_action_resource(action):
 def auth_user_by_org(action):
     def accept_func(func):
         def inner(*args, **kwargs):
-            org_id = args[1].context.META.get("HTTP_ORGANIZATION")
+            org_id = args[1].context.META.get("HTTP_ORGANIZATION", "")
             user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
             body = json.dumps(
                 {
@@ -108,10 +108,12 @@ def auth_user_by_org(action):
                 }
             )
             response_json = request_to_server(body, "check_user_access")
-            print(response_json)
+            # print(response_json)
             if not response_json["Success"]:
                 raise GraphQLError(response_json["error_description"])
             if response_json["access_allowed"]:
+                if action == "query":
+                    kwargs["role"] = response_json["role"]
                 return func(*args, **kwargs)
             else:
                 raise GraphQLError("Access Denied")
