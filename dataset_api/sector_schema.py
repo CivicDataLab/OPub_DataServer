@@ -80,5 +80,24 @@ class CreateSector(Output, graphene.Mutation):
         return CreateSector(sector=sector_instance)
 
 
+class UpdateSector(Output, graphene.Mutation):
+    class Arguments:
+        sector_data = SectorInput(required=True)
+
+    sector = graphene.Field(SectorType)
+
+    @staticmethod
+    def mutate(root, info, sector_data=None):
+        sector_instance = Sector.objects.get(id=sector_data.id)
+        sector_instance.name = sector_data.name
+        if sector_data.description:
+            sector_instance.description = sector_data.description
+        if sector_data.highlights:
+            sector_instance.highlights = sector_data.highlights
+        sector_instance.save()
+        return UpdateSector(sector=sector_instance)
+
+
 class Mutation(graphene.ObjectType):
     create_sector = CreateSector.Field()
+    update_sector = UpdateSector.Field()
