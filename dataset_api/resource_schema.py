@@ -205,7 +205,7 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
             array_field_instance = ResourceSchema.objects.get(
                 resource=resource_instance.id, key=schema.array_field
             )
-            schema_instance.parent = array_field_instance
+            schema_instance.array_field = array_field_instance
         schema_instance.save()
 
 
