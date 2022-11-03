@@ -102,7 +102,7 @@ class FormatConverter:
             return response
 
 
-def get_request_file(username, data_request_id, target_format):
+def get_request_file(username, data_request_id, target_format, return_type="file"):
     data_request = DataRequest.objects.get(pk=data_request_id)
     if target_format and target_format not in ["CSV", "XML", "JSON"]:
         return HttpResponse("invalid format", content_type="text/plain")
@@ -112,7 +112,7 @@ def get_request_file(username, data_request_id, target_format):
         src_format = FORMAT_MAPPING[mime_type]
         response = getattr(FormatConverter, f"convert_{src_format.lower()}_to_{target_format.lower()}")(file_path,
                                                                                                         mime_type,
-                                                                                                        return_type="file")
+                                                                                                        return_type=return_type)
         update_download_count(username, data_request)
         return response
 
@@ -127,6 +127,7 @@ def get_request_file(username, data_request_id, target_format):
 
 def get_resource(request):
     token = request.GET.get("token")
+    format = request.GET.get("format")
     try:
         token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
     except jwt.ExpiredSignatureError:
@@ -134,7 +135,7 @@ def get_resource(request):
     except IndexError:
         return HttpResponse("Token prefix missing", content_type='text/plain')
     if token_payload:
-        return get_request_file(token_payload.get("username"), token_payload.get("data_request"))
+        return get_request_file(token_payload.get("username"), token_payload.get("data_request"), format, "data")
 
     return HttpResponse(json.dumps(token_payload), content_type='application/json')
 
