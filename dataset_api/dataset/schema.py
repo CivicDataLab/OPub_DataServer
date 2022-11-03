@@ -1,13 +1,13 @@
 import graphene
+from django.db.models import Q
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
-from activity_log.signal import activity
-from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization
-from .decorators import auth_user_action_dataset, map_user_dataset
 from dataset_api.decorators import validate_token
-from dataset_api.utils import get_client_ip, dataset_slug, log_activity, get_average_rating
 from dataset_api.enums import DataType
+from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization
+from dataset_api.utils import get_client_ip, dataset_slug, log_activity, get_average_rating
+from .decorators import auth_user_action_dataset, map_user_dataset
 
 
 class DatasetType(DjangoObjectType):
@@ -64,7 +64,10 @@ class Query(graphene.ObjectType):
     dataset_by_title = graphene.Field(DatasetType, dataset_title=graphene.String())
     dataset_by_slug = graphene.Field(DatasetType, dataset_slug=graphene.String())
 
-    def resolve_all_datasets(self, info, **kwargs):
+    @validate_token
+    def resolve_all_datasets(self, info, username, **kwargs):
+        Dataset.objects.filter(Q(datasetaccessmodel__datasetaccessmodelrequest__user=username),
+                               Q(datasetaccessmodel__datasetaccessmodelrequest__status="APPROVED"))
         return Dataset.objects.all().order_by("-modified")
 
     def resolve_org_datasets(
