@@ -67,6 +67,7 @@ class FormatConverter:
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
             )
+            os.remove("file.json")
             return response
         elif return_type == "data":
             response = HttpResponse(csv_file.to_dict(), content_type="application/json")
@@ -76,13 +77,13 @@ class FormatConverter:
     def convert_csv_to_xml(cls, csv_file_path, src_mime_type, return_type="data"):
         csv_file = pd.DataFrame(pd.read_csv(csv_file_path, sep=",", header=0, index_col=False))
         if return_type == "file":
-            csv_file.to_xml("file.json", orient="records", date_format="epoch", double_precision=10,
-                            force_ascii=True, date_unit="ms", default_handler=None)
-            response = FileResponse(open("file.json", "rb"), content_type="application/x-download")
+            csv_file.to_xml("file.xml")
+            response = FileResponse(open("file.xml", "rb"), content_type="application/x-download")
             file_name = ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".xml"
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
             )
+            os.remove("file.xml")
             return response
         elif return_type == "data":
             response = HttpResponse(csv_file.to_dict(), content_type="application/xml")
