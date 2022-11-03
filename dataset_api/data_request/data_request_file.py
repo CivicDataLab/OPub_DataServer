@@ -94,8 +94,9 @@ def get_request_file(username, data_request_id, target_format):
     if len(file_path):
         mime_type = mimetypes.guess_type(file_path)[0]
         src_format = FORMAT_MAPPING[mime_type]
-        response = getattr(FormatConverter, f"convert_{src_format.lower()}_to_{target_format.lower}")(file_path,
-                                                                                                      return_type="file")
+        response = getattr(FormatConverter, f"convert_{src_format.lower()}_to_{target_format.lower()}")(file_path,
+                                                                                                        mime_type,
+                                                                                                        return_type="file")
         update_download_count(username, data_request)
         return response
 
