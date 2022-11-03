@@ -17,8 +17,8 @@ from dataset_api.search import index_data
 
 @validate_token_or_none
 def download(request, data_request_id, username=None):
-    format = request.GET.get("format", None)
-    return get_request_file(username, data_request_id, format)
+    target_format = request.GET.get("format", None)
+    return get_request_file(username, data_request_id, target_format)
 
 
 def update_download_count(username, data_request: DataRequest):
@@ -86,16 +86,16 @@ class FormatConverter:
             return response
 
 
-def get_request_file(username, data_request_id, format):
+def get_request_file(username, data_request_id, target_format):
     data_request = DataRequest.objects.get(pk=data_request_id)
-    if format and format not in ["CSV", "XML", "JSON"]:
+    if target_format and target_format not in ["CSV", "XML", "JSON"]:
         return HttpResponse("invalid format", content_type="text/plain")
     file_path = data_request.file.path
     if len(file_path):
         mime_type = mimetypes.guess_type(file_path)[0]
         src_format = FORMAT_MAPPING[mime_type]
-        response = getattr(FormatConverter, f"convert_{src_format.lower()}_to_{format.lower}")(file_path,
-                                                                                               return_type="file")
+        response = getattr(FormatConverter, f"convert_{src_format.lower()}_to_{target_format.lower}")(file_path,
+                                                                                                      return_type="file")
         update_download_count(username, data_request)
         return response
 
