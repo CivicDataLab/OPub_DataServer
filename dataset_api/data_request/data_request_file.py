@@ -110,10 +110,16 @@ def get_request_file(username, data_request_id, target_format, return_type="file
     file_path = data_request.file.path
     if len(file_path):
         mime_type = mimetypes.guess_type(file_path)[0]
-        src_format = FORMAT_MAPPING[mime_type]
-        response = getattr(FormatConverter, f"convert_{src_format.lower()}_to_{target_format.lower()}")(file_path,
-                                                                                                        mime_type,
-                                                                                                        return_type=return_type)
+        if target_format:
+            src_format = FORMAT_MAPPING[mime_type]
+            response = getattr(FormatConverter, f"convert_{src_format.lower()}_to_{target_format.lower()}")(file_path,
+                                                                                                            mime_type,
+                                                                                                            return_type)
+        else:
+            response = HttpResponse(data_request.file, content_type=mime_type)
+            response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                os.path.basename(file_path)
+            )
         update_download_count(username, data_request)
         return response
 
