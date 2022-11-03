@@ -6,7 +6,7 @@ import jwt
 import pandas as pd
 import requests
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpResponse, FileResponse
 
 from dataset_api.constants import FORMAT_MAPPING
 from dataset_api.data_request.token_handler import create_access_jwt_token
@@ -62,12 +62,12 @@ class FormatConverter:
         if return_type == "file":
             csv_file.to_json("file.json", orient="records", date_format="epoch", double_precision=10,
                              force_ascii=True, date_unit="ms", default_handler=None)
-            with open("file.json", 'w', encoding='utf-8') as json_file_handler:
-                response = HttpResponse(json_file_handler, content_type="application/json")
-                file_name = ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
-                response["Content-Disposition"] = 'attachment; filename="{}"'.format(
-                    file_name
-                )
+            response = FileResponse(open("file.json", "rb"), content_type="application/x-download")
+            file_name = ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
+            response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                file_name
+            )
+            return response
         elif return_type == "data":
             response = HttpResponse(csv_file.to_dict(), content_type="application/json")
             return response
