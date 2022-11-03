@@ -86,7 +86,7 @@ class FormatConverter:
             os.remove("file.xml")
             return response
         elif return_type == "data":
-            response = HttpResponse(csv_file.to_dict(), content_type="application/xml")
+            response = HttpResponse(csv_file.to_xml(), content_type="application/xml")
             return response
 
     @classmethod
@@ -100,6 +100,51 @@ class FormatConverter:
             elif return_type == "data":
                 csv_file = pd.DataFrame(pd.read_csv(csv_file_path, sep=",", header=0, index_col=False))
                 response = HttpResponse(csv_file.to_string(), content_type="text/csv")
+            return response
+
+    @classmethod
+    def convert_json_to_json(cls, json_file_path, src_mime_type, return_type="data"):
+        with open(json_file_path, encoding='utf-8') as csvf:
+            if return_type == "file":
+                response = FileResponse(open(json_file_path, "rb"), content_type=src_mime_type)
+                response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                    os.path.basename(json_file_path)
+                )
+            elif return_type == "data":
+                json_file = pd.DataFrame(pd.read_json(json_file_path))
+                response = HttpResponse(json_file.to_string(), content_type="text/csv")
+            return response
+
+    @classmethod
+    def convert_json_to_csv(cls, json_file_path, src_mime_type, return_type="data"):
+        json_file = pd.DataFrame(pd.read_json(json_file_path, index_col=False))
+        if return_type == "file":
+            json_file.to_csv("file.csv")
+            response = FileResponse(open("file.csv", "rb"), content_type="application/x-download")
+            file_name = ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".json"
+            response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                file_name
+            )
+            os.remove("file.csv")
+            return response
+        elif return_type == "data":
+            response = HttpResponse(json_file.to_csv(), content_type="application/json")
+            return response
+
+    @classmethod
+    def convert_json_to_xml(cls, json_file_path, src_mime_type, return_type="data"):
+        json_file = pd.DataFrame(pd.read_json(json_file_path))
+        if return_type == "file":
+            json_file.to_xml("file.xml")
+            response = FileResponse(open("file.xml", "rb"), content_type="application/x-download")
+            file_name = ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".xml"
+            response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                file_name
+            )
+            os.remove("file.xml")
+            return response
+        elif return_type == "data":
+            response = HttpResponse(json_file.to_dict(), content_type="application/xml")
             return response
 
 
@@ -124,8 +169,6 @@ def get_request_file(username, data_request_id, target_format, return_type="file
         return response
 
         # TODO: delete file after download
-        # data_request.file
-        # data_request.save()
 
     else:
         response = HttpResponse("file doesnt exist", content_type="text/plain")
