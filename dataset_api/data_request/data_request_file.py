@@ -3,18 +3,22 @@ import mimetypes
 import os
 
 import jwt
+import pandas as pd
 import requests
 from django.conf import settings
 from django.http import HttpResponse
 
+from dataset_api.constants import FORMAT_MAPPING
 from dataset_api.data_request.token_handler import create_access_jwt_token
+from dataset_api.decorators import validate_token_or_none
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.search import index_data
-from dataset_api.decorators import validate_token_or_none
+
 
 @validate_token_or_none
 def download(request, data_request_id, username=None):
-    return get_request_file(username, data_request_id)
+    format = request.GET.get("format", None)
+    return get_request_file(username, data_request_id, format)
 
 
 def update_download_count(username, data_request: DataRequest):
@@ -51,17 +55,49 @@ def update_download_count(username, data_request: DataRequest):
     return {"Success": True, "message": "Dataset download count updated successfully"}
 
 
-def get_request_file(username, data_request_id):
+class FormatConverter:
+    @classmethod
+    def convert_csv_to_json(cls, csv_file_path, src_mime_type, return_type="data"):
+        csv_file = pd.DataFrame(pd.read_csv(csv_file_path, sep=",", header=0, index_col=False))
+        if return_type == "file":
+            csv_file.to_json("file.json", orient="records", date_format="epoch", double_precision=10,
+                             force_ascii=True, date_unit="ms", default_handler=None)
+            with open("file.json", 'w', encoding='utf-8') as json_file_handler:
+                response = HttpResponse(json_file_handler, content_type="application/json")
+                file_name = ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
+                response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                    file_name
+                )
+        elif return_type == "data":
+            response = HttpResponse(csv_file.to_dict(), content_type="application/json")
+            return response
+
+    @classmethod
+    def convert_csv_to_csv(cls, csv_file_path, src_mime_type, return_type="data"):
+        with open(csv_file_path, encoding='utf-8') as csvf:
+            if return_type == "file":
+                response = HttpResponse(csvf, content_type=src_mime_type)
+                response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                    os.path.basename(csv_file_path)
+                )
+            elif return_type == "data":
+                csv_file = pd.DataFrame(pd.read_csv(csv_file_path, sep=",", header=0, index_col=False))
+                response = HttpResponse(csv_file.to_string(), content_type="text/csv")
+            return response
+
+
+def get_request_file(username, data_request_id, format):
     data_request = DataRequest.objects.get(pk=data_request_id)
+    if format and format not in ["CSV", "XML", "JSON"]:
+        return HttpResponse("invalid format", content_type="text/plain")
     file_path = data_request.file.path
     if len(file_path):
         mime_type = mimetypes.guess_type(file_path)[0]
-        response = HttpResponse(data_request.file, content_type=mime_type)
-        response["Content-Disposition"] = 'attachment; filename="{}"'.format(
-            os.path.basename(file_path)
-        )
-
+        src_format = FORMAT_MAPPING[mime_type]
+        response = getattr(FormatConverter, f"convert_{src_format.lower()}_to_{format.lower}")(file_path,
+                                                                                               return_type="file")
         update_download_count(username, data_request)
+        return response
 
         # TODO: delete file after download
         # data_request.file
