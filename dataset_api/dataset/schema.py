@@ -66,9 +66,8 @@ class Query(graphene.ObjectType):
 
     @validate_token
     def resolve_all_datasets(self, info, username, **kwargs):
-        Dataset.objects.filter(Q(datasetaccessmodel__datasetaccessmodelrequest__user=username),
-                               Q(datasetaccessmodel__datasetaccessmodelrequest__status="APPROVED"))
-        return Dataset.objects.all().order_by("-modified")
+        return Dataset.objects.filter(Q(datasetaccessmodel__datasetaccessmodelrequest__user=username),
+                                      Q(datasetaccessmodel__datasetaccessmodelrequest__status="APPROVED"))
 
     def resolve_org_datasets(
             self, info, first=None, skip=None, status: DatasetStatus = None, **kwargs
