@@ -104,20 +104,19 @@ class FormatConverter:
 
     @classmethod
     def convert_json_to_json(cls, json_file_path, src_mime_type, return_type="data"):
-        with open(json_file_path, encoding='utf-8') as csvf:
-            if return_type == "file":
-                response = FileResponse(open(json_file_path, "rb"), content_type=src_mime_type)
-                response["Content-Disposition"] = 'attachment; filename="{}"'.format(
-                    os.path.basename(json_file_path)
-                )
-            elif return_type == "data":
-                json_file = pd.DataFrame(pd.read_json(json_file_path))
-                response = HttpResponse(json_file.to_string(), content_type="text/csv")
-            return response
+        if return_type == "file":
+            response = FileResponse(open(json_file_path, "rb"), content_type=src_mime_type)
+            response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                os.path.basename(json_file_path)
+            )
+        elif return_type == "data":
+            json_file = pd.DataFrame(pd.read_json(json_file_path))
+            response = HttpResponse(json_file.to_string(), content_type="text/csv")
+        return response
 
     @classmethod
     def convert_json_to_csv(cls, json_file_path, src_mime_type, return_type="data"):
-        json_file = pd.DataFrame(pd.read_json(json_file_path, index_col=False))
+        json_file = pd.DataFrame(pd.read_json(json_file_path))
         if return_type == "file":
             json_file.to_csv("file.csv")
             response = FileResponse(open("file.csv", "rb"), content_type="application/x-download")
