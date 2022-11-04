@@ -2,10 +2,16 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from django.db.models import Q
+from graphql import GraphQLError
 
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
 from dataset_api.models.DatasetAccessModel import DatasetAccessModel
-from dataset_api.decorators import validate_token, validate_token_or_none
+from dataset_api.decorators import (
+    validate_token,
+    validate_token_or_none,
+    auth_user_by_org,
+)
+from .decorators import auth_query_dam_request
 
 
 class DataAccessModelRequestType(DjangoObjectType):
@@ -29,24 +35,51 @@ class PurposeType(graphene.Enum):
 
 class Query(graphene.ObjectType):
     all_data_access_model_requests = graphene.List(DataAccessModelRequestType)
-    data_access_model_request = graphene.Field(DataAccessModelRequestType, data_access_model_request_id=graphene.Int())
+    data_access_model_request = graphene.Field(
+        DataAccessModelRequestType, data_access_model_request_id=graphene.Int()
+    )
     data_access_model_request_user = graphene.List(DataAccessModelRequestType)
-    data_access_model_request_org = graphene.List(DataAccessModelRequestType, org_id=graphene.Int())
+    data_access_model_request_org = graphene.List(
+        DataAccessModelRequestType, org_id=graphene.Int()
+    )
 
-    def resolve_all_data_access_model_requests(self, info, **kwargs):
-        return DatasetAccessModelRequest.objects.all().order_by("-modified")
+    # Access : PMU
+    @auth_user_by_org(action="query")
+    def resolve_all_data_access_model_requests(self, info, role, **kwargs):
+        if role == "PMU":
+            return DatasetAccessModelRequest.objects.all().order_by("-modified")
+        else:
+            raise GraphQLError("Access Denied")
 
-    def resolve_data_access_model_request(self, info, data_access_model_request_id):
-        return DatasetAccessModelRequest.objects.get(pk=data_access_model_request_id)
+    # Access : PMU/DPA of that org.
+    @auth_query_dam_request(action="query||request_id")
+    def resolve_data_access_model_request(
+        self, info, data_access_model_request_id, role
+    ):
+        if role == "PMU" or "DPA":
+            return DatasetAccessModelRequest.objects.get(
+                pk=data_access_model_request_id
+            )
+        else:
+            raise GraphQLError("Access Denied")
 
     @validate_token
     def resolve_data_access_model_request_user(self, info, username, **kwargs):
-        return DatasetAccessModelRequest.objects.filter(user=username).order_by("-modified")
+        return DatasetAccessModelRequest.objects.filter(user=username).order_by(
+            "-modified"
+        )
 
-    def resolve_data_access_model_request_org(self, info):
-        org_id = info.context.META.get("HTTP_ORGANIZATION")
-        return DatasetAccessModelRequest.objects.filter(Q(access_model__data_access_model__organization=org_id),
-                                                        Q(status__exact="APPROVED"))
+    # Access : PMU/DPA of that org.
+    @auth_user_by_org(action="query")
+    def resolve_data_access_model_request_org(self, info, role):
+        if role == "PMU" or "DPA":
+            org_id = info.context.headers.get("HTTP_ORGANIZATION")
+            return DatasetAccessModelRequest.objects.filter(
+                Q(access_model_id__data_access_model__organization=org_id),
+                Q(status__exact="APPROVED"),
+            )
+        else:
+            raise GraphQLError("Access Denied")
 
 
 class DataAccessModelRequestInput(graphene.InputObjectType):
@@ -64,15 +97,16 @@ class DataAccessModelRequestUpdateInput(graphene.InputObjectType):
     remark = graphene.String(required=False)
 
 
-def create_dataset_access_model_request(access_model, description, purpose, username, status="REQUESTED",
-                                        user_email=None):
+def create_dataset_access_model_request(
+    access_model, description, purpose, username, status="REQUESTED", user_email=None
+):
     data_access_model_request_instance = DatasetAccessModelRequest(
         status=status,
         purpose=purpose,
         description=description,
         user=username,
         access_model=access_model,
-        user_email=user_email
+        user_email=user_email,
     )
     data_access_model_request_instance.save()
     access_model.save()
@@ -87,17 +121,30 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
 
     @staticmethod
     @validate_token_or_none
-    def mutate(root, info, data_access_model_request: DataAccessModelRequestInput = None, username=None):
+    def mutate(
+        root,
+        info,
+        data_access_model_request: DataAccessModelRequestInput = None,
+        username=None,
+    ):
         # TODO: fix magic strings
         purpose = data_access_model_request.purpose
         description = data_access_model_request.description
-        access_model = DatasetAccessModel.objects.get(id=data_access_model_request.access_model)
+        access_model = DatasetAccessModel.objects.get(
+            id=data_access_model_request.access_model
+        )
         if not username:
             username = data_access_model_request.username
-        data_access_model_request_instance = create_dataset_access_model_request(access_model, description, purpose,
-                                                                                 username,
-                                                                                 user_email=data_access_model_request.user_email)
-        return DataAccessModelRequestMutation(data_access_model_request=data_access_model_request_instance)
+        data_access_model_request_instance = create_dataset_access_model_request(
+            access_model,
+            description,
+            purpose,
+            username,
+            user_email=data_access_model_request.user_email,
+        )
+        return DataAccessModelRequestMutation(
+            data_access_model_request=data_access_model_request_instance
+        )
 
 
 class ApproveRejectDataAccessModelRequest(graphene.Mutation, Output):
@@ -107,19 +154,36 @@ class ApproveRejectDataAccessModelRequest(graphene.Mutation, Output):
     data_access_model_request = graphene.Field(DataAccessModelRequestType)
 
     @staticmethod
-    def mutate(root, info, data_access_model_request: DataAccessModelRequestUpdateInput = None):
+    def mutate(
+        root, info, data_access_model_request: DataAccessModelRequestUpdateInput = None
+    ):
         try:
-            data_access_model_request_instance = DatasetAccessModelRequest.objects.get(id=data_access_model_request.id)
+            data_access_model_request_instance = DatasetAccessModelRequest.objects.get(
+                id=data_access_model_request.id
+            )
         except DatasetAccessModelRequest.DoesNotExist as e:
-            return {"success": False,
-                    "errors": {"id": [{"message": "Data Access Model with given id not found", "code": "404"}]}}
+            return {
+                "success": False,
+                "errors": {
+                    "id": [
+                        {
+                            "message": "Data Access Model with given id not found",
+                            "code": "404",
+                        }
+                    ]
+                },
+            }
         data_access_model_request_instance.status = data_access_model_request.status
         if data_access_model_request.remark:
             data_access_model_request_instance.remark = data_access_model_request.remark
         data_access_model_request_instance.save()
-        return ApproveRejectDataAccessModelRequest(data_access_model_request=data_access_model_request_instance)
+        return ApproveRejectDataAccessModelRequest(
+            data_access_model_request=data_access_model_request_instance
+        )
 
 
 class Mutation(graphene.ObjectType):
     data_access_model_request = DataAccessModelRequestMutation.Field()
-    approve_reject_data_access_model_request = ApproveRejectDataAccessModelRequest.Field()
+    approve_reject_data_access_model_request = (
+        ApproveRejectDataAccessModelRequest.Field()
+    )
