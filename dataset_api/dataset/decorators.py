@@ -1,7 +1,7 @@
 import json
 from graphql import GraphQLError
 from dataset_api.decorators import request_to_server
-from dataset_api.models import Dataset
+from dataset_api.models import Dataset, Catalog
 
 
 def auth_user_action_dataset(action):
@@ -82,10 +82,9 @@ def auth_query_dataset(action):
                 dataset_id = kwargs["dataset_slug"].split("_")[-1]
             else:
                 dataset_id = kwargs["dataset_id"]
-                # if not org_id:
-                #     catalog_id = Dataset.objects.get(pk=dataset_id).catalog_id
-                #     org_id = Catalog.objects.get(pk=catalog_id).organization_id
-                #     print("org_id - ", org_id)
+            if not org_id:
+                catalog_id = Dataset.objects.get(pk=dataset_id).catalog_id
+                org_id = Catalog.objects.get(pk=catalog_id).organization_id
             if user_token == "":
                 print("Whoops! Empty user")
                 raise GraphQLError("Empty User")

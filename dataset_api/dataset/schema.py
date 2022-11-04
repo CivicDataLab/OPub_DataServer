@@ -1,11 +1,12 @@
 import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
+from graphql import GraphQLError
 
 from activity_log.signal import activity
 from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization
-from .decorators import auth_user_action_dataset, map_user_dataset
-from dataset_api.decorators import validate_token
+from .decorators import auth_user_action_dataset, map_user_dataset, auth_query_dataset
+from dataset_api.decorators import validate_token, auth_user_by_org
 from dataset_api.utils import get_client_ip, dataset_slug, log_activity, get_average_rating
 from dataset_api.enums import DataType
 
@@ -64,37 +65,61 @@ class Query(graphene.ObjectType):
     dataset_by_title = graphene.Field(DatasetType, dataset_title=graphene.String())
     dataset_by_slug = graphene.Field(DatasetType, dataset_slug=graphene.String())
 
-    def resolve_all_datasets(self, info, **kwargs):
-        return Dataset.objects.all().order_by("-modified")
-
-    def resolve_org_datasets(
-            self, info, first=None, skip=None, status: DatasetStatus = None, **kwargs
-    ):
-        org_id = info.context.META.get("HTTP_ORGANIZATION")
-        organization = Organization.objects.get(id=org_id)
-        if status:
-            query = Dataset.objects.filter(
-                catalog__organization=organization, status=status
-            ).order_by("-modified")
+    # Access : PMU / ALL?
+    @auth_user_by_org(action="query")
+    def resolve_all_datasets(self, info, role, **kwargs):
+        if role == "PMU":
+            return Dataset.objects.all().order_by("-modified")
         else:
-            query = Dataset.objects.filter(catalog__organization=organization).order_by(
-                "-modified"
-            )
-        if skip:
-            query = query[skip:]
-        if first:
-            query = query[:first]
-        return query
+            raise GraphQLError("Access Denied")
 
-    def resolve_dataset_by_title(self, info, dataset_title, **kwargs):
-        return Dataset.objects.get(title__iexact=dataset_title)
+    # Access : PMU / DPA
+    @auth_user_by_org(action="query")
+    def resolve_org_datasets(
+            self, info, role, first=None, skip=None, status: DatasetStatus = None, **kwargs
+    ):
+        if role == "PMU" or "DPA":
+            org_id = info.context.META.get("HTTP_ORGANIZATION")
+            organization = Organization.objects.get(id=org_id)
+            if status:
+                query = Dataset.objects.filter(
+                    catalog__organization=organization, status=status
+                ).order_by("-modified")
+            else:
+                query = Dataset.objects.filter(catalog__organization=organization).order_by(
+                    "-modified"
+                )
+            if skip:
+                query = query[skip:]
+            if first:
+                query = query[:first]
+            return query
+        else:
+            raise GraphQLError("Access Denied")
 
-    def resolve_dataset_by_slug(self, info, dataset_slug: str, **kwargs):
-        dataset_id = dataset_slug.split("_")[-1]
-        return Dataset.objects.get(id=dataset_id)
+    # Access : PMU / DPA / DP
+    @auth_query_dataset(action="query||title")
+    def resolve_dataset_by_title(self, info, dataset_title, role, **kwargs):
+        if role == "PMU" or "DPA" or "DP":
+            return Dataset.objects.get(title__iexact=dataset_title)
+        else:
+            raise GraphQLError("Access Denied")
+    # Access : PMU / DPA
+    @auth_query_dataset(action="query||slug")
+    def resolve_dataset_by_slug(self, info, dataset_slug: str, role, **kwargs):
+        if role == "PMU" or "DPA":
+            dataset_id = dataset_slug.split("_")[-1]
+            return Dataset.objects.get(id=dataset_id)
+        else:
+            raise GraphQLError("Access Denied")
 
-    def resolve_dataset(self, info, dataset_id):
-        return Dataset.objects.get(pk=dataset_id)
+    # Access : PMU / DPA / DP
+    @auth_query_dataset(action="query||id")
+    def resolve_dataset(self, info, dataset_id, role):
+        if role == "PMU" or "DPA" or "DP":
+            return Dataset.objects.get(pk=dataset_id)
+        else:
+                raise GraphQLError("Access Denied")
 
 
 class DatasetInput(graphene.InputObjectType):
