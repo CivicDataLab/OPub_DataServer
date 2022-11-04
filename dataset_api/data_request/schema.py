@@ -38,6 +38,8 @@ class DataRequestType(DjangoObjectType):
         spec = DATAREQUEST_SWAGGER_SPEC.copy()
         spec["paths"]["/refreshtoken"]["get"]["parameters"][0]["example"] = generate_refresh_token(self, username)
         spec["paths"]["/getresource"]["get"]["parameters"][0]["example"] = create_access_jwt_token(self, username)
+        spec["info"]["title"] = self.resource.title
+        spec["info"]["description"] = self.resource.description
         return spec
 
 
