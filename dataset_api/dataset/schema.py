@@ -104,20 +104,34 @@ class Query(graphene.ObjectType):
     # Access : PMU / DPA / DP
     @auth_query_dataset(action="query||title")
     def resolve_dataset_by_title(self, info, dataset_title, role, **kwargs):
+        dataset_instance = Dataset.objects.get(title__iexact=dataset_title)
+        if dataset_instance.status == "PUBLISHED":
+            return dataset_instance
         if role == "PMU" or "DPA" or "DP":
-            return Dataset.objects.get(title__iexact=dataset_title)
+            return dataset_instance
         else:
             raise GraphQLError("Access Denied")
 
-    def resolve_dataset_by_slug(self, info, dataset_slug: str, **kwargs):
+    # Access : PMU / DPA / DP
+    @auth_query_dataset(action="query||slug")
+    def resolve_dataset_by_slug(self, info, dataset_slug: str, role, **kwargs):
         dataset_id = dataset_slug.split("_")[-1]
-        return Dataset.objects.get(id=dataset_id)
+        dataset_instance = Dataset.objects.get(id=dataset_id)
+        if dataset_instance.status == "PUBLISHED":
+            return dataset_instance
+        if role == "PMU" or "DPA":
+            return dataset_instance
+        else:
+            raise GraphQLError("Access Denied")
 
     # Access : PMU / DPA / DP
     @auth_query_dataset(action="query||id")
     def resolve_dataset(self, info, dataset_id, role):
+        dataset_instance = Dataset.objects.get(pk=dataset_id)
+        if dataset_instance.status == "PUBLISHED":
+            return dataset_instance
         if role == "PMU" or "DPA" or "DP":
-            return Dataset.objects.get(pk=dataset_id)
+            return dataset_instance
         else:
             raise GraphQLError("Access Denied")
 
