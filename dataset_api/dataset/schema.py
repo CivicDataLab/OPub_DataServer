@@ -109,14 +109,9 @@ class Query(graphene.ObjectType):
         else:
             raise GraphQLError("Access Denied")
 
-    # Access : PMU / DPA
-    @auth_query_dataset(action="query||slug")
-    def resolve_dataset_by_slug(self, info, dataset_slug: str, role, **kwargs):
-        if role == "PMU" or "DPA":
-            dataset_id = dataset_slug.split("_")[-1]
-            return Dataset.objects.get(id=dataset_id)
-        else:
-            raise GraphQLError("Access Denied")
+    def resolve_dataset_by_slug(self, info, dataset_slug: str, **kwargs):
+        dataset_id = dataset_slug.split("_")[-1]
+        return Dataset.objects.get(id=dataset_id)
 
     # Access : PMU / DPA / DP
     @auth_query_dataset(action="query||id")
