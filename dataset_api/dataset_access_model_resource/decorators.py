@@ -14,6 +14,7 @@ def auth_action_dam_resource(action):
                 except:
                     pass
             user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+            org_id = args[1].context.META.get("HTTP_ORGANIZATION")
             if user_token == "":
                 raise GraphQLError("Empty User")
 
@@ -21,7 +22,7 @@ def auth_action_dam_resource(action):
                 {
                     "access_token": user_token,
                     "access_req": action,
-                    "access_org_id": "",
+                    "access_org_id": org_id,
                     "access_data_id": dataset_id,
                 }
             )
