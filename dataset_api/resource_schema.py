@@ -19,9 +19,14 @@ from .models import (
     APIDetails,
     FileDetails,
 )
-from .decorators import auth_user_action_resource, validate_token, auth_user_by_org, auth_query_resource
+from .decorators import (
+    auth_user_action_resource,
+    validate_token,
+    auth_user_by_org,
+    auth_query_resource,
+)
 from .constants import FORMAT_MAPPING
-from .utils import log_activity, get_client_ip
+from .utils import log_activity, get_client_ip, get_keys
 
 
 class ResourceSchemaInputType(graphene.InputObjectType):
@@ -110,13 +115,13 @@ class Query(graphene.ObjectType):
         if role == "PMU" or "DPA" or "DP":
             resource = Resource.objects.get(pk=resource_id)
             if resource.dataset.dataset_type == DataType.FILE.value:
-                if (
-                    resource.filedetails.file
-                    and len(resource.filedetails.file.path)
-                    and "csv" in resource.filedetails.format.lower()
-                ):
-                    file = pd.read_csv(resource.filedetails.file.path)
-                    return file.columns.tolist()
+                if resource.filedetails.file and len(resource.filedetails.file.path):
+                    if "csv" in resource.filedetails.format.lower():
+                        file = pd.read_csv(resource.filedetails.file.path)
+                        return file.columns.tolist()
+                    if resource.filedetails.format.lower() == "json":
+                        with open(resource.filedetails.file) as jsonFile:
+                            return list(set(get_keys(jsonFile.read(), [])))
             return []
         else:
             raise GraphQLError("Access Denied")
@@ -128,6 +133,15 @@ class Query(graphene.ObjectType):
             return Resource.objects.filter(dataset=dataset_id).order_by("-modified")
         else:
             raise GraphQLError("Access Denied")
+
+    # Access : DPA/DP of that org to which this resource belongs.
+    @auth_query_resource(action="query||dataset")
+    def resolve_resource_dataset(self, info, dataset_id, role):
+        if role == "PMU" or "DPA" or "DP":
+            return Resource.objects.filter(dataset=dataset_id).order_by("-modified")
+        else:
+            raise GraphQLError("Access Denied")
+
 
 class ResponseType(graphene.Enum):
     JSON = "JSON"

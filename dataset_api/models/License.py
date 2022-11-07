@@ -7,7 +7,7 @@ from dataset_api.models.Organization import Organization
 
 class License(models.Model):
     title = models.CharField(max_length=100)
-    description = models.CharField(max_length=5000)
+    description = models.CharField(max_length=100000)
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     created_organization = models.ForeignKey(Organization, on_delete=models.CASCADE, blank=True, null=True)

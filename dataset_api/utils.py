@@ -31,3 +31,11 @@ def get_average_rating(dataset):
     ratings = dataset.datasetratings_set.filter(status=RatingStatus.PUBLISHED.value).aggregate(Avg('data_quality'))[
         'data_quality__avg']
     return ratings if ratings else 0
+
+
+def get_keys(json_obj, keys_list):
+    if isinstance(json_obj, dict):
+        keys_list += json_obj.keys()
+        map(lambda x: get_keys(x, keys_list), json_obj.values())
+    elif isinstance(json_obj, list):
+        map(lambda x: get_keys(x, keys_list), json_obj)

@@ -126,18 +126,18 @@ class DatasetInput(graphene.InputObjectType):
     id = graphene.ID()
     title = graphene.String(required=True)
     description = graphene.String(required=True)
-    remote_issued = graphene.Date(required=False)
+    remote_issued = graphene.Date(required=True)
     remote_modified = graphene.DateTime(required=False)
-    period_from = graphene.Date()
-    period_to = graphene.Date()
-    update_frequency = graphene.String()
-    highlights = graphene.List(of_type=graphene.String, required=True, default=[])
+    period_from = graphene.Date(required=False)
+    period_to = graphene.Date(required=False)
+    update_frequency = graphene.String(required=True)
+    highlights = graphene.List(of_type=graphene.String, required=False, default=[])
     dataset_type = graphene.Enum.from_enum(DataType)(required=True)
     funnel = graphene.String(required=False, default_value="upload")
     action = graphene.String(required=False, default_value="create data")
     tags_list = graphene.List(of_type=graphene.String, default=[], required=False)
-    geo_list = graphene.List(of_type=graphene.String, default=[], required=False)
-    sector_list = graphene.List(of_type=graphene.String, default=[], required=False)
+    geo_list = graphene.List(of_type=graphene.String, default=[], required=True)
+    sector_list = graphene.List(of_type=graphene.String, default=[], required=True)
 
 
 class PatchDatasetInput(graphene.InputObjectType):
@@ -168,7 +168,6 @@ class CreateDataset(Output, graphene.Mutation):
             org_id = info.context.META.get("HTTP_ORGANIZATION")
             organization = Organization.objects.get(id=org_id)
             catalog = Catalog.objects.filter(organization=organization)[0]
-            # catalog = organization.objects.select_related('catalog').all(0)
         except Organization.DoesNotExist as e:
             return {
                 "success": False,

@@ -6,8 +6,8 @@ from graphql import GraphQLError
 from django.db.models import Q
 
 from activity_log.signal import activity
-from .models import Organization, OrganizationCreateRequest
-from .decorators import validate_token, create_user_org, auth_user_by_org
+from .models import Organization, OrganizationCreateRequest, Catalog
+from .decorators import validate_token, create_user_org, auth_user_by_org, auth_request_org
 from .enums import OrganizationTypes, OrganizationCreationStatusType
 from .utils import get_client_ip
 
@@ -19,9 +19,14 @@ class CreateOrganizationType(DjangoObjectType):
 
 
 class OrganizationType(DjangoObjectType):
+    username = graphene.String()
     class Meta:
         model = Organization
         fields = "__all__"
+    
+    @auth_request_org
+    def resolve_username(self, info, username=""):
+        return username
 
 
 class Query(graphene.ObjectType):
@@ -53,7 +58,8 @@ class Query(graphene.ObjectType):
             raise GraphQLError("Access Denied")
 
     # Access : All
-    def resolve_organization_by_title(self, info, organization_title):
+    @validate_token
+    def resolve_organization_by_title(self, info, organization_title, **kwargs):
         return Organization.objects.get(
             Q(title__iexact=organization_title),
             Q(
@@ -62,6 +68,7 @@ class Query(graphene.ObjectType):
         )
 
     # Access : All
+    @validate_token
     def resolve_organizations(self, info, **kwargs):
         return Organization.objects.filter(
             organizationcreaterequest__status=OrganizationCreationStatusType.APPROVED.value
@@ -89,6 +96,15 @@ class OrganizationInput(graphene.InputObjectType):
     data_description = graphene.String(required=True)
     upload_sample_data_file = Upload(required=False)
     sample_data_url = graphene.String(required=False)
+
+
+class OrganizationPatchInput(graphene.InputObjectType):
+    id = graphene.ID()
+    title = graphene.String(required=False)
+    description = graphene.String(required=False)
+    logo = Upload(required=False, description="Logo for the Company.")
+    homepage = graphene.String(required=False)
+    contact = graphene.String(required=False)
 
 
 class ApproveRejectOrganizationApprovalInput(graphene.InputObjectType):
@@ -180,10 +196,10 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     @validate_token
     @auth_user_by_org(action="approve_organization")
     def mutate(
-        root,
-        info,
-        username="",
-        organization_data: ApproveRejectOrganizationApprovalInput = None,
+            root,
+            info,
+            username="",
+            organization_data: ApproveRejectOrganizationApprovalInput = None,
     ):
         try:
             organization_create_request_instance = (
@@ -211,6 +227,15 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
             organization_create_request_instance.status = (
                 OrganizationCreationStatusType.APPROVED.value
             )
+            organization = Organization.objects.get(pk=organization_data.id)
+            # Create catalog if org is APPROVED.
+            catalog_instance = Catalog(
+                title=organization.title,
+                description=organization.description,
+                organization=organization,
+            )
+            catalog_instance.save()
+
         organization_create_request_instance.remark = organization_data.remark
         organization_create_request_instance.save()
         activity.send(
@@ -225,7 +250,38 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
         )
 
 
+class PatchOrganization(Output, graphene.Mutation):
+    class Arguments:
+        organization_data = OrganizationPatchInput(required=True)
+
+    organization = graphene.Field(OrganizationType)
+
+    @staticmethod
+    @auth_user_by_org(action="update_organization")
+    def mutate(root, info, organization_data: OrganizationPatchInput = None):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
+        org_id = organization_data.id if organization_data.id else org_id
+        organization_instance = (
+            Organization.objects.get(id=org_id)
+        )
+
+        if organization_data.title:
+            organization_instance.title = organization_data.title
+        if organization_data.description:
+            organization_instance.description = organization_data.description
+        if organization_data.contact:
+            organization_instance.contact_email = organization_data.contact
+        if organization_data.homepage:
+            organization_instance.homepage = organization_data.homepage
+        if organization_data.logo:
+            organization_instance.logo = organization_data.logo
+        organization_instance.save()
+
+        return PatchOrganization(organization=organization_instance)
+
+
 class Mutation(graphene.ObjectType):
     create_organization = CreateOrganization.Field()
     update_organization = UpdateOrganization.Field()
+    patch_organization = PatchOrganization.Field()
     approve_reject_organization_approval = ApproveRejectOrganizationApproval.Field()

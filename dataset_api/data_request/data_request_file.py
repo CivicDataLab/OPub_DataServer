@@ -110,13 +110,13 @@ class FormatConverter:
                 os.path.basename(json_file_path)
             )
         elif return_type == "data":
-            json_file = pd.DataFrame(pd.read_json(json_file_path))
+            json_file = pd.DataFrame(pd.read_json(json_file_path, orient="index"))
             response = HttpResponse(json_file.to_string(), content_type="text/csv")
         return response
 
     @classmethod
     def convert_json_to_csv(cls, json_file_path, src_mime_type, return_type="data"):
-        json_file = pd.DataFrame(pd.read_json(json_file_path))
+        json_file = pd.DataFrame(pd.read_json(json_file_path, orient="index"))
         if return_type == "file":
             json_file.to_csv("file.csv")
             response = FileResponse(open("file.csv", "rb"), content_type="application/x-download")
@@ -132,7 +132,7 @@ class FormatConverter:
 
     @classmethod
     def convert_json_to_xml(cls, json_file_path, src_mime_type, return_type="data"):
-        json_file = pd.DataFrame(pd.read_json(json_file_path))
+        json_file = pd.DataFrame(pd.read_json(json_file_path, orient="index"))
         if return_type == "file":
             json_file.to_xml("file.xml")
             response = FileResponse(open("file.xml", "rb"), content_type="application/x-download")
