@@ -6,7 +6,7 @@ from graphql import GraphQLError
 from django.db.models import Q
 
 from activity_log.signal import activity
-from .models import Organization, OrganizationCreateRequest
+from .models import Organization, OrganizationCreateRequest, Catalog
 from .decorators import validate_token, create_user_org, auth_user_by_org
 from .enums import OrganizationTypes, OrganizationCreationStatusType
 from .utils import get_client_ip
@@ -211,6 +211,15 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
             organization_create_request_instance.status = (
                 OrganizationCreationStatusType.APPROVED.value
             )
+            organization = Organization.objects.get(pk=organization_data.id)
+            # Create catalog if org is APPROVED.
+            catalog_instance = Catalog(
+                title=organization.title,
+                description=organization.description,
+                organization=organization,
+            )
+            catalog_instance.save()
+
         organization_create_request_instance.remark = organization_data.remark
         organization_create_request_instance.save()
         activity.send(
