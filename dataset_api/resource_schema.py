@@ -20,7 +20,7 @@ from .models import (
 )
 from .decorators import auth_user_action_resource, validate_token
 from .constants import FORMAT_MAPPING
-from .utils import log_activity, get_client_ip
+from .utils import log_activity, get_client_ip, get_keys
 
 
 class ResourceSchemaInputType(graphene.InputObjectType):
@@ -96,13 +96,13 @@ class Query(graphene.ObjectType):
     def resolve_resource_columns(self, info, resource_id):
         resource = Resource.objects.get(pk=resource_id)
         if resource.dataset.dataset_type == DataType.FILE.value:
-            if (
-                    resource.filedetails.file
-                    and len(resource.filedetails.file.path)
-                    and "csv" in resource.filedetails.format.lower()
-            ):
-                file = pd.read_csv(resource.filedetails.file.path)
-                return file.columns.tolist()
+            if resource.filedetails.file and len(resource.filedetails.file.path):
+                if "csv" in resource.filedetails.format.lower():
+                    file = pd.read_csv(resource.filedetails.file.path)
+                    return file.columns.tolist()
+                if resource.filedetails.format.lower() == "json":
+                    with open(resource.filedetails.file) as jsonFile:
+                        return list(set(get_keys(jsonFile.read(), [])))
         return []
 
     def resolve_resource_dataset(self, info, dataset_id):

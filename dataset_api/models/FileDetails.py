@@ -13,5 +13,5 @@ class FileDetails(models.Model):
         Resource, on_delete=models.CASCADE, primary_key=True
     )
     format = models.CharField(max_length=15)
-    file = models.FileField(storage=fs, upload_to=_resource_directory_path, blank=True)
+    file = models.FileField(storage=fs, upload_to=_resource_directory_path, blank=True, max_length=1000)
     remote_url = models.URLField(blank=True)
