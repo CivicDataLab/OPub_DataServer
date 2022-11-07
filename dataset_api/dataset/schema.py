@@ -103,6 +103,7 @@ class CreateDatasetInput(graphene.InputObjectType):
     title = graphene.String(required=True)
     description = graphene.String(required=True)
     dataset_type = graphene.Enum.from_enum(DataType)(required=True)
+    funnel = graphene.String(required=True, default_value="upload")
 
 
 class DatasetInput(graphene.InputObjectType):
@@ -145,7 +146,7 @@ class CreateDataset(Output, graphene.Mutation):
             root,
             info,
             username,
-            dataset_data: DatasetInput = None,
+            dataset_data: CreateDatasetInput = None,
     ):
         try:
             org_id = info.context.META.get("HTTP_ORGANIZATION")
@@ -168,6 +169,7 @@ class CreateDataset(Output, graphene.Mutation):
             description=dataset_data.description,
             status="DRAFT",
             dataset_type=dataset_data.dataset_type,
+            funnel=dataset_data.funnel,
             catalog=catalog
         )
         dataset_instance.save()
