@@ -7,7 +7,7 @@ from django.db.models import Q
 
 from activity_log.signal import activity
 from .models import Organization, OrganizationCreateRequest, Catalog
-from .decorators import validate_token, create_user_org, auth_user_by_org
+from .decorators import validate_token, create_user_org, auth_user_by_org, auth_request_org
 from .enums import OrganizationTypes, OrganizationCreationStatusType
 from .utils import get_client_ip
 
@@ -19,9 +19,14 @@ class CreateOrganizationType(DjangoObjectType):
 
 
 class OrganizationType(DjangoObjectType):
+    username = graphene.String()
     class Meta:
         model = Organization
         fields = "__all__"
+    
+    @auth_request_org
+    def resolve_username(self, info, username=""):
+        return username
 
 
 class Query(graphene.ObjectType):
@@ -53,7 +58,8 @@ class Query(graphene.ObjectType):
             raise GraphQLError("Access Denied")
 
     # Access : All
-    def resolve_organization_by_title(self, info, organization_title):
+    @validate_token
+    def resolve_organization_by_title(self, info, organization_title, **kwargs):
         return Organization.objects.get(
             Q(title__iexact=organization_title),
             Q(
@@ -62,6 +68,7 @@ class Query(graphene.ObjectType):
         )
 
     # Access : All
+    @validate_token
     def resolve_organizations(self, info, **kwargs):
         return Organization.objects.filter(
             organizationcreaterequest__status=OrganizationCreationStatusType.APPROVED.value
