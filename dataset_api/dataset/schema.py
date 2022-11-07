@@ -99,6 +99,12 @@ class Query(graphene.ObjectType):
         return Dataset.objects.get(pk=dataset_id)
 
 
+class CreateDatasetInput(graphene.InputObjectType):
+    title = graphene.String(required=True)
+    description = graphene.String(required=True)
+    dataset_type = graphene.Enum.from_enum(DataType)(required=True)
+
+
 class DatasetInput(graphene.InputObjectType):
     id = graphene.ID()
     title = graphene.String(required=True)
@@ -127,7 +133,7 @@ class PatchDatasetInput(graphene.InputObjectType):
 
 class CreateDataset(Output, graphene.Mutation):
     class Arguments:
-        dataset_data = DatasetInput()
+        dataset_data = CreateDatasetInput()
 
     dataset = graphene.Field(DatasetType)
 
@@ -160,28 +166,11 @@ class CreateDataset(Output, graphene.Mutation):
         dataset_instance = Dataset(
             title=dataset_data.title,
             description=dataset_data.description,
-            remote_issued=dataset_data.remote_issued,
-            remote_modified=dataset_data.remote_modified,
-            funnel=dataset_data.funnel,
-            action=dataset_data.action,
             status="DRAFT",
-            highlights=dataset_data.highlights,
-            catalog=catalog,
-            period_to=dataset_data.period_to,
-            period_from=dataset_data.period_from,
-            update_frequency=dataset_data.update_frequency,
             dataset_type=dataset_data.dataset_type,
+            catalog=catalog
         )
         dataset_instance.save()
-        _add_update_attributes_to_dataset(
-            dataset_instance, "tags", dataset_data.tags_list, Tag
-        )
-        _add_update_attributes_to_dataset(
-            dataset_instance, "geography", dataset_data.geo_list, Geography
-        )
-        _add_update_attributes_to_dataset(
-            dataset_instance, "sector", dataset_data.sector_list, Sector
-        )
         log_activity(
             target_obj=dataset_instance,
             ip=get_client_ip(info),
