@@ -25,7 +25,6 @@ def validate_token(func):
             raise GraphQLError("Empty User")
         body = json.dumps({"access_token": user_token})
         response_json = request_to_server(body, "verify_user_token")
-        print(response_json)
         if not response_json["success"]:
             raise GraphQLError(response_json["error_description"])
 
@@ -108,7 +107,6 @@ def auth_user_by_org(action):
                 }
             )
             response_json = request_to_server(body, "check_user_access")
-            # print(response_json)
             if not response_json["Success"]:
                 raise GraphQLError(response_json["error_description"])
             if response_json["access_allowed"]:
@@ -164,6 +162,26 @@ def update_user_org(func):
             response_json = request_to_server(body, "update_user_role")
             if response_json["Success"]:
                 return value
+
+    return inner
+
+
+def auth_request_org(func):
+    def inner(*args, **kwargs):
+        org_id = args[0].id
+        user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+        body = json.dumps(
+            {
+                "access_token": user_token,
+                "org_id": org_id,
+            }
+        )
+        response_json = request_to_server(body, "get_org_requestor")
+        if response_json["Success"]:
+            kwargs["username"] = response_json["username"]
+            return func(*args, **kwargs)
+        else:
+            raise GraphQLError(response_json["error_description"])
 
     return inner
 
