@@ -14,7 +14,7 @@ class Dataset(models.Model):
     issued = models.DateTimeField(auto_now_add=True)
     highlights = ArrayField(models.CharField(max_length=100, blank=True, null=True), blank=True, null=True)
     remote_issued = models.DateField(blank=True, null=True)
-    remote_modified = models.DateTimeField(blank=True, null=True)
+    remote_modified = models.DateField(blank=True, null=True)
     period_from = models.DateField(blank=True, null=True)
     period_to = models.DateField(blank=True, null=True)
     update_frequency = models.CharField(max_length=50, blank=True, null=True)

@@ -111,7 +111,7 @@ class CreateDatasetInput(graphene.InputObjectType):
 class UpdateDatasetInput(graphene.InputObjectType):
     id = graphene.ID()
     remote_issued = graphene.Date(required=True)
-    remote_modified = graphene.DateTime(required=False)
+    remote_modified = graphene.Date(required=False)
     period_from = graphene.Date(required=False)
     period_to = graphene.Date(required=False)
     update_frequency = graphene.String(required=True)
