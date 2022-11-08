@@ -1,3 +1,5 @@
+from typing import Iterable
+
 import graphene
 from django.db.models import Q
 from graphene_django import DjangoObjectType
@@ -116,9 +118,9 @@ class UpdateDatasetInput(graphene.InputObjectType):
     highlights = graphene.List(of_type=graphene.String, required=False, default=[])
     funnel = graphene.String(required=False, default_value="upload")
     action = graphene.String(required=False, default_value="create data")
-    tags_list = graphene.List(of_type=graphene.String, default=[], required=False)
-    geo_list = graphene.List(of_type=graphene.String, default=[], required=True)
-    sector_list = graphene.List(of_type=graphene.String, default=[], required=True)
+    tags_list: Iterable = graphene.List(of_type=graphene.String, default=[], required=False)
+    geo_list: Iterable = graphene.List(of_type=graphene.String, default=[], required=True)
+    sector_list: Iterable = graphene.List(of_type=graphene.String, default=[], required=True)
 
 
 class PatchDatasetInput(graphene.InputObjectType):
@@ -216,8 +218,6 @@ class UpdateDataset(Output, graphene.Mutation):
                 },
             }
         catalog = Catalog.objects.filter(organization=organization)[0]
-        dataset_instance.title = dataset_data.title
-        dataset_instance.description = dataset_data.description
         dataset_instance.remote_issued = dataset_data.remote_issued
         dataset_instance.remote_modified = dataset_data.remote_modified
         dataset_instance.funnel = dataset_data.funnel
@@ -226,7 +226,6 @@ class UpdateDataset(Output, graphene.Mutation):
         dataset_instance.status = "DRAFT"
         dataset_instance.period_to = dataset_data.period_to
         dataset_instance.period_from = dataset_data.period_from
-        dataset_instance.dataset_type = dataset_data.dataset_type
         dataset_instance.update_frequency = dataset_data.update_frequency
         dataset_instance.highlights = dataset_data.highlights
 
