@@ -106,17 +106,14 @@ class CreateDatasetInput(graphene.InputObjectType):
     funnel = graphene.String(required=True, default_value="upload")
 
 
-class DatasetInput(graphene.InputObjectType):
+class UpdateDatasetInput(graphene.InputObjectType):
     id = graphene.ID()
-    title = graphene.String(required=True)
-    description = graphene.String(required=True)
     remote_issued = graphene.Date(required=True)
     remote_modified = graphene.DateTime(required=False)
     period_from = graphene.Date(required=False)
     period_to = graphene.Date(required=False)
     update_frequency = graphene.String(required=True)
     highlights = graphene.List(of_type=graphene.String, required=False, default=[])
-    dataset_type = graphene.Enum.from_enum(DataType)(required=True)
     funnel = graphene.String(required=False, default_value="upload")
     action = graphene.String(required=False, default_value="create data")
     tags_list = graphene.List(of_type=graphene.String, default=[], required=False)
@@ -185,14 +182,14 @@ class CreateDataset(Output, graphene.Mutation):
 
 class UpdateDataset(Output, graphene.Mutation):
     class Arguments:
-        dataset_data = DatasetInput()
+        dataset_data = UpdateDatasetInput()
 
     dataset = graphene.Field(DatasetType)
 
     @staticmethod
     @validate_token
     @auth_user_action_dataset(action="update_dataset")
-    def mutate(root, info, username, dataset_data: DatasetInput = None):
+    def mutate(root, info, username, dataset_data: UpdateDatasetInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         try:
             dataset_instance = Dataset.objects.get(id=dataset_data.id)
