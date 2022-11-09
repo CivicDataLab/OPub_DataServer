@@ -8,6 +8,7 @@ from graphene import List
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
+from graphql import GraphQLError
 
 from .enums import DataType
 from .models import (
@@ -18,7 +19,12 @@ from .models import (
     APIDetails,
     FileDetails,
 )
-from .decorators import auth_user_action_resource, validate_token
+from .decorators import (
+    auth_user_action_resource,
+    validate_token,
+    auth_user_by_org,
+    auth_query_resource,
+)
 from .constants import FORMAT_MAPPING
 from .utils import log_activity, get_client_ip, get_keys
 
@@ -87,26 +93,54 @@ class Query(graphene.ObjectType):
     resource_columns = graphene.List(graphene.String, resource_id=graphene.Int())
     resource_dataset = graphene.List(ResourceType, dataset_id=graphene.Int())
 
-    def resolve_all_resources(self, info, **kwargs):
-        return Resource.objects.all().order_by("-modified")
+    # Access : PMU
+    @auth_user_by_org(action="query")
+    def resolve_all_resources(self, info, role, **kwargs):
+        if role == "PMU":
+            return Resource.objects.all().order_by("-modified")
+        else:
+            raise GraphQLError("Access Denied")
 
-    def resolve_resource(self, info, resource_id):
-        return Resource.objects.get(pk=resource_id)
+    # Access : PMU - DPA/DP of that org to which this resource belongs.
+    @auth_query_resource(action="query||resource")
+    def resolve_resource(self, info, role, resource_id):
+        if role == "PMU" or "DPA" or "DP":
+            return Resource.objects.get(pk=resource_id)
+        else:
+            raise GraphQLError("Access Denied")
 
-    def resolve_resource_columns(self, info, resource_id):
-        resource = Resource.objects.get(pk=resource_id)
-        if resource.dataset.dataset_type == DataType.FILE.value:
-            if resource.filedetails.file and len(resource.filedetails.file.path):
-                if "csv" in resource.filedetails.format.lower():
-                    file = pd.read_csv(resource.filedetails.file.path)
-                    return file.columns.tolist()
-                if resource.filedetails.format.lower() == "json":
-                    with open(resource.filedetails.file) as jsonFile:
-                        return list(set(get_keys(jsonFile.read(), [])))
-        return []
+    # Access : PMU - DPA/DP of that org to which this resource belongs.
+    @auth_query_resource(action="query||resource")
+    def resolve_resource_columns(self, info, resource_id, role):
+        if role == "PMU" or "DPA" or "DP":
+            resource = Resource.objects.get(pk=resource_id)
+            if resource.dataset.dataset_type == DataType.FILE.value:
+                if resource.filedetails.file and len(resource.filedetails.file.path):
+                    if "csv" in resource.filedetails.format.lower():
+                        file = pd.read_csv(resource.filedetails.file.path)
+                        return file.columns.tolist()
+                    if resource.filedetails.format.lower() == "json":
+                        with open(resource.filedetails.file) as jsonFile:
+                            return list(set(get_keys(jsonFile.read(), [])))
+            return []
+        else:
+            raise GraphQLError("Access Denied")
 
-    def resolve_resource_dataset(self, info, dataset_id):
-        return Resource.objects.filter(dataset=dataset_id).order_by("-modified")
+    # Access : DPA/DP of that org to which this resource belongs.
+    @auth_query_resource(action="query||dataset")
+    def resolve_resource_dataset(self, info, dataset_id, role):
+        if role == "PMU" or "DPA" or "DP":
+            return Resource.objects.filter(dataset=dataset_id).order_by("-modified")
+        else:
+            raise GraphQLError("Access Denied")
+
+    # Access : DPA/DP of that org to which this resource belongs.
+    @auth_query_resource(action="query||dataset")
+    def resolve_resource_dataset(self, info, dataset_id, role):
+        if role == "PMU" or "DPA" or "DP":
+            return Resource.objects.filter(dataset=dataset_id).order_by("-modified")
+        else:
+            raise GraphQLError("Access Denied")
 
 
 class ResponseType(graphene.Enum):
@@ -147,9 +181,9 @@ class DeleteResourceInput(graphene.InputObjectType):
 
 def _remove_masked_fields(resource_instance: Resource):
     if (
-            resource_instance.masked_fields
-            and len(resource_instance.filedetails.file.path)
-            and "csv" in resource_instance.filedetails.format.lower()
+        resource_instance.masked_fields
+        and len(resource_instance.filedetails.file.path)
+        and "csv" in resource_instance.filedetails.format.lower()
     ):
         df = pd.read_csv(resource_instance.filedetails.file.path)
         df = df.drop(columns=resource_instance.masked_fields)
@@ -265,7 +299,12 @@ class CreateResource(graphene.Mutation, Output):
     @staticmethod
     @validate_token
     @auth_user_action_resource(action="create_resource")
-    def mutate(root, info, username, resource_data: ResourceInput = None, ):
+    def mutate(
+        root,
+        info,
+        username,
+        resource_data: ResourceInput = None,
+    ):
         """
 
         :type resource_data: List of dictionary
@@ -273,7 +312,14 @@ class CreateResource(graphene.Mutation, Output):
         try:
             dataset = Dataset.objects.get(id=resource_data.dataset)
         except Dataset.DoesNotExist as e:
-            return {"success": False, "errors": {"id": [{"message": "Dataset with given id not found", "code": "404"}]}}
+            return {
+                "success": False,
+                "errors": {
+                    "id": [
+                        {"message": "Dataset with given id not found", "code": "404"}
+                    ]
+                },
+            }
         masked_fields = resource_data.masked_fields
         resource_instance = Resource(
             title=resource_data.title,
@@ -287,19 +333,41 @@ class CreateResource(graphene.Mutation, Output):
         # Create either api or file object.
         if dataset.dataset_type == DataType.API.value:
             try:
-                api_source_instance = APISource.objects.get(id=resource_data.api_details.api_source)
-                _create_update_api_details(resource_instance=resource_instance, attribute=resource_data.api_details)
+                api_source_instance = APISource.objects.get(
+                    id=resource_data.api_details.api_source
+                )
+                _create_update_api_details(
+                    resource_instance=resource_instance,
+                    attribute=resource_data.api_details,
+                )
             except APISource.DoesNotExist as e:
                 resource_instance.delete()
-                return {"success": False,
-                        "errors": {"id": [{"message": "API Source with given id not found", "code": "404"}]}}
+                return {
+                    "success": False,
+                    "errors": {
+                        "id": [
+                            {
+                                "message": "API Source with given id not found",
+                                "code": "404",
+                            }
+                        ]
+                    },
+                }
         elif dataset.dataset_type == DataType.FILE.value:
-            _create_update_file_details(resource_instance=resource_instance, attribute=resource_data.file_details)
+            _create_update_file_details(
+                resource_instance=resource_instance,
+                attribute=resource_data.file_details,
+            )
 
         _remove_masked_fields(resource_instance)
         _create_update_schema(resource_data, resource_instance)
-        log_activity(target_obj=resource_instance, ip=get_client_ip(info), target_group=dataset.catalog.organization,
-                     username=username, verb="Created")
+        log_activity(
+            target_obj=resource_instance,
+            ip=get_client_ip(info),
+            target_group=dataset.catalog.organization,
+            username=username,
+            verb="Created",
+        )
 
         return CreateResource(success=True, resource=resource_instance)
 
@@ -318,10 +386,23 @@ class UpdateResource(graphene.Mutation, Output):
             resource_instance = Resource.objects.get(id=resource_data.id)
             dataset = Dataset.objects.get(id=resource_data.dataset)
         except Resource.DoesNotExist as e:
-            return {"success": False,
-                    "errors": {"id": [{"message": "Resource with given id not found", "code": "404"}]}}
+            return {
+                "success": False,
+                "errors": {
+                    "id": [
+                        {"message": "Resource with given id not found", "code": "404"}
+                    ]
+                },
+            }
         except Dataset.DoesNotExist as e:
-            return {"success": False, "errors": {"id": [{"message": "Dataset with given id not found", "code": "404"}]}}
+            return {
+                "success": False,
+                "errors": {
+                    "id": [
+                        {"message": "Dataset with given id not found", "code": "404"}
+                    ]
+                },
+            }
         resource_instance.title = resource_data.title
         resource_instance.description = resource_data.description
         resource_instance.dataset = dataset
@@ -332,11 +413,25 @@ class UpdateResource(graphene.Mutation, Output):
         # _create_update_schema(resource_data, resource_instance)
         if dataset.dataset_type == "API":
             try:
-                api_source_instance = APISource.objects.get(id=resource_data.api_details.api_source)
-                _create_update_api_details(resource_instance=resource_instance, attribute=resource_data.api_details)
+                api_source_instance = APISource.objects.get(
+                    id=resource_data.api_details.api_source
+                )
+                _create_update_api_details(
+                    resource_instance=resource_instance,
+                    attribute=resource_data.api_details,
+                )
             except APISource.DoesNotExist as e:
-                return {"success": False,
-                        "errors": {"id": [{"message": "API Source with given id not found", "code": "404"}]}}
+                return {
+                    "success": False,
+                    "errors": {
+                        "id": [
+                            {
+                                "message": "API Source with given id not found",
+                                "code": "404",
+                            }
+                        ]
+                    },
+                }
         else:
             _create_update_file_details(
                 resource_instance=resource_instance,
@@ -345,8 +440,13 @@ class UpdateResource(graphene.Mutation, Output):
         resource_instance.save()
         _remove_masked_fields(resource_instance)
         _create_update_schema(resource_data, resource_instance)
-        log_activity(target_obj=resource_instance, ip=get_client_ip(info), target_group=dataset.catalog.organization,
-                     username=username, verb="Updated")
+        log_activity(
+            target_obj=resource_instance,
+            ip=get_client_ip(info),
+            target_group=dataset.catalog.organization,
+            username=username,
+            verb="Updated",
+        )
         return UpdateResource(success=True, resource=resource_instance)
 
 
@@ -365,11 +465,21 @@ class DeleteResource(graphene.Mutation, Output):
         try:
             resource_instance = Resource.objects.get(id=resource_data.id)
         except Resource.DoesNotExist as e:
-            return {"success": False,
-                    "errors": {"id": [{"message": "Resource with given id not found", "code": "404"}]}}
-        log_activity(target_obj=resource_instance, ip=get_client_ip(info),
-                     target_group=resource_instance.dataset.catalog.organization,
-                     username=username, verb="Deleted")
+            return {
+                "success": False,
+                "errors": {
+                    "id": [
+                        {"message": "Resource with given id not found", "code": "404"}
+                    ]
+                },
+            }
+        log_activity(
+            target_obj=resource_instance,
+            ip=get_client_ip(info),
+            target_group=resource_instance.dataset.catalog.organization,
+            username=username,
+            verb="Deleted",
+        )
         resource_instance.delete()
         return DeleteResource(success=True)
 

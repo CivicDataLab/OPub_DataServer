@@ -1,8 +1,9 @@
 import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
+from graphql import GraphQLError
 
-from dataset_api.decorators import validate_token, update_user_org
+from dataset_api.decorators import validate_token, update_user_org, auth_user_by_org
 from dataset_api.enums import OrganizationRequestStatusType
 from dataset_api.models import Organization
 from dataset_api.models import OrganizationRequest
@@ -16,13 +17,22 @@ class OrganizationRequestType(DjangoObjectType):
 
 class Query(graphene.ObjectType):
     all_organization_requests = graphene.List(OrganizationRequestType)
-    organization_request = graphene.Field(OrganizationRequestType, organization_request_id=graphene.Int())
+    organization_request = graphene.Field(
+        OrganizationRequestType, organization_request_id=graphene.Int()
+    )
     organization_request_user = graphene.List(OrganizationRequestType)
 
-    def resolve_all_organization_requests(self, info, **kwargs):
-        return OrganizationRequest.objects.all().order_by("-modified")
+    # Access: PMU
+    @auth_user_by_org(action="query")
+    def resolve_all_organization_requests(self, info, role, **kwargs):
+        if role == "PMU":
+            return OrganizationRequest.objects.all().order_by("-modified")
+        else:
+            raise GraphQLError("Access Denied")
 
-    def resolve_organization_request(self, info, organization_request_id):
+    # Access: DPA of that org
+    # TODO: Need to find a way to map org_req_id to org_id w/out creating a new decorator.
+    def resolve_organization_request(self, info, role, organization_request_id):
         return OrganizationRequest.objects.get(pk=organization_request_id)
 
     @validate_token
@@ -50,12 +60,25 @@ class OrganizationRequestMutation(graphene.Mutation, Output):
 
     @staticmethod
     @validate_token
-    def mutate(root, info, organization_request: OrganizationRequestInput = None, username=""):
+    def mutate(
+        root, info, organization_request: OrganizationRequestInput = None, username=""
+    ):
         try:
-            organization = Organization.objects.get(id=organization_request.organization)
+            organization = Organization.objects.get(
+                id=organization_request.organization
+            )
         except Organization.DoesNotExist as e:
-            return {"success": False,
-                    "errors": {"id": [{"message": "Organization with given id not found", "code": "404"}]}}
+            return {
+                "success": False,
+                "errors": {
+                    "id": [
+                        {
+                            "message": "Organization with given id not found",
+                            "code": "404",
+                        }
+                    ]
+                },
+            }
         organization_request_instance = OrganizationRequest(
             status=OrganizationRequestStatusType.REQUESTED.value,
             description=organization_request.description,
@@ -64,7 +87,9 @@ class OrganizationRequestMutation(graphene.Mutation, Output):
         )
         organization_request_instance.save()
         organization.save()
-        return OrganizationRequestMutation(organization_request=organization_request_instance)
+        return OrganizationRequestMutation(
+            organization_request=organization_request_instance
+        )
 
 
 class ApproveRejectOrganizationRequest(graphene.Mutation, Output):
@@ -77,15 +102,28 @@ class ApproveRejectOrganizationRequest(graphene.Mutation, Output):
     @update_user_org
     def mutate(root, info, organization_request: OrganizationRequestUpdateInput = None):
         try:
-            organization_request_instance = OrganizationRequest.objects.get(id=organization_request.id)
+            organization_request_instance = OrganizationRequest.objects.get(
+                id=organization_request.id
+            )
         except OrganizationRequest.DoesNotExist as e:
-            return {"success": False,
-                    "errors": {"id": [{"message": "Organization joining with given id not found", "code": "404"}]}}
+            return {
+                "success": False,
+                "errors": {
+                    "id": [
+                        {
+                            "message": "Organization joining with given id not found",
+                            "code": "404",
+                        }
+                    ]
+                },
+            }
         organization_request_instance.status = organization_request.status
         if organization_request.remark:
             organization_request_instance.remark = organization_request.remark
         organization_request_instance.save()
-        return ApproveRejectOrganizationRequest(organization_request=organization_request_instance)
+        return ApproveRejectOrganizationRequest(
+            organization_request=organization_request_instance
+        )
 
 
 class Mutation(graphene.ObjectType):
