@@ -7,6 +7,7 @@ import pandas as pd
 import requests
 from django.conf import settings
 from django.http import HttpResponse, FileResponse
+from graphql import GraphQLError
 
 from dataset_api.constants import FORMAT_MAPPING
 from dataset_api.data_request.token_handler import create_access_jwt_token
@@ -14,12 +15,22 @@ from dataset_api.decorators import validate_token_or_none
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.search import index_data
 
+from ratelimit.decorators import ratelimit
 
 @validate_token_or_none
+@ratelimit(
+    key="dataset_api.ratelimits.my_key",
+    rate="dataset_api.ratelimits.per_user",
+    block=False, # If TRUE will raise error, otherwise
+)
 def download(request, data_request_id, username=None):
     target_format = request.GET.get("format", None)
-    return get_request_file(username, data_request_id, target_format)
-
+    # Second Method of raising error.
+    was_limited = getattr(request, 'limited', False)
+    if not was_limited:
+        return get_request_file(username, data_request_id, target_format)
+    else:
+        raise GraphQLError("Daily Quota Exceeded.")
 
 def update_download_count(username, data_request: DataRequest):
     # update download count in dataset
@@ -58,12 +69,25 @@ def update_download_count(username, data_request: DataRequest):
 class FormatConverter:
     @classmethod
     def convert_csv_to_json(cls, csv_file_path, src_mime_type, return_type="data"):
-        csv_file = pd.DataFrame(pd.read_csv(csv_file_path, sep=",", header=0, index_col=False))
+        csv_file = pd.DataFrame(
+            pd.read_csv(csv_file_path, sep=",", header=0, index_col=False)
+        )
         if return_type == "file":
-            csv_file.to_json("file.json", orient="records", date_format="epoch", double_precision=10,
-                             force_ascii=True, date_unit="ms", default_handler=None)
-            response = FileResponse(open("file.json", "rb"), content_type="application/x-download")
-            file_name = ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
+            csv_file.to_json(
+                "file.json",
+                orient="records",
+                date_format="epoch",
+                double_precision=10,
+                force_ascii=True,
+                date_unit="ms",
+                default_handler=None,
+            )
+            response = FileResponse(
+                open("file.json", "rb"), content_type="application/x-download"
+            )
+            file_name = (
+                ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
+            )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
             )
@@ -75,11 +99,17 @@ class FormatConverter:
 
     @classmethod
     def convert_csv_to_xml(cls, csv_file_path, src_mime_type, return_type="data"):
-        csv_file = pd.DataFrame(pd.read_csv(csv_file_path, sep=",", header=0, index_col=False))
+        csv_file = pd.DataFrame(
+            pd.read_csv(csv_file_path, sep=",", header=0, index_col=False)
+        )
         if return_type == "file":
             csv_file.to_xml("file.xml")
-            response = FileResponse(open("file.xml", "rb"), content_type="application/x-download")
-            file_name = ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".xml"
+            response = FileResponse(
+                open("file.xml", "rb"), content_type="application/x-download"
+            )
+            file_name = (
+                ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".xml"
+            )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
             )
@@ -91,21 +121,25 @@ class FormatConverter:
 
     @classmethod
     def convert_csv_to_csv(cls, csv_file_path, src_mime_type, return_type="data"):
-        with open(csv_file_path, encoding='utf-8') as csvf:
+        with open(csv_file_path, encoding="utf-8") as csvf:
             if return_type == "file":
                 response = HttpResponse(csvf, content_type=src_mime_type)
                 response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                     os.path.basename(csv_file_path)
                 )
             elif return_type == "data":
-                csv_file = pd.DataFrame(pd.read_csv(csv_file_path, sep=",", header=0, index_col=False))
+                csv_file = pd.DataFrame(
+                    pd.read_csv(csv_file_path, sep=",", header=0, index_col=False)
+                )
                 response = HttpResponse(csv_file.to_string(), content_type="text/csv")
             return response
 
     @classmethod
     def convert_json_to_json(cls, json_file_path, src_mime_type, return_type="data"):
         if return_type == "file":
-            response = FileResponse(open(json_file_path, "rb"), content_type=src_mime_type)
+            response = FileResponse(
+                open(json_file_path, "rb"), content_type=src_mime_type
+            )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 os.path.basename(json_file_path)
             )
@@ -119,8 +153,12 @@ class FormatConverter:
         json_file = pd.DataFrame(pd.read_json(json_file_path, orient="index"))
         if return_type == "file":
             json_file.to_csv("file.csv")
-            response = FileResponse(open("file.csv", "rb"), content_type="application/x-download")
-            file_name = ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".json"
+            response = FileResponse(
+                open("file.csv", "rb"), content_type="application/x-download"
+            )
+            file_name = (
+                ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".json"
+            )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
             )
@@ -135,8 +173,12 @@ class FormatConverter:
         json_file = pd.DataFrame(pd.read_json(json_file_path, orient="index"))
         if return_type == "file":
             json_file.to_xml("file.xml")
-            response = FileResponse(open("file.xml", "rb"), content_type="application/x-download")
-            file_name = ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".xml"
+            response = FileResponse(
+                open("file.xml", "rb"), content_type="application/x-download"
+            )
+            file_name = (
+                ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".xml"
+            )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
             )
@@ -156,9 +198,10 @@ def get_request_file(username, data_request_id, target_format, return_type="file
         mime_type = mimetypes.guess_type(file_path)[0]
         if target_format:
             src_format = FORMAT_MAPPING[mime_type]
-            response = getattr(FormatConverter, f"convert_{src_format.lower()}_to_{target_format.lower()}")(file_path,
-                                                                                                            mime_type,
-                                                                                                            return_type)
+            response = getattr(
+                FormatConverter,
+                f"convert_{src_format.lower()}_to_{target_format.lower()}",
+            )(file_path, mime_type, return_type)
         else:
             response = HttpResponse(data_request.file, content_type=mime_type)
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
@@ -178,29 +221,36 @@ def get_resource(request):
     token = request.GET.get("token")
     format = request.GET.get("format")
     try:
-        token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+        token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
-        return HttpResponse("Authentication failed", content_type='text/plain')
+        return HttpResponse("Authentication failed", content_type="text/plain")
     except IndexError:
-        return HttpResponse("Token prefix missing", content_type='text/plain')
+        return HttpResponse("Token prefix missing", content_type="text/plain")
     if token_payload:
-        return get_request_file(token_payload.get("username"), token_payload.get("data_request"), format, "data")
+        return get_request_file(
+            token_payload.get("username"),
+            token_payload.get("data_request"),
+            format,
+            "data",
+        )
 
-    return HttpResponse(json.dumps(token_payload), content_type='application/json')
+    return HttpResponse(json.dumps(token_payload), content_type="application/json")
 
 
 def refresh_token(request):
     token = request.GET.get("token")
     try:
-        token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+        token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
-        return HttpResponse("Authentication failed", content_type='text/plain')
+        return HttpResponse("Authentication failed", content_type="text/plain")
     except IndexError:
-        return HttpResponse("Token prefix missing", content_type='text/plain')
+        return HttpResponse("Token prefix missing", content_type="text/plain")
     if token_payload:
         data_request_id = token_payload.get("data_request")
         username = token_payload.get("username")
         data_request_instance = DataRequest.objects.get(pk=data_request_id)
         access_token = create_access_jwt_token(data_request_instance, username)
-        return HttpResponse(access_token, content_type='text/plain')
-    return HttpResponse("Something went wrong request again!!", content_type='text/plain')
+        return HttpResponse(access_token, content_type="text/plain")
+    return HttpResponse(
+        "Something went wrong request again!!", content_type="text/plain"
+    )

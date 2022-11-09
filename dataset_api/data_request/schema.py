@@ -8,7 +8,10 @@ from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
 from dataset_api.constants import DATAREQUEST_SWAGGER_SPEC
-from dataset_api.data_request.token_handler import create_access_jwt_token, generate_refresh_token
+from dataset_api.data_request.token_handler import (
+    create_access_jwt_token,
+    generate_refresh_token,
+)
 from dataset_api.decorators import validate_token, validate_token_or_none
 from dataset_api.enums import DataType
 from dataset_api.models import Resource
@@ -36,8 +39,12 @@ class DataRequestType(DjangoObjectType):
     @validate_token_or_none
     def resolve_spec(self: DataRequest, info, username):
         spec = DATAREQUEST_SWAGGER_SPEC.copy()
-        spec["paths"]["/refreshtoken"]["get"]["parameters"][0]["example"] = generate_refresh_token(self, username)
-        spec["paths"]["/getresource"]["get"]["parameters"][0]["example"] = create_access_jwt_token(self, username)
+        spec["paths"]["/refreshtoken"]["get"]["parameters"][0][
+            "example"
+        ] = generate_refresh_token(self, username)
+        spec["paths"]["/getresource"]["get"]["parameters"][0][
+            "example"
+        ] = create_access_jwt_token(self, username)
         spec["info"]["title"] = self.resource.title
         spec["info"]["description"] = self.resource.description
         return spec
@@ -87,16 +94,26 @@ class DataRequestMutation(graphene.Mutation, Output):
     def mutate(root, info, data_request: DataRequestInput = None, username=""):
         try:
             resource = Resource.objects.get(id=data_request.resource)
-            dam_request = DatasetAccessModelRequest(id=data_request.dataset_access_model_request)
+            dam_request = DatasetAccessModelRequest(
+                id=data_request.dataset_access_model_request
+            )
         except (Resource.DoesNotExist, DatasetAccessModelRequest.DoesNotExist) as e:
-            return {"success": False,
-                    "errors": {
-                        "id": [{"message": "Data Access Model or resource with given id not found", "code": "404"}]}}
+            return {
+                "success": False,
+                "errors": {
+                    "id": [
+                        {
+                            "message": "Data Access Model or resource with given id not found",
+                            "code": "404",
+                        }
+                    ]
+                },
+            }
         data_request_instance = DataRequest(
             status="REQUESTED",
             user=username,
             resource=resource,
-            dataset_access_model_request=dam_request
+            dataset_access_model_request=dam_request,
         )
         data_request_instance.save()
         # TODO: fix magic strings
@@ -109,8 +126,10 @@ class DataRequestMutation(graphene.Mutation, Output):
             print(response.text)
         elif resource and resource.dataset.dataset_type == DataType.FILE.value:
 
-            data_request_instance.file = File(resource.filedetails.file,
-                                              os.path.basename(resource.filedetails.file.path))
+            data_request_instance.file = File(
+                resource.filedetails.file,
+                os.path.basename(resource.filedetails.file.path),
+            )
             data_request_instance.status = "FETCHED"
         data_request_instance.save()
         return DataRequestMutation(data_request=data_request_instance)
