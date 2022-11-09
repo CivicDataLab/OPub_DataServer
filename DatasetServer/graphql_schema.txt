@@ -6,10 +6,10 @@ schema {
 }
 
 type APISourceType {
-    api_version: String!
+    api_version: String
     apidetails_set: [ApiDetailsType!]!
     auth_credentials: JSONString
-    auth_loc: String!
+    auth_loc: String
     auth_token: String
     auth_type: String!
     base_url: String!
@@ -26,6 +26,24 @@ type AccessModelResourceType {
     resource: ResourceType!
 }
 
+type ActivityType {
+    action_object_object_id: String
+    actor: String!
+    browser: String
+    description: String
+    id: ID!
+    ip: String
+    issued: DateTime!
+    passed_time: String
+    public: Boolean!
+    slug: String
+    target_group_object_id: String
+    target_object_id: String
+    target_title: String
+    target_type: String
+    verb: String!
+}
+
 type AdditionalInfoType {
     dataset: DatasetType!
     description: String!
@@ -37,6 +55,22 @@ type AdditionalInfoType {
     remote_url: String!
     title: String!
     type: String!
+}
+
+type AgreementMutation {
+    agreement: AgreementType
+    errors: ExpectedErrorType
+    success: Boolean
+}
+
+type AgreementType {
+    accepted_agreement: String
+    dataset_access_model: DatasetAccessModelType!
+    dataset_access_model_request: DataAccessModelRequestType!
+    id: ID!
+    status: AgreementStatus!
+    user_email: String
+    username: String
 }
 
 type ApiDetailsType {
@@ -65,9 +99,27 @@ type ApproveRejectModerationRequests {
     success: Boolean
 }
 
+type ApproveRejectOrganizationApproval {
+    errors: ExpectedErrorType
+    organization: CreateOrganizationType
+    success: Boolean
+}
+
+type ApproveRejectOrganizationRequest {
+    errors: ExpectedErrorType
+    organization_request: OrganizationRequestType
+    success: Boolean
+}
+
 type ApproveRejectRating {
     dataset_rating: DatasetRatingType
     errors: ExpectedErrorType
+    success: Boolean
+}
+
+type ApproveRejectReviewRequests {
+    errors: ExpectedErrorType
+    review_requests: [ReviewRequestType]
     success: Boolean
 }
 
@@ -137,8 +189,26 @@ type CreateLicense {
 
 type CreateOrganization {
     errors: ExpectedErrorType
-    organization: OrganizationType
+    organization: CreateOrganizationType
     success: Boolean
+}
+
+type CreateOrganizationType {
+    contact_email: String!
+    data_description: String!
+    description: String!
+    homepage: String!
+    id: ID!
+    issued: DateTime!
+    logo: String!
+    modified: DateTime!
+    organization_ptr: OrganizationType!
+    organization_types: OrganizationOrganizationTypes!
+    remark: String
+    sample_data_url: String!
+    status: OrganizationCreateRequestStatus!
+    title: String!
+    upload_sample_data_file: String!
 }
 
 type CreateResource {
@@ -167,6 +237,7 @@ type DataAccessModelRequestMutation {
 
 type DataAccessModelRequestType {
     access_model: DatasetAccessModelType!
+    agreement_set: [AgreementType!]!
     datarequest_set: [DataRequestType!]!
     description: String!
     id: ID!
@@ -175,7 +246,8 @@ type DataAccessModelRequestType {
     purpose: String!
     remark: String
     status: String!
-    user: String!
+    user: String
+    user_email: String
 }
 
 type DataAccessModelType {
@@ -203,12 +275,15 @@ type DataRequestMutation {
 }
 
 type DataRequestType {
+    access_token: String
     creation_date: DateTime
     dataset_access_model_request: DataAccessModelRequestType!
     file: String
     id: ID!
+    refresh_token: String
     reject_reason: String!
     resource: ResourceType!
+    spec: JSONString
     status: String!
     user: String!
 }
@@ -220,6 +295,7 @@ type DataRequestUpdateMutation {
 }
 
 type DatasetAccessModelType {
+    agreements: [AgreementType!]!
     data_access_model: DataAccessModelType!
     dataset: DatasetType!
     datasetaccessmodelrequest_set: [DataAccessModelRequestType!]!
@@ -227,12 +303,16 @@ type DatasetAccessModelType {
     id: ID!
     issued: DateTime!
     modified: DateTime!
+    resource_formats: [String]
+    usage: Int
 }
 
 type DatasetRatingType {
     data_quality: Float!
     dataset: DatasetType!
     id: ID!
+    issued: DateTime!
+    modified: DateTime!
     review: String!
     status: DatasetRatingsStatus!
     user: String!
@@ -241,24 +321,27 @@ type DatasetRatingType {
 type DatasetType {
     action: String!
     additionalinfo_set: [AdditionalInfoType!]!
+    average_rating: Float
     catalog: CatalogType!
-    dataset_type: String!
+    dataset_type: DatasetDatasetType!
     datasetaccessmodel_set: [DatasetAccessModelType!]!
     datasetratings_set: [DatasetRatingType!]!
+    datasetreviewrequest_set: [ReviewRequestType!]!
     description: String!
+    download_count: Int!
     funnel: String!
     geography: [GeographyType!]!
+    highlights: [String]
     id: ID!
     issued: DateTime!
-    moderationrequest_set: [ModerationRequestType!]!
     modified: DateTime!
     period_from: Date
     period_to: Date
-    remark: String!
     remote_issued: Date
     remote_modified: DateTime
     resource_set: [ResourceType!]!
     sector: [SectorType!]!
+    slug: String
     status: String!
     tags: [TagType!]!
     title: String!
@@ -273,6 +356,8 @@ type DeleteAccessModelResource {
 
 type DeleteAdditionalInfo {
     additional_info: AdditionalInfoType
+    errors: ExpectedErrorType
+    success: Boolean
 }
 
 type DeleteDataAccessModel {
@@ -344,21 +429,26 @@ type ModerationRequestType {
     modified_date: DateTime!
     reject_reason: String!
     remark: String!
+    request_type: DatasetReviewRequestRequestType!
     status: String!
     user: String!
 }
 
 type Mutation {
     access_model_resource(access_model_resource_data: AccessModelResourceInput): CreateAccessModelResource
+    agreement_request(agreement_request: AgreementInput): AgreementMutation
     approve_reject_data_access_model_request(data_access_model_request: DataAccessModelRequestUpdateInput): ApproveRejectDataAccessModelRequest
     approve_reject_dataset_rating(rating_data: DatasetRatingApproveRejectInput!): ApproveRejectRating
     approve_reject_license(license_data: LicenseApproveRejectInput!): ApproveRejectLicense
     approve_reject_moderation_requests(moderation_request: ModerationRequestsApproveRejectInput): ApproveRejectModerationRequests
+    approve_reject_organization_approval(organization_data: ApproveRejectOrganizationApprovalInput!): ApproveRejectOrganizationApproval
+    approve_reject_organization_request(organization_request: OrganizationRequestUpdateInput): ApproveRejectOrganizationRequest
+    approve_reject_review_request(review_request: ReviewRequestsApproveRejectInput): ApproveRejectReviewRequests
     create_additional_info(info_data: AdditionalInfoInput): CreateAdditionInfo
     create_api_source(api_source_data: APISourceInput!): CreateAPISource
     create_catalog(catalog_data: CatalogInput!): CreateCatalog
     create_data_access_model(data_access_model_data: DataAccessModelInput): CreateDataAccessModel
-    create_dataset(dataset_data: DatasetInput): CreateDataset
+    create_dataset(dataset_data: CreateDatasetInput): CreateDataset
     create_dataset_rating(rating_data: DatasetRatingInput!): CreateDatasetRating
     create_geography(geography_data: GeographyInput!): CreateGeography
     create_license(license_data: LicenseInput!): CreateLicense
@@ -374,15 +464,36 @@ type Mutation {
     delete_license(license_id: ID!): DeleteLicense
     delete_resource(resource_data: DeleteResourceInput): DeleteResource
     moderation_request(moderation_request: ModerationRequestInput): ModerationRequestMutation
+    organization_request(organization_request: OrganizationRequestInput): OrganizationRequestMutation
     patch_dataset(dataset_data: PatchDatasetInput): PatchDataset
+    patch_organization(organization_data: OrganizationPatchInput!): PatchOrganization
+    review_request(review_request: ReviewRequestInput): ReviewRequestMutation
     update_access_model_resource(access_model_resource_data: AccessModelResourceInput): UpdateAccessModelResource
     update_additional_info(resource_data: AdditionalInfoInput!): UpdateAdditionalInfo
     update_data_access_model(data_access_model_data: DataAccessModelInput): UpdateDataAccessModel
     update_data_request(data_request: DataRequestUpdateInput): DataRequestUpdateMutation
-    update_dataset(dataset_data: DatasetInput): UpdateDataset
+    update_dataset(dataset_data: UpdateDatasetInput): UpdateDataset
     update_license(license_data: LicenseInput!): UpdateLicense
     update_organization(organization_data: OrganizationInput!): UpdateOrganization
     update_resource(resource_data: ResourceInput!): UpdateResource
+    update_sector(sector_data: SectorInput!): UpdateSector
+}
+
+type OrganizationRequestMutation {
+    errors: ExpectedErrorType
+    organization_request: OrganizationRequestType
+    success: Boolean
+}
+
+type OrganizationRequestType {
+    description: String!
+    id: ID!
+    issued: DateTime!
+    modified: DateTime!
+    organization: OrganizationType!
+    remark: String
+    status: OrganizationRequestStatus!
+    user: String!
 }
 
 type OrganizationType {
@@ -396,12 +507,22 @@ type OrganizationType {
     license_set: [LicenseType!]!
     logo: String!
     modified: DateTime!
+    organization_types: OrganizationOrganizationTypes!
+    organizationcreaterequest: CreateOrganizationType
+    organizationrequest_set: [OrganizationRequestType!]!
     title: String!
+    username: String
 }
 
 type PatchDataset {
     dataset: DatasetType
     errors: ExpectedErrorType
+    success: Boolean
+}
+
+type PatchOrganization {
+    errors: ExpectedErrorType
+    organization: OrganizationType
     success: Boolean
 }
 
@@ -418,35 +539,50 @@ type Query {
     all_info: [AdditionalInfoType]
     all_license: [LicenseType]
     all_moderation_requests: [ModerationRequestType]
+    all_organization_requests: [OrganizationRequestType]
     all_organizations: [OrganizationType]
     all_resources: [ResourceType]
+    all_review_requests: [ReviewRequestType]
     all_sector: [SectorType]
     all_tag: [TagType]
     catalog(catalog_id: Int): CatalogType
     data_access_model(data_access_model_id: ID): DataAccessModelType
     data_access_model_request(data_access_model_request_id: Int): DataAccessModelRequestType
+    data_access_model_request_org(org_id: Int): [DataAccessModelRequestType]
     data_access_model_request_user: [DataAccessModelRequestType]
     data_request(data_request_id: Int): DataRequestType
     data_request_user: DataRequestType
     dataset(dataset_id: Int): DatasetType
-    dataset_access_model(dataset_id: ID): [DatasetAccessModelType]
+    dataset_access_model(anonymous_users: [String], dataset_id: ID): [DatasetAccessModelType]
     dataset_access_model_by_id(dataset_access_model_id: ID): DatasetAccessModelType
+    dataset_by_slug(dataset_slug: String): DatasetType
+    dataset_by_title(dataset_title: String): DatasetType
     dataset_rating(dataset_id: Int): [DatasetRatingType]
     geography(geography_id: Int): GeographyType
     info(info_id: Int): AdditionalInfoType
     license(license_id: Int): LicenseType
     moderation_request(moderation_request_id: Int): ModerationRequestType
     moderation_request_user: [ModerationRequestType]
+    org_activity(filters: [ActivityFilter], first: Int, organization_id: ID, skip: Int): [ActivityType]
     org_data_access_models(organization_id: ID): [DataAccessModelType]
-    organization(organization_id: Int): OrganizationType
+    org_datasets(first: Int, skip: Int, status: DatasetStatus): [DatasetType]
+    organization_by_id(organization_id: Int): OrganizationType
     organization_by_title(organization_title: String): OrganizationType
+    organization_request(organization_request_id: Int): OrganizationRequestType
+    organization_request_user: [OrganizationRequestType]
+    organizations: [OrganizationType]
     rating(dataset_rating_id: Int): DatasetRatingType
+    requested_organizations: [OrganizationType]
     resource(resource_id: Int): ResourceType
     resource_columns(resource_id: Int): [String]
     resource_dataset(dataset_id: Int): [ResourceType]
+    review_request(review_request_id: Int): ReviewRequestType
+    review_request_user: [ModerationRequestType]
     sector(sector_id: Int): SectorType
+    sector_by_title(sector_title: String): SectorType
     stat_count: StatsType
     tag(tag_id: Int): TagType
+    user_activity(filters: [ActivityFilter], first: Int, skip: Int, user: String): [ActivityType]
 }
 
 type ResourceSchemaType {
@@ -457,7 +593,7 @@ type ResourceSchemaType {
     id: ID!
     key: String!
     parent: ResourceSchemaType
-    parent_field: ResourceSchemaType
+    parent_field: [ResourceSchemaType!]!
     resource: ResourceType!
 }
 
@@ -466,6 +602,7 @@ type ResourceType {
     apidetails: ApiDetailsType
     datarequest_set: [DataRequestType!]!
     dataset: DatasetType!
+    datasetaccessmodelresource_set: [AccessModelResourceType!]!
     description: String!
     file_details: FileDetailsType
     filedetails: FileDetailsType
@@ -479,10 +616,35 @@ type ResourceType {
     title: String!
 }
 
+type ReviewRequestMutation {
+    errors: ExpectedErrorType
+    review_request: ReviewRequestType
+    success: Boolean
+}
+
+type ReviewRequestType {
+    creation_date: DateTime!
+    dataset: DatasetType!
+    description: String!
+    id: ID!
+    modified_date: DateTime!
+    reject_reason: String!
+    remark: String!
+    request_type: DatasetReviewRequestRequestType!
+    status: String!
+    user: String!
+}
+
 type SectorType {
+    api_count: Int
+    dataset_count: Int
     dataset_set: [DatasetType!]!
+    description: String!
+    downloads: Int
+    highlights: [String]
     id: ID!
     name: String!
+    organization_count: Int
 }
 
 type StatsType {
@@ -531,7 +693,7 @@ type UpdateLicense {
 
 type UpdateOrganization {
     errors: ExpectedErrorType
-    organization: OrganizationType
+    organization: CreateOrganizationType
     success: Boolean
 }
 
@@ -541,19 +703,36 @@ type UpdateResource {
     success: Boolean
 }
 
+type UpdateSector {
+    errors: ExpectedErrorType
+    sector: SectorType
+    success: Boolean
+}
+
 enum AccessTypes {
     OPEN
     REGISTERED
     RESTRICTED
 }
 
+"An enumeration."
+enum AgreementStatus {
+    "Accepted"
+    ACCEPTED
+    "Rejected"
+    REJECTED
+}
+
+"An enumeration."
 enum AuthLocation {
     HEADER
     PARAM
 }
 
+"An enumeration."
 enum AuthType {
     CREDENTIALS
+    NO_AUTH
     TOKEN
 }
 
@@ -579,9 +758,17 @@ enum DataAccessModelSubscriptionQuotaUnit {
     YEARLY
 }
 
+"An enumeration."
 enum DataType {
     API
-    DATASET
+    FILE
+}
+
+"An enumeration."
+enum DatasetDatasetType {
+    "Api"
+    API
+    "File"
     FILE
 }
 
@@ -593,6 +780,37 @@ enum DatasetRatingsStatus {
     PUBLISHED
     "Rejected"
     REJECTED
+}
+
+enum DatasetRequestStatusType {
+    FETCHED
+    FULFILLED
+    REQUESTED
+}
+
+"An enumeration."
+enum DatasetReviewRequestRequestType {
+    "Moderation"
+    MODERATION
+    "Review"
+    REVIEW
+}
+
+enum DatasetStatus {
+    DRAFT
+    PUBLISHED
+    READYTOPUBLISH
+    REVIEWED
+    TRANSFORMATIONINPROGRESS
+    UNDERMODERATION
+    UNDERREVIEW
+}
+
+enum FieldTypes {
+    actor
+    browser
+    ip
+    verb
 }
 
 enum InfoType {
@@ -612,10 +830,58 @@ enum LicenseStatus {
     REJECTED
 }
 
-enum ModerationStatusType {
+"An enumeration."
+enum OrganizationCreateRequestStatus {
+    "Approved"
+    APPROVED
+    "Rejected"
+    REJECTED
+    "Requested"
+    REQUESTED
+}
+
+"An enumeration."
+enum OrganizationCreationStatusType {
     APPROVED
     REJECTED
     REQUESTED
+}
+
+"An enumeration."
+enum OrganizationOrganizationTypes {
+    "Corporations"
+    CORPORATIONS
+    "Government"
+    GOVERNMENT
+    "Ngo"
+    NGO
+    "Startup"
+    STARTUP
+}
+
+"An enumeration."
+enum OrganizationRequestStatus {
+    "Approved"
+    APPROVED
+    "Rejected"
+    REJECTED
+    "Requested"
+    REQUESTED
+}
+
+"An enumeration."
+enum OrganizationRequestStatusType {
+    APPROVED
+    REJECTED
+    REQUESTED
+}
+
+"An enumeration."
+enum OrganizationTypes {
+    CORPORATIONS
+    GOVERNMENT
+    NGO
+    STARTUP
 }
 
 enum PurposeType {
@@ -650,8 +916,8 @@ enum ResponseType {
 }
 
 enum StatusType {
-    FETCHED
-    FULFILLED
+    APPROVED
+    REJECTED
     REQUESTED
 }
 
@@ -730,12 +996,12 @@ input APISourceInput {
     auth_credentials: [KeyValueType]
     auth_loc: AuthLocation
     auth_token: String
-    auth_type: AuthType
-    base_url: String
-    description: String
+    auth_type: AuthType!
+    base_url: String!
+    description: String!
     headers: [KeyValueType]
     id: ID
-    title: String
+    title: String!
 }
 
 input AccessModelResourceInput {
@@ -743,6 +1009,11 @@ input AccessModelResourceInput {
     dataset_id: ID!
     id: ID
     resource_map: [ResourceFieldInput]!
+}
+
+input ActivityFilter {
+    type: FieldTypes
+    value: String
 }
 
 input AdditionalInfoInput {
@@ -756,6 +1027,14 @@ input AdditionalInfoInput {
     type: InfoType
 }
 
+input AgreementInput {
+    dataset_access_model: ID!
+    description: String!
+    purpose: PurposeType!
+    user_email: String
+    username: String
+}
+
 input ApiInputType {
     api_source: ID!
     auth_required: Boolean!
@@ -763,10 +1042,22 @@ input ApiInputType {
     url_path: String!
 }
 
+input ApproveRejectOrganizationApprovalInput {
+    id: ID!
+    remark: String
+    status: OrganizationCreationStatusType!
+}
+
 input CatalogInput {
     description: String!
     id: ID
-    organization: ID!
+    title: String!
+}
+
+input CreateDatasetInput {
+    dataset_type: DataType!
+    description: String!
+    funnel: String! = "upload"
     title: String!
 }
 
@@ -776,7 +1067,6 @@ input DataAccessModelInput {
     description: String!
     id: ID
     license: ID!
-    organization: ID!
     rate_limit: Int!
     rate_limit_unit: RateLimitUnits!
     subscription_quota: Int!
@@ -790,6 +1080,8 @@ input DataAccessModelRequestInput {
     description: String!
     id: ID
     purpose: PurposeType!
+    user_email: String
+    username: String
 }
 
 input DataAccessModelRequestUpdateInput {
@@ -799,33 +1091,14 @@ input DataAccessModelRequestUpdateInput {
 }
 
 input DataRequestInput {
-    data_access_model_request: ID!
+    dataset_access_model_request: ID!
     resource: ID!
 }
 
 input DataRequestUpdateInput {
     file: Upload
     id: ID!
-    status: StatusType
-}
-
-input DatasetInput {
-    action: String = "create data"
-    dataset_type: DataType!
-    description: String!
-    funnel: String = "upload"
-    geo_list: [String]
-    id: ID
-    organization: ID!
-    period_from: Date
-    period_to: Date
-    remote_issued: Date
-    remote_modified: DateTime
-    sector_list: [String]
-    status: String!
-    tags_list: [String]
-    title: String!
-    update_frequency: String
+    status: DatasetRequestStatusType
 }
 
 input DatasetRatingApproveRejectInput {
@@ -841,7 +1114,7 @@ input DatasetRatingInput {
 }
 
 input DeleteAccessModelResourceInput {
-    id: ID!
+    dataset_id: ID!
 }
 
 input DeleteDataAccessModelInput {
@@ -887,40 +1160,67 @@ input LicenseInput {
     file: Upload
     id: ID
     license_additions: [LicenceAdditionsInput]
-    organization: ID!
     remote_url: String
     title: String!
 }
 
 input ModerationRequestInput {
-    dataset: String!
+    dataset: ID!
     description: String!
     id: ID
     reject_reason: String
     remark: String
-    status: ModerationStatusType
+    status: StatusType
 }
 
 input ModerationRequestsApproveRejectInput {
     ids: [ID]!
     remark: String
-    status: ModerationStatusType
+    status: StatusType
 }
 
 input OrganizationInput {
     contact: String
+    data_description: String!
     description: String!
     homepage: String
     id: ID
     "Logo for the Company."
     logo: Upload
+    organization_types: OrganizationTypes!
+    sample_data_url: String
     title: String!
+    upload_sample_data_file: Upload
+}
+
+input OrganizationPatchInput {
+    contact: String
+    description: String
+    homepage: String
+    id: ID
+    "Logo for the Company."
+    logo: Upload
+    title: String
+}
+
+input OrganizationRequestInput {
+    description: String!
+    id: ID
+    organization: ID!
+}
+
+input OrganizationRequestUpdateInput {
+    id: ID!
+    remark: String
+    status: OrganizationRequestStatusType!
 }
 
 input PatchDatasetInput {
+    description: String!
     funnel: String
     id: ID!
     status: String
+    title: String!
 }
 
 input ResourceFieldInput {
@@ -949,12 +1249,42 @@ input ResourceSchemaInputType {
     parent: String
 }
 
-input SectorInput {
+input ReviewRequestInput {
+    dataset: ID!
+    description: String!
     id: ID
-    name: String
+    status: StatusType
+}
+
+input ReviewRequestsApproveRejectInput {
+    ids: [ID]!
+    remark: String
+    status: StatusType
+}
+
+input SectorInput {
+    description: String
+    highlights: [String]
+    id: ID
+    name: String!
 }
 
 input TagInput {
     id: ID
     name: String
+}
+
+input UpdateDatasetInput {
+    action: String = "create data"
+    funnel: String = "upload"
+    geo_list: [String]!
+    highlights: [String]
+    id: ID
+    period_from: Date
+    period_to: Date
+    remote_issued: Date!
+    remote_modified: DateTime
+    sector_list: [String]!
+    tags_list: [String]
+    update_frequency: String!
 }

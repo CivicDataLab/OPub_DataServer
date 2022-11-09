@@ -1,3 +1,5 @@
+from typing import Iterable
+
 import graphene
 from django.db.models import Q
 from graphene_django import DjangoObjectType
@@ -136,22 +138,26 @@ class Query(graphene.ObjectType):
             raise GraphQLError("Access Denied")
 
 
-class DatasetInput(graphene.InputObjectType):
-    id = graphene.ID()
+class CreateDatasetInput(graphene.InputObjectType):
     title = graphene.String(required=True)
     description = graphene.String(required=True)
+    dataset_type = graphene.Enum.from_enum(DataType)(required=True)
+    funnel = graphene.String(required=True, default_value="upload")
+
+
+class UpdateDatasetInput(graphene.InputObjectType):
+    id = graphene.ID()
     remote_issued = graphene.Date(required=True)
-    remote_modified = graphene.DateTime(required=False)
+    remote_modified = graphene.Date(required=False)
     period_from = graphene.Date(required=False)
     period_to = graphene.Date(required=False)
     update_frequency = graphene.String(required=True)
     highlights = graphene.List(of_type=graphene.String, required=False, default=[])
-    dataset_type = graphene.Enum.from_enum(DataType)(required=True)
     funnel = graphene.String(required=False, default_value="upload")
     action = graphene.String(required=False, default_value="create data")
-    tags_list = graphene.List(of_type=graphene.String, default=[], required=False)
-    geo_list = graphene.List(of_type=graphene.String, default=[], required=True)
-    sector_list = graphene.List(of_type=graphene.String, default=[], required=True)
+    tags_list: Iterable = graphene.List(of_type=graphene.String, default=[], required=False)
+    geo_list: Iterable = graphene.List(of_type=graphene.String, default=[], required=True)
+    sector_list: Iterable = graphene.List(of_type=graphene.String, default=[], required=True)
 
 
 class PatchDatasetInput(graphene.InputObjectType):
@@ -164,7 +170,7 @@ class PatchDatasetInput(graphene.InputObjectType):
 
 class CreateDataset(Output, graphene.Mutation):
     class Arguments:
-        dataset_data = DatasetInput()
+        dataset_data = CreateDatasetInput()
 
     dataset = graphene.Field(DatasetType)
 
@@ -173,10 +179,10 @@ class CreateDataset(Output, graphene.Mutation):
     @auth_user_action_dataset(action="create_dataset")
     @map_user_dataset
     def mutate(
-        root,
-        info,
-        username,
-        dataset_data: DatasetInput = None,
+            root,
+            info,
+            username,
+            dataset_data: CreateDatasetInput = None,
     ):
         try:
             org_id = info.context.META.get("HTTP_ORGANIZATION")
@@ -197,28 +203,12 @@ class CreateDataset(Output, graphene.Mutation):
         dataset_instance = Dataset(
             title=dataset_data.title,
             description=dataset_data.description,
-            remote_issued=dataset_data.remote_issued,
-            remote_modified=dataset_data.remote_modified,
-            funnel=dataset_data.funnel,
-            action=dataset_data.action,
             status="DRAFT",
-            highlights=dataset_data.highlights,
-            catalog=catalog,
-            period_to=dataset_data.period_to,
-            period_from=dataset_data.period_from,
-            update_frequency=dataset_data.update_frequency,
             dataset_type=dataset_data.dataset_type,
+            funnel=dataset_data.funnel,
+            catalog=catalog
         )
         dataset_instance.save()
-        _add_update_attributes_to_dataset(
-            dataset_instance, "tags", dataset_data.tags_list, Tag
-        )
-        _add_update_attributes_to_dataset(
-            dataset_instance, "geography", dataset_data.geo_list, Geography
-        )
-        _add_update_attributes_to_dataset(
-            dataset_instance, "sector", dataset_data.sector_list, Sector
-        )
         log_activity(
             target_obj=dataset_instance,
             ip=get_client_ip(info),
@@ -231,14 +221,14 @@ class CreateDataset(Output, graphene.Mutation):
 
 class UpdateDataset(Output, graphene.Mutation):
     class Arguments:
-        dataset_data = DatasetInput()
+        dataset_data = UpdateDatasetInput()
 
     dataset = graphene.Field(DatasetType)
 
     @staticmethod
     @validate_token
     @auth_user_action_dataset(action="update_dataset")
-    def mutate(root, info, username, dataset_data: DatasetInput = None):
+    def mutate(root, info, username, dataset_data: UpdateDatasetInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         try:
             dataset_instance = Dataset.objects.get(id=dataset_data.id)
@@ -265,8 +255,6 @@ class UpdateDataset(Output, graphene.Mutation):
                 },
             }
         catalog = Catalog.objects.filter(organization=organization)[0]
-        dataset_instance.title = dataset_data.title
-        dataset_instance.description = dataset_data.description
         dataset_instance.remote_issued = dataset_data.remote_issued
         dataset_instance.remote_modified = dataset_data.remote_modified
         dataset_instance.funnel = dataset_data.funnel
@@ -275,7 +263,6 @@ class UpdateDataset(Output, graphene.Mutation):
         dataset_instance.status = "DRAFT"
         dataset_instance.period_to = dataset_data.period_to
         dataset_instance.period_from = dataset_data.period_from
-        dataset_instance.dataset_type = dataset_data.dataset_type
         dataset_instance.update_frequency = dataset_data.update_frequency
         dataset_instance.highlights = dataset_data.highlights
 
