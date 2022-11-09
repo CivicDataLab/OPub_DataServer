@@ -14,23 +14,29 @@ from dataset_api.data_request.token_handler import create_access_jwt_token
 from dataset_api.decorators import validate_token_or_none
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.search import index_data
-
 from ratelimit.decorators import ratelimit
+
 
 @validate_token_or_none
 @ratelimit(
-    key="dataset_api.ratelimits.my_key",
-    rate="dataset_api.ratelimits.per_user",
-    block=False, # If TRUE will raise error, otherwise
+    key="dataset_api.ratelimits.user_key",
+    rate="dataset_api.ratelimits.quota_per_user",
+    block=False,  # If TRUE will raise error, otherwise
+)
+@ratelimit(
+    key="dataset_api.ratelimits.user_key",
+    rate="dataset_api.ratelimits.rate_per_user",
+    block=False,  # If TRUE will raise error, otherwise
 )
 def download(request, data_request_id, username=None):
     target_format = request.GET.get("format", None)
     # Second Method of raising error.
-    was_limited = getattr(request, 'limited', False)
+    was_limited = getattr(request, "limited", False)
     if not was_limited:
         return get_request_file(username, data_request_id, target_format)
     else:
-        raise GraphQLError("Daily Quota Exceeded.")
+        raise GraphQLError("Rate limit or Quota Exceeded.")
+
 
 def update_download_count(username, data_request: DataRequest):
     # update download count in dataset
