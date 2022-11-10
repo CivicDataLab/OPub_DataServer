@@ -6,7 +6,8 @@ def user_key(group, request):
     request_id = request.path.split("/")[3]
     data_request_instance = DataRequest.objects.get(pk=request_id)
     user = data_request_instance.user
-    return user
+    dam_id = data_request_instance.dataset_access_model_request.access_model.data_access_model
+    return user + "||" + str(dam_id.id)
 
 
 def rate_per_user(group, request):

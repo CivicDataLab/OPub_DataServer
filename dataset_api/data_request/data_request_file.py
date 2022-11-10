@@ -5,6 +5,7 @@ import os
 import jwt
 import pandas as pd
 import requests
+from redis import Redis
 from django.conf import settings
 from django.http import HttpResponse, FileResponse
 from graphql import GraphQLError
@@ -14,16 +15,22 @@ from dataset_api.data_request.token_handler import create_access_jwt_token
 from dataset_api.decorators import validate_token_or_none
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.search import index_data
+from dataset_api.utils import idp_make_cache_key
 from ratelimit.decorators import ratelimit
+from ratelimit import core
 
+# Overwriting ratelimit's cache key function.
+core._make_cache_key = idp_make_cache_key
 
 @validate_token_or_none
 @ratelimit(
+    group="quota",
     key="dataset_api.ratelimits.user_key",
     rate="dataset_api.ratelimits.quota_per_user",
     block=False,  # If TRUE will raise error, otherwise
 )
 @ratelimit(
+    group="rate",
     key="dataset_api.ratelimits.user_key",
     rate="dataset_api.ratelimits.rate_per_user",
     block=False,  # If TRUE will raise error, otherwise
