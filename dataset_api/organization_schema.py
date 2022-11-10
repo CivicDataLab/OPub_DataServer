@@ -6,8 +6,13 @@ from graphql import GraphQLError
 from django.db.models import Q
 
 from activity_log.signal import activity
-from .models import Organization, OrganizationCreateRequest, Catalog
-from .decorators import validate_token, create_user_org, auth_user_by_org, auth_request_org
+from .models import Organization, OrganizationCreateRequest, Catalog, Resource, Dataset, Sector
+from .decorators import (
+    validate_token,
+    create_user_org,
+    auth_user_by_org,
+    auth_request_org,
+)
 from .enums import OrganizationTypes, OrganizationCreationStatusType
 from .utils import get_client_ip
 
@@ -20,6 +25,9 @@ class CreateOrganizationType(DjangoObjectType):
 
 class OrganizationType(DjangoObjectType):
     username = graphene.String()
+    api_count = graphene.Int()
+    dataset_count = graphene.Int()
+    # usecase_count = graphene.Int()
 
     class Meta:
         model = Organization
@@ -28,6 +36,27 @@ class OrganizationType(DjangoObjectType):
     @auth_request_org
     def resolve_username(self, info, username=""):
         return username
+
+    def resolve_api_count(self, info):
+        api = Resource.objects.filter(
+            Q(dataset__dataset_type__exact="API"),
+            Q(dataset__status__exact="PUBLISHED"),
+            Q(dataset__catalog__organization=self.id),
+        ).count()
+        return api
+
+    def resolve_dataset_count(self, info):
+        dataset = Dataset.objects.filter(
+            Q(status__exact="PUBLISHED"),
+            Q(catalog__organization=self.id),
+        ).count()
+        return dataset
+    
+    # def resolve_usecase_count(self, info):
+    #     usecase = Sector.objects.filter(
+    #         Q(dataset__catalog__organization=self.id),
+    #     ).count()
+    #     return usecase
 
 
 class Query(graphene.ObjectType):
@@ -196,10 +225,10 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     @validate_token
     @auth_user_by_org(action="approve_organization")
     def mutate(
-            root,
-            info,
-            username="",
-            organization_data: ApproveRejectOrganizationApprovalInput = None,
+        root,
+        info,
+        username="",
+        organization_data: ApproveRejectOrganizationApprovalInput = None,
     ):
         try:
             organization_create_request_instance = (
@@ -261,9 +290,7 @@ class PatchOrganization(Output, graphene.Mutation):
     def mutate(root, info, organization_data: OrganizationPatchInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_id = organization_data.id if organization_data.id else org_id
-        organization_instance = (
-            Organization.objects.get(id=org_id)
-        )
+        organization_instance = Organization.objects.get(id=org_id)
 
         if organization_data.title:
             organization_instance.title = organization_data.title
