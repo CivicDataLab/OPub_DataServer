@@ -60,3 +60,11 @@ class OrganizationTypes(models.TextChoices):
 class DataType(models.TextChoices):
     API = "API"
     FILE = "FILE"
+
+
+class ValidationUnits(models.TextChoices):
+    LIFETIME = "LIFETIME"
+    PER_DAY = "PER_DAY"
+    PER_WEEK = "PER_WEEK"
+    PER_MONTH = "PER_MONTH"
+    PER_YEAR = "PER_YEAR"

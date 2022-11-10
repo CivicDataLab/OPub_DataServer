@@ -8,7 +8,7 @@ from graphql import GraphQLError
 from activity_log.signal import activity
 from ..decorators import validate_token
 from ..models.DataAccessModel import DataAccessModel
-from dataset_api.enums import SubscriptionUnits
+from dataset_api.enums import SubscriptionUnits, ValidationUnits
 from dataset_api.models import Organization
 from ..models.LicenseAddition import LicenseAddition
 from ..models.License import License
@@ -84,6 +84,8 @@ class DataAccessModelInput(graphene.InputObjectType):
     rate_limit = graphene.Int(required=True)
     rate_limit_unit = RateLimitUnits(required=True)
     additions = graphene.List(of_type=graphene.ID, required=False, default=[])
+    validation = graphene.Int(required=True)
+    validation_unit = graphene.Enum.from_enum(ValidationUnits)(required=True)
 
 
 class DeleteDataAccessModelInput(graphene.InputObjectType):
@@ -140,6 +142,8 @@ class CreateDataAccessModel(Output, graphene.Mutation):
             subscription_quota_unit=data_access_model_data.subscription_quota_unit,
             rate_limit=data_access_model_data.rate_limit,
             rate_limit_unit=data_access_model_data.rate_limit_unit,
+            validation=data_access_model_data.validation,
+            validation_unit=data_access_model_data.validation_unit,
         )
 
         data_access_model_instance.save()
@@ -216,6 +220,10 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
         data_access_model_instance.rate_limit = data_access_model_data.rate_limit
         data_access_model_instance.rate_limit_unit = (
             data_access_model_data.rate_limit_unit
+        )
+        data_access_model_instance.validation = data_access_model_data.validation
+        data_access_model_instance.validation_unit = (
+            data_access_model_data.validation_unit
         )
         data_access_model_instance.save()
 
