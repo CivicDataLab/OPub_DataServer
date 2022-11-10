@@ -105,35 +105,44 @@ class Query(graphene.ObjectType):
 
     # Access : PMU / DPA / DP
     @auth_query_dataset(action="query||title")
-    def resolve_dataset_by_title(self, info, dataset_title, role, **kwargs):
+    def resolve_dataset_by_title(self, info, dataset_title, role=None, **kwargs):
         dataset_instance = Dataset.objects.get(title__iexact=dataset_title)
         if dataset_instance.status == "PUBLISHED":
             return dataset_instance
-        if role == "PMU" or "DPA" or "DP":
-            return dataset_instance
+        if role:
+            if role == "PMU" or "DPA" or "DP":
+                return dataset_instance
+            else:
+                raise GraphQLError("Access Denied")
         else:
             raise GraphQLError("Access Denied")
 
     # Access : PMU / DPA / DP
     @auth_query_dataset(action="query||slug")
-    def resolve_dataset_by_slug(self, info, dataset_slug: str, role, **kwargs):
+    def resolve_dataset_by_slug(self, info, dataset_slug: str, role=None, **kwargs):
         dataset_id = dataset_slug.split("_")[-1]
         dataset_instance = Dataset.objects.get(id=dataset_id)
         if dataset_instance.status == "PUBLISHED":
             return dataset_instance
-        if role == "PMU" or "DPA":
-            return dataset_instance
+        if role:
+            if role == "PMU" or "DPA":
+                return dataset_instance
+            else:
+                raise GraphQLError("Access Denied")
         else:
             raise GraphQLError("Access Denied")
 
     # Access : PMU / DPA / DP
     @auth_query_dataset(action="query||id")
-    def resolve_dataset(self, info, dataset_id, role):
+    def resolve_dataset(self, info, dataset_id, role=None):
         dataset_instance = Dataset.objects.get(pk=dataset_id)
         if dataset_instance.status == "PUBLISHED":
             return dataset_instance
-        if role == "PMU" or "DPA" or "DP":
-            return dataset_instance
+        if role:
+            if role == "PMU" or "DPA" or "DP":
+                return dataset_instance
+            else:
+                raise GraphQLError("Access Denied")
         else:
             raise GraphQLError("Access Denied")
 
@@ -155,9 +164,15 @@ class UpdateDatasetInput(graphene.InputObjectType):
     highlights = graphene.List(of_type=graphene.String, required=False, default=[])
     funnel = graphene.String(required=False, default_value="upload")
     action = graphene.String(required=False, default_value="create data")
-    tags_list: Iterable = graphene.List(of_type=graphene.String, default=[], required=False)
-    geo_list: Iterable = graphene.List(of_type=graphene.String, default=[], required=True)
-    sector_list: Iterable = graphene.List(of_type=graphene.String, default=[], required=True)
+    tags_list: Iterable = graphene.List(
+        of_type=graphene.String, default=[], required=False
+    )
+    geo_list: Iterable = graphene.List(
+        of_type=graphene.String, default=[], required=True
+    )
+    sector_list: Iterable = graphene.List(
+        of_type=graphene.String, default=[], required=True
+    )
 
 
 class PatchDatasetInput(graphene.InputObjectType):
@@ -179,10 +194,10 @@ class CreateDataset(Output, graphene.Mutation):
     @auth_user_action_dataset(action="create_dataset")
     @map_user_dataset
     def mutate(
-            root,
-            info,
-            username,
-            dataset_data: CreateDatasetInput = None,
+        root,
+        info,
+        username,
+        dataset_data: CreateDatasetInput = None,
     ):
         try:
             org_id = info.context.META.get("HTTP_ORGANIZATION")
@@ -206,7 +221,7 @@ class CreateDataset(Output, graphene.Mutation):
             status="DRAFT",
             dataset_type=dataset_data.dataset_type,
             funnel=dataset_data.funnel,
-            catalog=catalog
+            catalog=catalog,
         )
         dataset_instance.save()
         log_activity(
