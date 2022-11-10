@@ -48,7 +48,7 @@ class Query(graphene.ObjectType):
 
     @auth_query_license(action="query||license_id")
     def resolve_license(self, info, license_id, role):
-        if role == "PMU" or "DPA":
+        if role == "PMU" or role == "DPA":
             return License.objects.get(pk=license_id)
         else:
             raise GraphQLError("Access Denied")

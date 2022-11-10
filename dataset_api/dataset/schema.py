@@ -84,7 +84,7 @@ class Query(graphene.ObjectType):
     def resolve_org_datasets(
         self, info, role, first=None, skip=None, status: DatasetStatus = None, **kwargs
     ):
-        if role == "PMU" or "DPA":
+        if role == "PMU" or role == "DPA":
             org_id = info.context.META.get("HTTP_ORGANIZATION")
             organization = Organization.objects.get(id=org_id)
             if status:
@@ -110,7 +110,7 @@ class Query(graphene.ObjectType):
         if dataset_instance.status == "PUBLISHED":
             return dataset_instance
         if role:
-            if role == "PMU" or "DPA" or "DP":
+            if role == "PMU" or role == "DPA" or role == "DP":
                 return dataset_instance
             else:
                 raise GraphQLError("Access Denied")
@@ -125,7 +125,7 @@ class Query(graphene.ObjectType):
         if dataset_instance.status == "PUBLISHED":
             return dataset_instance
         if role:
-            if role == "PMU" or "DPA":
+            if role == "PMU" or role == "DPA":
                 return dataset_instance
             else:
                 raise GraphQLError("Access Denied")
@@ -139,7 +139,7 @@ class Query(graphene.ObjectType):
         if dataset_instance.status == "PUBLISHED":
             return dataset_instance
         if role:
-            if role == "PMU" or "DPA" or "DP":
+            if role == "PMU" or role == "DPA" or role == "DP":
                 return dataset_instance
             else:
                 raise GraphQLError("Access Denied")

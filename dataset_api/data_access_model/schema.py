@@ -38,7 +38,7 @@ class Query(graphene.ObjectType):
     @auth_query_dam(action="query||id")
     # Access : PMU/DPA of that org.
     def resolve_org_data_access_models(self, info, organization_id, role):
-        if role == "PMU" or "DPA":
+        if role == "PMU" or role == "DPA":
             organization = Organization.objects.get(pk=organization_id)
             return DataAccessModel.objects.filter(organization=organization).order_by(
                 "-modified"
@@ -49,7 +49,7 @@ class Query(graphene.ObjectType):
     # Access : PMU/DPA of that org.
     @auth_query_dam(action="query||dam")
     def resolve_data_access_model(self, info, data_access_model_id, role):
-        if role == "PMU" or "DPA":
+        if role == "PMU" or role == "DPA":
             return DataAccessModel.objects.get(pk=data_access_model_id)
         else:
             raise GraphQLError("Access Denied")
