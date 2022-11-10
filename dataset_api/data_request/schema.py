@@ -2,6 +2,8 @@ import os
 
 import graphene
 import requests
+import redis
+
 from django.core.files import File
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
@@ -13,16 +15,20 @@ from dataset_api.data_request.token_handler import (
     generate_refresh_token,
 )
 from dataset_api.decorators import validate_token, validate_token_or_none
-from dataset_api.enums import DataType
+from dataset_api.enums import DataType, SubscriptionUnits
 from dataset_api.models import Resource
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
+
+
+r = redis.Redis()
 
 
 class DataRequestType(DjangoObjectType):
     access_token = graphene.String()
     refresh_token = graphene.String()
     spec = graphene.JSONString()
+    remaining_quota = graphene.Int()
 
     class Meta:
         model = DataRequest
@@ -48,6 +54,78 @@ class DataRequestType(DjangoObjectType):
         spec["info"]["title"] = self.resource.title
         spec["info"]["description"] = self.resource.description
         return spec
+
+    @validate_token_or_none
+    def resolve_remaining_quota(self: DataRequest, info, username=""):
+        dam_id = self.dataset_access_model_request.access_model.data_access_model_id
+        quota_limit = (
+            self.dataset_access_model_request.access_model.data_access_model.subscription_quota
+        )
+        quota_limit_unit = (
+            self.dataset_access_model_request.access_model.data_access_model.subscription_quota_unit
+        )
+        if quota_limit_unit == SubscriptionUnits.DAILY:
+            used_quota = r.get(
+                ":1:rl||"
+                + "||"
+                + username
+                + "||"
+                + str(dam_id)
+                + "||"
+                + quota_limit_unit.lower()[0]
+                + +"||quota"
+            )
+            if used_quota:
+                if quota_limit > int(used_quota.decode()):
+                    return quota_limit - int(used_quota.decode())
+                else:
+                    return 0
+            else:
+                return quota_limit
+        elif quota_limit_unit == SubscriptionUnits.WEEKLY:
+            used_quota = r.get(
+                ":1:rl||" + username + "||" + str(dam_id) + "||" + "7d||quota"
+            )
+            if used_quota:
+                if quota_limit > int(used_quota.decode()):
+                    return quota_limit - int(used_quota.decode())
+                else:
+                    return 0
+            else:
+                return quota_limit
+        elif quota_limit_unit == SubscriptionUnits.MONTHLY:
+            used_quota = r.get(
+                ":1:rl||" + username + "||" + str(dam_id) + "||" + "30d||quota"
+            )
+            if used_quota:
+                if quota_limit > int(used_quota.decode()):
+                    return quota_limit - int(used_quota.decode())
+                else:
+                    return 0
+            else:
+                return quota_limit
+        elif quota_limit_unit == SubscriptionUnits.QUARTERLY:
+            used_quota = r.get(
+                ":1:rl||" + username + "||" + str(dam_id) + "||" + "92d||quota"
+            )
+            if used_quota:
+                if quota_limit > int(used_quota.decode()):
+                    return quota_limit - int(used_quota.decode())
+                else:
+                    return 0
+            else:
+                return quota_limit
+        else:
+            used_quota = r.get(
+                ":1:rl||" + username + "||" + str(dam_id) + "||" + "365d||quota"
+            )
+            if used_quota:
+                if quota_limit > int(used_quota.decode()):
+                    return quota_limit - int(used_quota.decode())
+                else:
+                    return 0
+            else:
+                return quota_limit
 
 
 class DatasetRequestStatusType(graphene.Enum):
