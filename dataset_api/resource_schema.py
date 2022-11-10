@@ -104,7 +104,7 @@ class Query(graphene.ObjectType):
     # Access : PMU - DPA/DP of that org to which this resource belongs.
     @auth_query_resource(action="query||resource")
     def resolve_resource(self, info, role, resource_id):
-        if role == "PMU" or "DPA" or "DP":
+        if role == "PMU" or role == "DPA" or role == "DP":
             return Resource.objects.get(pk=resource_id)
         else:
             raise GraphQLError("Access Denied")
@@ -112,7 +112,7 @@ class Query(graphene.ObjectType):
     # Access : PMU - DPA/DP of that org to which this resource belongs.
     @auth_query_resource(action="query||resource")
     def resolve_resource_columns(self, info, resource_id, role):
-        if role == "PMU" or "DPA" or "DP":
+        if role == "PMU" or role == "DPA" or role == "DP":
             resource = Resource.objects.get(pk=resource_id)
             if resource.dataset.dataset_type == DataType.FILE.value:
                 if resource.filedetails.file and len(resource.filedetails.file.path):
@@ -129,7 +129,7 @@ class Query(graphene.ObjectType):
     # Access : DPA/DP of that org to which this resource belongs.
     @auth_query_resource(action="query||dataset")
     def resolve_resource_dataset(self, info, dataset_id, role):
-        if role == "PMU" or "DPA" or "DP":
+        if role == "PMU" or role == "DPA" or role == "DP":
             return Resource.objects.filter(dataset=dataset_id).order_by("-modified")
         else:
             raise GraphQLError("Access Denied")
@@ -137,7 +137,7 @@ class Query(graphene.ObjectType):
     # Access : DPA/DP of that org to which this resource belongs.
     @auth_query_resource(action="query||dataset")
     def resolve_resource_dataset(self, info, dataset_id, role):
-        if role == "PMU" or "DPA" or "DP":
+        if role == "PMU" or role == "DPA" or role == "DP":
             return Resource.objects.filter(dataset=dataset_id).order_by("-modified")
         else:
             raise GraphQLError("Access Denied")
