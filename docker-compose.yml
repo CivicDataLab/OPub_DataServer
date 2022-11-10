@@ -23,6 +23,7 @@ services:
     depends_on:
       - db
       - elasticsearch
+      - redis
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.6
     restart: always
