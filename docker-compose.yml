@@ -22,6 +22,7 @@ services:
       - "8005:8000"
     depends_on:
       - db
+      - elasticsearch
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.6
     restart: always

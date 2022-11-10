@@ -72,8 +72,11 @@ def auth_query_dataset(action):
     def accept_func(func):
         def inner(*args, **kwargs):
             act, arg = action.split("||")
-            user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+            user_token = args[1].context.META.get("HTTP_AUTHORIZATION", None)
             org_id = args[1].context.META.get("HTTP_ORGANIZATION", "")
+            if not user_token:
+                # For users that are not logged in.
+                return func(*args, **kwargs)
             if arg == "title":
                 dataset_id = Dataset.objects.get(
                     title__iexact=kwargs["dataset_title"]

@@ -20,10 +20,11 @@ class CreateOrganizationType(DjangoObjectType):
 
 class OrganizationType(DjangoObjectType):
     username = graphene.String()
+
     class Meta:
         model = Organization
         fields = "__all__"
-    
+
     @auth_request_org
     def resolve_username(self, info, username=""):
         return username
@@ -58,7 +59,6 @@ class Query(graphene.ObjectType):
             raise GraphQLError("Access Denied")
 
     # Access : All
-    @validate_token
     def resolve_organization_by_title(self, info, organization_title, **kwargs):
         return Organization.objects.get(
             Q(title__iexact=organization_title),
