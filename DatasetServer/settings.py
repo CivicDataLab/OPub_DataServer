@@ -110,6 +110,7 @@ CACHES = {
 ELASTICSEARCH = env("ES_URL")
 
 AUTH_URL = env("AUTH_URL")
+PIPELINE_URL = env("PIPELINE_URL")
 X_FRAME_OPTIONS = "ALLOW-FROM http://localhost:3000/"
 
 # Password validation
