@@ -14,11 +14,7 @@ class Query(graphene.ObjectType):
 
     @validate_token_or_none
     def resolve_dataset_access_model(self, info, dataset_id, username, anonymous_users=[], **kwargs):
-        try:
-            dataset = Dataset.objects.get(id=dataset_id)
-        except Dataset.DoesNotExist as e:
-            return {"success": False,
-                    "errors": {"organization_id": [{"message": "Dataset with id not found", "code": "404"}]}}
+        dataset = Dataset.objects.get(id=dataset_id)
 
         if username:
             prefetch_agreements = Prefetch("agreements", queryset=Agreement.objects.filter(username=username))
