@@ -168,7 +168,7 @@ class DataRequestMutation(graphene.Mutation, Output):
     data_request = graphene.Field(DataRequestType)
 
     @staticmethod
-    @validate_token
+    @validate_token_or_none
     def mutate(root, info, data_request: DataRequestInput = None, username=""):
         try:
             resource = Resource.objects.get(id=data_request.resource)
