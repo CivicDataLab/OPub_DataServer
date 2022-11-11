@@ -114,9 +114,8 @@ class UpdateLicense(graphene.Mutation, Output):
     def mutate(root, info, role, license_data: LicenseInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         try:
-            organization = Organization.objects.get(id=org_id)
             license_instance = License.objects.get(id=license_data.id)
-        except (License.DoesNotExist, Organization.DoesNotExist) as e:
+        except License.DoesNotExist as e:
             return {
                 "success": False,
                 "errors": {
@@ -128,10 +127,15 @@ class UpdateLicense(graphene.Mutation, Output):
                     ]
                 },
             }
+        try:
+            organization = Organization.objects.get(id=org_id)
+        except Organization.DoesNotExist as e:
+            organization = None
 
         license_instance.title = license_data.title
         license_instance.description = license_data.description
-        license_instance.created_organization = organization
+        if organization:
+            license_instance.created_organization = organization
         if license_data.file:
             license_instance.file = license_data.file
         if license_data.remote_url:
