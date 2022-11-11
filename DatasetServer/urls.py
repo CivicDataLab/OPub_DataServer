@@ -23,6 +23,7 @@ from DatasetServer import settings
 from dataset_api import resource_file, organization_logo, license_file
 from dataset_api.data_access_model import contract_file
 from dataset_api.data_request import data_request_file
+from dataset_api.api_resource import api_fetch
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -34,6 +35,7 @@ urlpatterns = [
     path("logo/<int:organization_id>/", organization_logo.logo),
     path("download/license/<int:license_id>/", license_file.download),
     path("download/contract/<int:model_id>/", contract_file.download),
+    path("api_preview/<int:resource_id>/", api_fetch.preview),
     path("graphql", csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True))),
     path("", include("dataset_api.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
