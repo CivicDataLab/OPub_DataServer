@@ -19,6 +19,7 @@ import dataset_api.stats_schema
 import dataset_api.dataset_moderation
 import dataset_api.organization_request_schema
 import dataset_api.aggrements.schema
+import dataset_api.license_addition.license_addition_schema
 
 import activity_log.activity_schema
 
@@ -34,6 +35,7 @@ class Query(dataset_api.dataset.schema.Query, dataset_api.organization_schema.Qu
             dataset_api.stats_schema.Query,
             dataset_api.organization_request_schema.Query,
             activity_log.activity_schema.Query,
+            dataset_api.license_addition.license_addition_schema.Query,
             graphene.ObjectType):
     pass
 
