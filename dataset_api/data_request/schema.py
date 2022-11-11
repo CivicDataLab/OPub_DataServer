@@ -3,6 +3,7 @@ import os
 import graphene
 import requests
 import redis
+import datetime
 
 from django.core.files import File
 from graphene_django import DjangoObjectType
@@ -16,7 +17,7 @@ from dataset_api.data_request.token_handler import (
     generate_refresh_token,
 )
 from dataset_api.decorators import validate_token, validate_token_or_none
-from dataset_api.enums import DataType, SubscriptionUnits
+from dataset_api.enums import DataType, SubscriptionUnits, ValidationUnits
 from dataset_api.models import Resource
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
@@ -29,6 +30,7 @@ class DataRequestType(DjangoObjectType):
     refresh_token = graphene.String()
     spec = graphene.JSONString()
     remaining_quota = graphene.Int()
+    validity = graphene.String()
 
     class Meta:
         model = DataRequest
@@ -64,6 +66,9 @@ class DataRequestType(DjangoObjectType):
         quota_limit_unit = (
             self.dataset_access_model_request.access_model.data_access_model.subscription_quota_unit
         )
+        if not username:
+            username = self.dataset_access_model_request.user
+
         if quota_limit_unit == SubscriptionUnits.DAILY:
             used_quota = r.get(
                 ":1:rl||"
@@ -73,7 +78,7 @@ class DataRequestType(DjangoObjectType):
                 + str(dam_id)
                 + "||"
                 + quota_limit_unit.lower()[0]
-                + +"||quota"
+                + "||quota"
             )
             if used_quota:
                 if quota_limit > int(used_quota.decode()):
@@ -126,6 +131,33 @@ class DataRequestType(DjangoObjectType):
                     return 0
             else:
                 return quota_limit
+
+    @validate_token_or_none
+    def resolve_validity(self: DataRequest, info, username):
+        if self.dataset_access_model_request.status == "APPROVED":
+            validity = (
+                self.dataset_access_model_request.access_model.data_access_model.validation
+            )
+            validity_unit = (
+                self.dataset_access_model_request.access_model.data_access_model.validation_unit
+            )
+            approval_date = self.dataset_access_model_request.modified
+
+            if validity_unit == ValidationUnits.PER_DAY:
+                validation_deadline = approval_date + datetime.timedelta(days=validity)
+            elif validity_unit == ValidationUnits.PER_WEEK:
+                validation_deadline = approval_date + datetime.timedelta(weeks=validity)
+            elif validity_unit == ValidationUnits.PER_MONTH:
+                validation_deadline = approval_date + datetime.timedelta(
+                    days=(30 * validity)
+                )
+            elif validity_unit == ValidationUnits.PER_YEAR:
+                validation_deadline = approval_date + datetime.timedelta(
+                    days=(365 * validity)
+                )
+            return validation_deadline.strftime("%d-%m-%Y")
+        else:
+            return None
 
 
 class DatasetRequestStatusType(graphene.Enum):
