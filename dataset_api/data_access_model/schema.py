@@ -9,7 +9,7 @@ from activity_log.signal import activity
 from ..decorators import validate_token
 from ..models.DataAccessModel import DataAccessModel
 from dataset_api.enums import SubscriptionUnits, ValidationUnits
-from dataset_api.models import Organization, Agreement
+from dataset_api.models import Organization, Agreement, Dataset
 from ..models.LicenseAddition import LicenseAddition
 from ..models.License import License
 from .contract import create_contract
@@ -18,13 +18,17 @@ from .decorators import auth_user_action_dam, auth_query_dam
 
 class DataAccessModelType(DjangoObjectType):
     active_users = graphene.Int()
+    dataset_count = graphene.Int()
 
     class Meta:
         model = DataAccessModel
         fields = "__all__"
 
-    def resolve_datasets(self: DataAccessModel, info):
+    def resolve_active_users(self: DataAccessModel, info):
         return Agreement.objects.filter(dataset_access_model__dataset=self).count()
+
+    def resolve_dataset_count(self: DataAccessModel, info):
+        return Dataset.objects.filter(datasetaccessmodel__dataset=self).count()
 
 
 class Query(graphene.ObjectType):
