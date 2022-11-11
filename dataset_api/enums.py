@@ -7,12 +7,6 @@ class RatingStatus(models.TextChoices):
     PUBLISHED = "PUBLISHED"
 
 
-class LicenseStatus(models.TextChoices):
-    CREATED = "CREATED"
-    REJECTED = "REJECTED"
-    PUBLISHED = "PUBLISHED"
-
-
 class SubscriptionUnits(models.TextChoices):
     LIMITEDDOWNLOAD = "LIMITEDDOWNLOAD"
     DAILY = "DAILY"

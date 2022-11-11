@@ -1,7 +1,7 @@
 from django.db import models
 
-from dataset_api.enums import LicenseStatus
 from dataset_api.file_paths import _license_directory_path
+from dataset_api.license.enums import LicenseStatus
 from dataset_api.models.Organization import Organization
 
 

@@ -5,12 +5,13 @@ from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 from graphql import GraphQLError
 
-from dataset_api.enums import LicenseStatus
 from dataset_api.models import Organization
 from dataset_api.models.LicenseAddition import LicenseAddition
 from dataset_api.models.License import License
 from dataset_api.decorators import auth_user_by_org
 from .decorators import check_license_role, auth_query_license
+from .enums import LicenseStatus
+from ..license_addition.license_addition_schema import LicenceAdditionType, _create_update_license_additions
 
 
 class LicenseAdditionType(DjangoObjectType):
@@ -62,65 +63,13 @@ class LicenseApproveRejectInput(graphene.InputObjectType):
     # status = graphene.Enum.from_enum(LicenseStatus)(required=True)
 
 
-class LicenceAdditionsInput(graphene.InputObjectType):
-    id = graphene.ID(required=False)
-    title = graphene.String(required=True)
-    description = graphene.String(required=True)
-    generic_item = graphene.Boolean(required=True)
-
-
 class LicenseInput(graphene.InputObjectType):
     id = graphene.ID(required=False)
     title = graphene.String(required=True)
     description = graphene.String(required=True)
     file = Upload(required=False)
     remote_url = graphene.String(required=False)
-    license_additions = graphene.List(LicenceAdditionsInput, required=False, default=[])
-
-
-def _create_license_addition(license_instance, addition: LicenceAdditionsInput):
-    addition_instance = LicenseAddition(
-        license=license_instance,
-        description=addition.description,
-        title=addition.title,
-        generic_item=addition.generic_item,
-    )
-    addition_instance.save()
-
-
-def _create_update_license_additions(
-    license_instance: License, additions: [LicenceAdditionsInput]
-):
-    license_additions_ids = []  # List of schemas that already exists.
-    license_addition_instances = LicenseAddition.objects.filter(
-        license=license_instance
-    )
-    for license_addition in license_addition_instances:
-        license_additions_ids.append(license_addition.id)
-
-    for addition in additions:
-        try:
-            # Update existing addition
-            if addition.id:
-                license_addition_instance = LicenseAddition.objects.get(id=addition.id)
-                license_addition_instance.title = addition.title
-                license_addition_instance.description = addition.description
-                license_addition_instance.license = license_instance
-                license_addition_instance.generic_item = addition.generic_item
-                license_addition_instance.save()
-                license_additions_ids.remove(
-                    int(license_addition_instance.id)
-                )  # Remove id from the list
-            else:
-                # Add new addition
-                _create_license_addition(license_instance, addition)
-        except LicenseAddition.DoesNotExist as e:
-            _create_license_addition(license_instance, addition)
-    # Delete addition which were not updated or created.
-    if license_additions_ids:
-        for ids in license_additions_ids:
-            license_addition = LicenseAddition.objects.get(id=ids)
-            license_addition.delete()
+    license_additions = graphene.List(LicenceAdditionType, required=False, default=[])
 
 
 class CreateLicense(graphene.Mutation, Output):
