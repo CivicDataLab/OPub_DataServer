@@ -60,6 +60,7 @@ class ResourceType(DjangoObjectType):
     schema = graphene.List(ResourceSchemaType)
     file_details = graphene.Field(FileDetailsType)
     api_details = graphene.Field(ApiDetailsType)
+    schema_exists = graphene.Boolean()
 
     class Meta:
         model = Resource
@@ -85,6 +86,13 @@ class ResourceType(DjangoObjectType):
             return api_details
         except APIDetails.DoesNotExist as e:
             return None
+
+    def resolve_schema_exists(self, info):
+        try:
+            ResourceSchema.objects.filter(resource=self)
+            return True
+        except ResourceSchema.DoesNotExist as e:
+            return False
 
 
 class Query(graphene.ObjectType):
@@ -181,9 +189,9 @@ class DeleteResourceInput(graphene.InputObjectType):
 
 def _remove_masked_fields(resource_instance: Resource):
     if (
-        resource_instance.masked_fields
-        and len(resource_instance.filedetails.file.path)
-        and "csv" in resource_instance.filedetails.format.lower()
+            resource_instance.masked_fields
+            and len(resource_instance.filedetails.file.path)
+            and "csv" in resource_instance.filedetails.format.lower()
     ):
         df = pd.read_csv(resource_instance.filedetails.file.path)
         df = df.drop(columns=resource_instance.masked_fields)
@@ -300,10 +308,10 @@ class CreateResource(graphene.Mutation, Output):
     @validate_token
     @auth_user_action_resource(action="create_resource")
     def mutate(
-        root,
-        info,
-        username,
-        resource_data: ResourceInput = None,
+            root,
+            info,
+            username,
+            resource_data: ResourceInput = None,
     ):
         """
 
