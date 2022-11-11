@@ -18,7 +18,9 @@ class SectorType(DjangoObjectType):
 
     def resolve_dataset_count(self, info):
         try:
-            dataset_count = Sector.objects.get(pk=self.id).dataset_set.count()
+            dataset_count = Dataset.objects.filter(
+                Q(status__exact="PUBLISHED"), Q(sector__pk=self.id)
+            ).count()
             return dataset_count
         except Sector.DoesNotExist as e:
             return None
@@ -37,7 +39,9 @@ class SectorType(DjangoObjectType):
         return len(set(org_list))
 
     def resolve_downloads(self, info):
-        return Dataset.objects.filter(sector__pk=self.id).aggregate(Sum("download_count"))
+        return Dataset.objects.filter(sector__pk=self.id).aggregate(
+            Sum("download_count")
+        )
 
 
 class Query(graphene.ObjectType):

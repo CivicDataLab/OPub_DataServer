@@ -78,7 +78,7 @@ class DataRequestType(DjangoObjectType):
                 + str(dam_id)
                 + "||"
                 + quota_limit_unit.lower()[0]
-                + +"||quota"
+                + "||quota"
             )
             if used_quota:
                 if quota_limit > int(used_quota.decode()):
