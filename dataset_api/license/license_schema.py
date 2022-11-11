@@ -149,7 +149,7 @@ class UpdateLicense(graphene.Mutation, Output):
             _create_update_license_additions(
                 license_instance, license_data.license_additions
             )
-        return CreateLicense(license=license_instance)
+        return UpdateLicense(license=license_instance)
 
 
 class ApproveRejectLicense(graphene.Mutation, Output):
