@@ -29,6 +29,7 @@ class DataRequestType(DjangoObjectType):
     refresh_token = graphene.String()
     spec = graphene.JSONString()
     remaining_quota = graphene.Int()
+    validity = graphene.Int()
 
     class Meta:
         model = DataRequest
@@ -64,6 +65,9 @@ class DataRequestType(DjangoObjectType):
         quota_limit_unit = (
             self.dataset_access_model_request.access_model.data_access_model.subscription_quota_unit
         )
+        if not username:
+            username = self.dataset_access_model_request.user
+
         if quota_limit_unit == SubscriptionUnits.DAILY:
             used_quota = r.get(
                 ":1:rl||"
@@ -126,6 +130,14 @@ class DataRequestType(DjangoObjectType):
                     return 0
             else:
                 return quota_limit
+
+    @validate_token_or_none
+    def resolve_validity(self: DataRequest, info, username):
+        validity = (
+            self.dataset_access_model_request.access_model.data_access_model.validation
+        )
+        # validity_unit = self.dataset_access_model_request.access_model.data_access_model.validation_unit
+        return validity
 
 
 class DatasetRequestStatusType(graphene.Enum):
