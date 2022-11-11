@@ -4,9 +4,8 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('dataset_api', '0079_alter_dataset_remote_modified'),
+        ('dataset_api', '0080_dataaccessmodel_validation_and_more'),
     ]
 
     operations = [
@@ -18,6 +17,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='licenseaddition',
             name='status',
-            field=models.CharField(choices=[('CREATED', 'Created'), ('REJECTED', 'Rejected'), ('PUBLISHED', 'Published')], default='CREATED', max_length=50),
+            field=models.CharField(
+                choices=[('CREATED', 'Created'), ('REJECTED', 'Rejected'), ('PUBLISHED', 'Published')],
+                default='CREATED', max_length=50),
         ),
     ]
