@@ -9,7 +9,7 @@ from activity_log.signal import activity
 from ..decorators import validate_token
 from ..models.DataAccessModel import DataAccessModel
 from dataset_api.enums import SubscriptionUnits, ValidationUnits
-from dataset_api.models import Organization
+from dataset_api.models import Organization, Agreement
 from ..models.LicenseAddition import LicenseAddition
 from ..models.License import License
 from .contract import create_contract
@@ -17,9 +17,14 @@ from .decorators import auth_user_action_dam, auth_query_dam
 
 
 class DataAccessModelType(DjangoObjectType):
+    active_users = graphene.Int()
+
     class Meta:
         model = DataAccessModel
         fields = "__all__"
+
+    def resolve_datasets(self: DataAccessModel, info):
+        return Agreement.objects.filter(dataset_access_model__dataset=self).count()
 
 
 class Query(graphene.ObjectType):
@@ -99,7 +104,7 @@ class InvalidAddition(Exception):
 
 
 def _add_update_license_additions(
-    data_access_model_instance, dam_license: License, additions
+        data_access_model_instance, dam_license: License, additions
 ):
     if not additions:
         return
@@ -196,9 +201,9 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
             org_instance = Organization.objects.get(id=org_id)
             dam_license = License.objects.get(id=data_access_model_data.license)
         except (
-            DataAccessModel.DoesNotExist,
-            Organization.DoesNotExist,
-            License.DoesNotExist,
+                DataAccessModel.DoesNotExist,
+                Organization.DoesNotExist,
+                License.DoesNotExist,
         ) as e:
             return {
                 "success": False,
@@ -261,7 +266,7 @@ class DeleteDataAccessModel(Output, graphene.Mutation):
     @validate_token
     @auth_user_action_dam(action="delete_dam")
     def mutate(
-        root, info, data_access_model_data: DeleteDataAccessModelInput, username=""
+            root, info, data_access_model_data: DeleteDataAccessModelInput, username=""
     ):
         dam_instance = DataAccessModel.objects.get(id=data_access_model_data.id)
         activity.send(
