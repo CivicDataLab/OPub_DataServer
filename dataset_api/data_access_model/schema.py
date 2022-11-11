@@ -25,10 +25,10 @@ class DataAccessModelType(DjangoObjectType):
         fields = "__all__"
 
     def resolve_active_users(self: DataAccessModel, info):
-        return Agreement.objects.filter(dataset_access_model__dataset=self).count()
+        return Agreement.objects.filter(dataset_access_model__data_access_model=self).count()
 
     def resolve_dataset_count(self: DataAccessModel, info):
-        return Dataset.objects.filter(datasetaccessmodel__dataset=self).count()
+        return Dataset.objects.filter(datasetaccessmodel__data_access_model=self).count()
 
 
 class Query(graphene.ObjectType):
