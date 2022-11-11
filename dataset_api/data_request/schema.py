@@ -3,6 +3,7 @@ import os
 import graphene
 import requests
 import redis
+import datetime
 
 from django.core.files import File
 from graphene_django import DjangoObjectType
@@ -16,7 +17,7 @@ from dataset_api.data_request.token_handler import (
     generate_refresh_token,
 )
 from dataset_api.decorators import validate_token, validate_token_or_none
-from dataset_api.enums import DataType, SubscriptionUnits
+from dataset_api.enums import DataType, SubscriptionUnits, ValidationUnits
 from dataset_api.models import Resource
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
@@ -29,7 +30,7 @@ class DataRequestType(DjangoObjectType):
     refresh_token = graphene.String()
     spec = graphene.JSONString()
     remaining_quota = graphene.Int()
-    validity = graphene.Int()
+    validity = graphene.String()
 
     class Meta:
         model = DataRequest
@@ -133,11 +134,30 @@ class DataRequestType(DjangoObjectType):
 
     @validate_token_or_none
     def resolve_validity(self: DataRequest, info, username):
-        validity = (
-            self.dataset_access_model_request.access_model.data_access_model.validation
-        )
-        # validity_unit = self.dataset_access_model_request.access_model.data_access_model.validation_unit
-        return validity
+        if self.dataset_access_model_request.status == "APPROVED":
+            validity = (
+                self.dataset_access_model_request.access_model.data_access_model.validation
+            )
+            validity_unit = (
+                self.dataset_access_model_request.access_model.data_access_model.validation_unit
+            )
+            approval_date = self.dataset_access_model_request.modified
+
+            if validity_unit == ValidationUnits.PER_DAY:
+                validation_deadline = approval_date + datetime.timedelta(days=validity)
+            elif validity_unit == ValidationUnits.PER_WEEK:
+                validation_deadline = approval_date + datetime.timedelta(weeks=validity)
+            elif validity_unit == ValidationUnits.PER_MONTH:
+                validation_deadline = approval_date + datetime.timedelta(
+                    days=(30 * validity)
+                )
+            elif validity_unit == ValidationUnits.PER_YEAR:
+                validation_deadline = approval_date + datetime.timedelta(
+                    days=(365 * validity)
+                )
+            return validation_deadline.strftime("%d-%m-%Y")
+        else:
+            return None
 
 
 class DatasetRequestStatusType(graphene.Enum):
