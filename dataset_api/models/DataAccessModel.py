@@ -1,6 +1,6 @@
 from django.db import models
 
-from dataset_api.enums import SubscriptionUnits
+from dataset_api.enums import SubscriptionUnits, ValidationUnits
 from dataset_api.file_paths import _contract_directory_path
 from dataset_api.models.LicenseAddition import LicenseAddition
 from dataset_api.models.License import License
@@ -21,3 +21,5 @@ class DataAccessModel(models.Model):
     rate_limit = models.IntegerField(blank=True)
     rate_limit_unit = models.CharField(blank=True, max_length=100)
     license_additions = models.ManyToManyField(LicenseAddition, blank=True)
+    validation = models.IntegerField(blank=False)
+    validation_unit = models.CharField(blank=False, choices=ValidationUnits.choices, max_length=50)

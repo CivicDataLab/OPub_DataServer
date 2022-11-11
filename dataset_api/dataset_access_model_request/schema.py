@@ -56,7 +56,7 @@ class Query(graphene.ObjectType):
     def resolve_data_access_model_request(
         self, info, data_access_model_request_id, role
     ):
-        if role == "PMU" or "DPA":
+        if role == "PMU" or role == "DPA":
             return DatasetAccessModelRequest.objects.get(
                 pk=data_access_model_request_id
             )
@@ -72,7 +72,7 @@ class Query(graphene.ObjectType):
     # Access : PMU/DPA of that org.
     @auth_user_by_org(action="query")
     def resolve_data_access_model_request_org(self, info, role):
-        if role == "PMU" or "DPA":
+        if role == "PMU" or role == "DPA":
             org_id = info.context.headers.get("HTTP_ORGANIZATION")
             return DatasetAccessModelRequest.objects.filter(
                 Q(access_model_id__data_access_model__organization=org_id),

@@ -9,6 +9,7 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
+from DatasetServer import settings
 from dataset_api.constants import DATAREQUEST_SWAGGER_SPEC
 from dataset_api.data_request.token_handler import (
     create_access_jwt_token,
@@ -19,7 +20,6 @@ from dataset_api.enums import DataType, SubscriptionUnits
 from dataset_api.models import Resource
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
-
 
 r = redis.Redis()
 
@@ -168,7 +168,7 @@ class DataRequestMutation(graphene.Mutation, Output):
     data_request = graphene.Field(DataRequestType)
 
     @staticmethod
-    @validate_token
+    @validate_token_or_none
     def mutate(root, info, data_request: DataRequestInput = None, username=""):
         try:
             resource = Resource.objects.get(id=data_request.resource)
@@ -195,9 +195,8 @@ class DataRequestMutation(graphene.Mutation, Output):
         )
         data_request_instance.save()
         # TODO: fix magic strings
-        # TODO: Move pipeline url to config
         if resource and resource.dataset.dataset_type == "API":
-            url = f"https://pipeline.ndp.civicdatalab.in/transformer/api_source_query?api_source_id={resource.id}&request_id={data_request_instance.id}"
+            url = f"{settings.PIPELINE_URL}transformer/api_source_query?api_source_id={resource.id}&request_id={data_request_instance.id}"
             payload = {}
             headers = {}
             response = requests.request("GET", url, headers=headers, data=payload)

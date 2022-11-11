@@ -36,6 +36,7 @@ def index_data(dataset_obj):
         "dataset_type": dataset_obj.dataset_type,
         "remote_issued": dataset_obj.remote_issued,
         "remote_modified": dataset_obj.remote_modified,
+        "modified": dataset_obj.modified,
         "slug": dataset_slug(dataset_obj.id),
         "highlights": dataset_obj.highlights or [],
         "download_count": dataset_obj.download_count,

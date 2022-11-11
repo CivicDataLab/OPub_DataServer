@@ -5,12 +5,13 @@ from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 from graphql import GraphQLError
 
-from dataset_api.enums import LicenseStatus
 from dataset_api.models import Organization
 from dataset_api.models.LicenseAddition import LicenseAddition
 from dataset_api.models.License import License
 from dataset_api.decorators import auth_user_by_org
 from .decorators import check_license_role, auth_query_license
+from .enums import LicenseStatus
+from ..license_addition.license_addition_schema import LicenceAdditionType, _create_update_license_additions
 
 
 class LicenseAdditionType(DjangoObjectType):
@@ -37,21 +38,20 @@ class LicenseType(DjangoObjectType):
 
 class Query(graphene.ObjectType):
     all_license = graphene.List(LicenseType)
+    license_by_org = graphene.List(LicenseType)
     license = graphene.Field(LicenseType, license_id=graphene.Int())
 
-    @auth_user_by_org(action="query")
-    def resolve_all_license(self, info, role, **kwargs):
-        if role == "PMU":
-            return License.objects.all().order_by("-modified")
-        else:
-            raise GraphQLError("Access Denied")
+    def resolve_all_license(self, info, **kwargs):
+        return License.objects.get(status=LicenseStatus.PUBLISHED.value).order_by("-modified")
 
-    @auth_query_license(action="query||license_id")
-    def resolve_license(self, info, license_id, role):
-        if role == "PMU" or "DPA":
-            return License.objects.get(pk=license_id)
-        else:
-            raise GraphQLError("Access Denied")
+    def resolve_license_by_org(self, info, **kwargs):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
+        organization = Organization.objects.get(id=org_id)
+        return License.objects.filter(Q(created_organization=organization),
+                                      Q(status=LicenseStatus.PUBLISHED.value)).order_by("-modified")
+
+    def resolve_license(self, info, license_id):
+        return License.objects.get(pk=license_id)
 
 
 class LicenseApproveRejectInput(graphene.InputObjectType):
@@ -62,65 +62,13 @@ class LicenseApproveRejectInput(graphene.InputObjectType):
     # status = graphene.Enum.from_enum(LicenseStatus)(required=True)
 
 
-class LicenceAdditionsInput(graphene.InputObjectType):
-    id = graphene.ID(required=False)
-    title = graphene.String(required=True)
-    description = graphene.String(required=True)
-    generic_item = graphene.Boolean(required=True)
-
-
 class LicenseInput(graphene.InputObjectType):
     id = graphene.ID(required=False)
     title = graphene.String(required=True)
     description = graphene.String(required=True)
     file = Upload(required=False)
     remote_url = graphene.String(required=False)
-    license_additions = graphene.List(LicenceAdditionsInput, required=False, default=[])
-
-
-def _create_license_addition(license_instance, addition: LicenceAdditionsInput):
-    addition_instance = LicenseAddition(
-        license=license_instance,
-        description=addition.description,
-        title=addition.title,
-        generic_item=addition.generic_item,
-    )
-    addition_instance.save()
-
-
-def _create_update_license_additions(
-    license_instance: License, additions: [LicenceAdditionsInput]
-):
-    license_additions_ids = []  # List of schemas that already exists.
-    license_addition_instances = LicenseAddition.objects.filter(
-        license=license_instance
-    )
-    for license_addition in license_addition_instances:
-        license_additions_ids.append(license_addition.id)
-
-    for addition in additions:
-        try:
-            # Update existing addition
-            if addition.id:
-                license_addition_instance = LicenseAddition.objects.get(id=addition.id)
-                license_addition_instance.title = addition.title
-                license_addition_instance.description = addition.description
-                license_addition_instance.license = license_instance
-                license_addition_instance.generic_item = addition.generic_item
-                license_addition_instance.save()
-                license_additions_ids.remove(
-                    int(license_addition_instance.id)
-                )  # Remove id from the list
-            else:
-                # Add new addition
-                _create_license_addition(license_instance, addition)
-        except LicenseAddition.DoesNotExist as e:
-            _create_license_addition(license_instance, addition)
-    # Delete addition which were not updated or created.
-    if license_additions_ids:
-        for ids in license_additions_ids:
-            license_addition = LicenseAddition.objects.get(id=ids)
-            license_addition.delete()
+    license_additions = graphene.List(LicenceAdditionType, required=False, default=[])
 
 
 class CreateLicense(graphene.Mutation, Output):
@@ -166,9 +114,8 @@ class UpdateLicense(graphene.Mutation, Output):
     def mutate(root, info, role, license_data: LicenseInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         try:
-            organization = Organization.objects.get(id=org_id)
             license_instance = License.objects.get(id=license_data.id)
-        except (License.DoesNotExist, Organization.DoesNotExist) as e:
+        except License.DoesNotExist as e:
             return {
                 "success": False,
                 "errors": {
@@ -180,10 +127,15 @@ class UpdateLicense(graphene.Mutation, Output):
                     ]
                 },
             }
+        try:
+            organization = Organization.objects.get(id=org_id)
+        except Organization.DoesNotExist as e:
+            organization = None
 
         license_instance.title = license_data.title
         license_instance.description = license_data.description
-        license_instance.created_organization = organization
+        if organization:
+            license_instance.created_organization = organization
         if license_data.file:
             license_instance.file = license_data.file
         if license_data.remote_url:
@@ -197,7 +149,7 @@ class UpdateLicense(graphene.Mutation, Output):
             _create_update_license_additions(
                 license_instance, license_data.license_additions
             )
-        return CreateLicense(license=license_instance)
+        return UpdateLicense(license=license_instance)
 
 
 class ApproveRejectLicense(graphene.Mutation, Output):
