@@ -47,8 +47,8 @@ class Query(graphene.ObjectType):
     def resolve_license_by_org(self, info, **kwargs):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         organization = Organization.objects.get(id=org_id)
-        return License.objects.get(Q(created_organization=organization),
-                                   Q(status=LicenseStatus.PUBLISHED.value)).order_by("-modified")
+        return License.objects.filter(Q(created_organization=organization),
+                                      Q(status=LicenseStatus.PUBLISHED.value)).order_by("-modified")
 
     def resolve_license(self, info, license_id):
         return License.objects.get(pk=license_id)
