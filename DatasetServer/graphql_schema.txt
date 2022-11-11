@@ -282,6 +282,7 @@ type DataRequestType {
     id: ID!
     refresh_token: String
     reject_reason: String!
+    remaining_quota: Int
     resource: ResourceType!
     spec: JSONString
     status: String!
@@ -338,7 +339,7 @@ type DatasetType {
     period_from: Date
     period_to: Date
     remote_issued: Date
-    remote_modified: DateTime
+    remote_modified: Date
     resource_set: [ResourceType!]!
     sector: [SectorType!]!
     slug: String
@@ -396,6 +397,8 @@ type LicenseAdditionType {
     issued: DateTime!
     license: LicenseType!
     modified: DateTime!
+    reject_reason: String
+    status: LicenseAdditionStatus!
     title: String!
 }
 
@@ -821,6 +824,16 @@ enum InfoType {
 }
 
 "An enumeration."
+enum LicenseAdditionStatus {
+    "Created"
+    CREATED
+    "Published"
+    PUBLISHED
+    "Rejected"
+    REJECTED
+}
+
+"An enumeration."
 enum LicenseStatus {
     "Created"
     CREATED
@@ -1142,7 +1155,7 @@ input KeyValueType {
     value: String
 }
 
-input LicenceAdditionsInput {
+input LicenceAdditionType {
     description: String!
     generic_item: Boolean!
     id: ID
@@ -1159,7 +1172,7 @@ input LicenseInput {
     description: String!
     file: Upload
     id: ID
-    license_additions: [LicenceAdditionsInput]
+    license_additions: [LicenceAdditionType]
     remote_url: String
     title: String!
 }
@@ -1283,7 +1296,7 @@ input UpdateDatasetInput {
     period_from: Date
     period_to: Date
     remote_issued: Date!
-    remote_modified: DateTime
+    remote_modified: Date
     sector_list: [String]!
     tags_list: [String]
     update_frequency: String!
