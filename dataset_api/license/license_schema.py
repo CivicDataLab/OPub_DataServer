@@ -38,21 +38,20 @@ class LicenseType(DjangoObjectType):
 
 class Query(graphene.ObjectType):
     all_license = graphene.List(LicenseType)
+    license_by_org = graphene.List(LicenseType)
     license = graphene.Field(LicenseType, license_id=graphene.Int())
 
-    @auth_user_by_org(action="query")
-    def resolve_all_license(self, info, role, **kwargs):
-        if role == "PMU":
-            return License.objects.all().order_by("-modified")
-        else:
-            raise GraphQLError("Access Denied")
+    def resolve_all_license(self, info, **kwargs):
+        return License.objects.get(status=LicenseStatus.PUBLISHED.value).order_by("-modified")
 
-    @auth_query_license(action="query||license_id")
-    def resolve_license(self, info, license_id, role):
-        if role == "PMU" or role == "DPA":
-            return License.objects.get(pk=license_id)
-        else:
-            raise GraphQLError("Access Denied")
+    def resolve_license_by_org(self, info, **kwargs):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
+        organization = Organization.objects.get(id=org_id)
+        return License.objects.get(Q(created_organization=organization),
+                                   Q(status=LicenseStatus.PUBLISHED.value)).order_by("-modified")
+
+    def resolve_license(self, info, license_id):
+        return License.objects.get(pk=license_id)
 
 
 class LicenseApproveRejectInput(graphene.InputObjectType):
