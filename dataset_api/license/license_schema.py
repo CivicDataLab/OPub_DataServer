@@ -11,13 +11,8 @@ from dataset_api.models.License import License
 from dataset_api.decorators import auth_user_by_org
 from .decorators import check_license_role, auth_query_license
 from .enums import LicenseStatus
-from ..license_addition.license_addition_schema import LicenceAdditionInputType, _create_update_license_additions
-
-
-class LicenseAdditionType(DjangoObjectType):
-    class Meta:
-        model = LicenseAddition
-        fields = "__all__"
+from ..license_addition.license_addition_schema import LicenceAdditionInputType, _create_update_license_additions, \
+    LicenseAdditionType
 
 
 class LicenseType(DjangoObjectType):
