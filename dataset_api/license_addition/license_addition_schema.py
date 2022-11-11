@@ -1,12 +1,13 @@
 from typing import Iterable
 
 import graphene
+from django.db.models import Q
 from graphql_auth.bases import Output
 
 from dataset_api.decorators import auth_user_by_org
 from dataset_api.license.decorators import check_license_role
 from dataset_api.license_addition.enums import LicenseAdditionStatus
-from dataset_api.models import LicenseAddition, License
+from dataset_api.models import LicenseAddition, License, Organization
 
 
 class LicenceAdditionType(graphene.InputObjectType):
@@ -28,6 +29,24 @@ class LicenseAdditionApproveRejectInput(graphene.InputObjectType):
     ids: Iterable = graphene.List(graphene.ID, required=True)
     reject_reason = graphene.String(required=False)
     status = graphene.Enum.from_enum(LicenseAdditionStatus)(required=True)
+
+
+class Query(graphene.ObjectType):
+    all_license_additions = graphene.List(LicenceAdditionType)
+    license_additions_by_org = graphene.List(LicenceAdditionType)
+    license_addition = graphene.Field(LicenceAdditionType, license_id=graphene.Int())
+
+    def resolve_all_license_additions(self, info, **kwargs):
+        return LicenseAddition.objects.get(status=LicenseAdditionStatus.PUBLISHED.value).order_by("-modified")
+
+    def resolve_license_additions_by_org(self, info, **kwargs):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
+        organization = Organization.objects.get(id=org_id)
+        return LicenseAddition.objects.get(Q(license__created_organization=organization),
+                                           Q(generic_item=True)).order_by("-modified")
+
+    def resolve_license_addition(self, info, license_id):
+        return License.objects.get(pk=license_id)
 
 
 def _create_license_addition(license_instance, addition: LicenceAdditionType):
