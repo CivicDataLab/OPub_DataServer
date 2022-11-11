@@ -11,7 +11,7 @@ from dataset_api.models.License import License
 from dataset_api.decorators import auth_user_by_org
 from .decorators import check_license_role, auth_query_license
 from .enums import LicenseStatus
-from ..license_addition.license_addition_schema import LicenceAdditionType, _create_update_license_additions
+from ..license_addition.license_addition_schema import LicenceAdditionInputType, _create_update_license_additions
 
 
 class LicenseAdditionType(DjangoObjectType):
@@ -68,7 +68,7 @@ class LicenseInput(graphene.InputObjectType):
     description = graphene.String(required=True)
     file = Upload(required=False)
     remote_url = graphene.String(required=False)
-    license_additions = graphene.List(LicenceAdditionType, required=False, default=[])
+    license_additions = graphene.List(LicenceAdditionInputType, required=False, default=[])
 
 
 class CreateLicense(graphene.Mutation, Output):

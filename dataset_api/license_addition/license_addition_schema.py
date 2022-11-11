@@ -2,6 +2,7 @@ from typing import Iterable
 
 import graphene
 from django.db.models import Q
+from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
 from dataset_api.decorators import auth_user_by_org
@@ -10,7 +11,13 @@ from dataset_api.license_addition.enums import LicenseAdditionStatus
 from dataset_api.models import LicenseAddition, License, Organization
 
 
-class LicenceAdditionType(graphene.InputObjectType):
+class LicenseAdditionType(DjangoObjectType):
+    class Meta:
+        model = LicenseAddition
+        fields = "__all__"
+
+
+class LicenceAdditionInputType(graphene.InputObjectType):
     id = graphene.ID(required=False)
     title = graphene.String(required=True)
     description = graphene.String(required=True)
@@ -32,9 +39,9 @@ class LicenseAdditionApproveRejectInput(graphene.InputObjectType):
 
 
 class Query(graphene.ObjectType):
-    all_license_additions = graphene.List(LicenceAdditionType)
-    license_additions_by_org = graphene.List(LicenceAdditionType)
-    license_addition = graphene.Field(LicenceAdditionType, license_id=graphene.Int())
+    all_license_additions = graphene.List(LicenseAdditionType)
+    license_additions_by_org = graphene.List(LicenseAdditionType)
+    license_addition = graphene.Field(LicenseAdditionType, license_id=graphene.Int())
 
     def resolve_all_license_additions(self, info, **kwargs):
         return LicenseAddition.objects.get(status=LicenseAdditionStatus.PUBLISHED.value).order_by("-modified")
@@ -49,7 +56,7 @@ class Query(graphene.ObjectType):
         return License.objects.get(pk=license_id)
 
 
-def _create_license_addition(license_instance, addition: LicenceAdditionType):
+def _create_license_addition(license_instance, addition: LicenceAdditionInputType):
     addition_instance = LicenseAddition(
         license=license_instance,
         description=addition.description,
@@ -60,7 +67,7 @@ def _create_license_addition(license_instance, addition: LicenceAdditionType):
 
 
 def _create_update_license_additions(
-        license_instance: License, additions: [LicenceAdditionType]
+        license_instance: License, additions: [LicenceAdditionInputType]
 ):
     license_additions_ids = []  # List of schemas that already exists.
     license_addition_instances = LicenseAddition.objects.filter(
@@ -98,7 +105,7 @@ class CreateLicenseAddition(graphene.Mutation, Output):
     class Arguments:
         license_addition_data = LicenseAdditionsCreateInput(required=True)
 
-    license = graphene.Field(LicenceAdditionType)
+    license = graphene.Field(LicenceAdditionInputType)
 
     @staticmethod
     @check_license_role
@@ -120,7 +127,7 @@ class UpdateLicenseAddition(graphene.Mutation, Output):
     class Arguments:
         license_addition_data = LicenseAdditionsCreateInput(required=True)
 
-    license = graphene.Field(LicenceAdditionType)
+    license = graphene.Field(LicenceAdditionInputType)
 
     @staticmethod
     @check_license_role
@@ -144,7 +151,7 @@ class ApproveRejectLicenseAddition(graphene.Mutation, Output):
     class Arguments:
         license_data = LicenseAdditionApproveRejectInput(required=True)
 
-    license_requests = graphene.List(LicenceAdditionType)
+    license_requests = graphene.List(LicenceAdditionInputType)
 
     @staticmethod
     @auth_user_by_org(action="approve_license")
