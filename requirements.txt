@@ -36,3 +36,4 @@ tzdata==2022.2
 urllib3==1.26.12
 requests~=2.28.1
 Pillow==9.2.0
+genson==1.2.2
