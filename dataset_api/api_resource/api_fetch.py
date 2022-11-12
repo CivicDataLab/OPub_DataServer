@@ -74,29 +74,21 @@ def fetchapi(resource_id):
     try:
         res_model = Resource.objects.get(pk=resource_id)
 
-        base_url = res_model["api_details"]["api_source"]["base_url"]
-        url_path = res_model["api_details"]["url_path"]
-        headers = res_model["api_details"]["api_source"]["headers"]
-        auth_loc = res_model["api_details"]["api_source"]["auth_loc"]
-        auth_type = res_model["data"]["resource"]["api_details"]["api_source"][
-            "auth_type"
-        ]
-        response_type = res_model["data"]["resource"]["api_details"]["response_type"]
+        base_url = res_model.apidetails.api_source.base_url
+        url_path = res_model.apidetails.url_path
+        headers = res_model.apidetails.api_source.headers
+        auth_loc = res_model.apidetails.api_source.auth_loc
+        auth_type = res_model.apidetails.api_source.auth_type
+        response_type = res_model.apidetails.response_type
         param = {}
         header = {}
         if auth_loc == "HEADER":
             if auth_type == "TOKEN":
-                auth_token = res_model["data"]["resource"]["api_details"]["api_source"][
-                    "auth_token"
-                ]
+                auth_token = res_model.apidetails.api_source.auth_token
                 header = {"access_token": auth_token}
             elif auth_type == "CREDENTIAL":
                 # [{key:username,value:dc, description:desc},{key:password,value:pass, description:desc}]
-                auth_credentials = res_model["data"]["resource"]["api_details"][
-                    "api_source"
-                ][
-                    "auth_credentials"
-                ]  # - uname pwd
+                auth_credentials = res_model.apidetails.api_source.auth_credentials
                 uname_key = auth_credentials[0]["key"]
                 uname = auth_credentials[0]["value"]
                 pwd_key = auth_credentials[1]["key"]
@@ -104,16 +96,10 @@ def fetchapi(resource_id):
                 header = {uname_key: uname, pwd_key: pwd}
         if auth_loc == "PARAM":
             if auth_type == "TOKEN":
-                auth_token = res_model["data"]["resource"]["api_details"]["api_source"][
-                    "auth_token"
-                ]
+                auth_token = res_model.apidetails.api_source.auth_token
                 param = {"access_token": auth_token}
             elif auth_type == "CREDENTIAL":
-                auth_credentials = res_model["data"]["resource"]["api_details"][
-                    "api_source"
-                ][
-                    "auth_credentials"
-                ]  # - uname pwd
+                auth_credentials = res_model.apidetails.api_source.auth_credentials
                 uname_key = auth_credentials[0]["key"]
                 uname = auth_credentials[0]["value"]
                 pwd_key = auth_credentials[1]["key"]
