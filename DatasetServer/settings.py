@@ -36,9 +36,34 @@ ACCESS_TOKEN_EXPIRY_MINS = 5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['http://idpbe.civicdatalab.in', 'http://43.205.200.192', 'idp.civicdatalab.in', 'http://localhost:3000', '*', 'idpbe.civicdatalab.in']
 
-CORS_ORIGIN_WHITELIST = []
+CORS_ORIGIN_WHITELIST = ['idpbe.civicdatalab.in', '43.205.200.192', 'idp.civicdatalab.in', 'localhost:3000']
+
+CORS_ALLOW_METHODS = [
+        'DELETE',
+        'GET',
+        'OPTIONS',
+        'PATCH',
+        'POST',
+        'PUT',
+        ]
+
+CORS_ALLOW_HEADERS = [
+        'accept',
+        'accept-encoding',
+        'authorization',
+        'content-type',
+        'dnt',
+        'origin',
+        'user-agent',
+        'x-csrftoken',
+        'x-requested-with',
+        'referer',
+        'organization',
+        ]
+
+CORS_ORIGIN_ALLOW_ALL=True
 
 # Application definition
 
@@ -56,14 +81,14 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 ROOT_URLCONF = "DatasetServer.urls"
@@ -147,10 +172,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-STATIC_URL = "static/"
-MEDIA_URL = "public/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "public")
-
+STATIC_URL = 'static/'
+MEDIA_URL = 'public/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'public')
+X_FRAME_OPTIONS = 'ALLOW-FROM http://localhost:3000/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 

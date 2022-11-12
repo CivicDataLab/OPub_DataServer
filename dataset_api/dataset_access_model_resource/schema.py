@@ -38,6 +38,7 @@ class DatasetAccessModelType(DjangoObjectType):
     def resolve_usage(self: DatasetAccessModel, info):
         try:
             dam_requests = self.datasetaccessmodelrequest_set.all()
+            print(dam_requests, [x.datarequest_set.filter(status="FETCHED").count() for x in dam_requests])
             return sum([x.datarequest_set.filter(status="FETCHED").count() for x in dam_requests])
         except (DatasetAccessModelRequest.DoesNotExist, DataRequest.DoesNotExist) as e:
             return 0

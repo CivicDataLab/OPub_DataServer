@@ -16,6 +16,7 @@ class Query(graphene.ObjectType):
     def resolve_dataset_access_model(self, info, dataset_id, username, anonymous_users=[], **kwargs):
         dataset = Dataset.objects.get(id=dataset_id)
 
+        print(anonymous_users)
         if username:
             prefetch_agreements = Prefetch("agreements", queryset=Agreement.objects.filter(username=username))
             prefetch_dam_requests = Prefetch("datasetaccessmodelrequest_set",

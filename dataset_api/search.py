@@ -249,9 +249,9 @@ def more_like_this(request):
         query = {
             "more_like_this": {
                 "like": [{"_index": "dataset", "_id": id}],
-                "min_term_freq": 1,
+                "min_term_freq": 0,
                 "max_query_terms": 10,
-                "min_doc_freq": 1
+                "min_doc_freq": 0
             }
         }
         resp = es_client.search(index="dataset", query=query)
