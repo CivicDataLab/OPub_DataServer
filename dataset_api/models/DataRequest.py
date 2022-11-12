@@ -19,4 +19,4 @@ class DataRequest(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True, null=True)
     reject_reason = models.CharField(max_length=500, blank=True)
     dataset_access_model_request = models.ForeignKey(DatasetAccessModelRequest, on_delete=models.CASCADE)
-    user = models.CharField(max_length=50)
+    user = models.CharField(max_length=50, blank=True, null=True)
