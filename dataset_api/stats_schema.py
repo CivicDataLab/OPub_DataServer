@@ -1,6 +1,7 @@
 import graphene
 from django.db.models import Q
 
+from .enums import OrganizationCreationStatusType
 from .models import Sector, Geography, Organization, Dataset, Resource
 
 
@@ -18,11 +19,10 @@ class Query(graphene.ObjectType):
     def resolve_stat_count(self, info, **kwargs):
         sector = Sector.objects.count()
         geography = Geography.objects.count()
-        organization = Organization.objects.count()
-        dataset = Dataset.objects.count()
-        api = Resource.objects.filter(
-            Q(dataset__dataset_type__exact="API"), Q(dataset__status__exact="PUBLISHED")
-        ).count()
+        organization = Organization.objects.filter(
+            organizationcreaterequest__status=OrganizationCreationStatusType.APPROVED.value).count()
+        dataset = Dataset.objects.filter(status="PUBLISHED").count()
+        api = Resource.objects.filter(Q(dataset__status__exact="PUBLISHED")).count()
 
         return StatsType(
             sector_count=sector,
