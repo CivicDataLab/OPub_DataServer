@@ -30,7 +30,6 @@ class DataRequestType(DjangoObjectType):
     refresh_token = graphene.String()
     spec = graphene.JSONString()
     remaining_quota = graphene.Int()
-    validity = graphene.String()
 
     class Meta:
         model = DataRequest
@@ -131,33 +130,6 @@ class DataRequestType(DjangoObjectType):
                     return 0
             else:
                 return quota_limit
-
-    @validate_token_or_none
-    def resolve_validity(self: DataRequest, info, username):
-        if self.dataset_access_model_request.status == "APPROVED":
-            validity = (
-                self.dataset_access_model_request.access_model.data_access_model.validation
-            )
-            validity_unit = (
-                self.dataset_access_model_request.access_model.data_access_model.validation_unit
-            )
-            approval_date = self.dataset_access_model_request.modified
-
-            if validity_unit == ValidationUnits.DAY:
-                validation_deadline = approval_date + datetime.timedelta(days=validity)
-            elif validity_unit == ValidationUnits.WEEK:
-                validation_deadline = approval_date + datetime.timedelta(weeks=validity)
-            elif validity_unit == ValidationUnits.MONTH:
-                validation_deadline = approval_date + datetime.timedelta(
-                    days=(30 * validity)
-                )
-            elif validity_unit == ValidationUnits.YEAR:
-                validation_deadline = approval_date + datetime.timedelta(
-                    days=(365 * validity)
-                )
-            return validation_deadline.strftime("%d-%m-%Y")
-        else:
-            return None
 
 
 class DatasetRequestStatusType(graphene.Enum):
