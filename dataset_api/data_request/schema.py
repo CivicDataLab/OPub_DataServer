@@ -22,7 +22,7 @@ from dataset_api.models import Resource
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
 
-r = redis.Redis()
+r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
 
 
 class DataRequestType(DjangoObjectType):
