@@ -22,29 +22,30 @@ def dam_request_validity(func):
             )
             approval_date = data_request_instance.dataset_access_model_request.modified
 
-            if validation_unit == ValidationUnits.PER_DAY:
+            if validation_unit == ValidationUnits.DAY:
                 validation_deadline = approval_date + datetime.timedelta(
                     days=validation
                 )
                 if datetime.datetime.now(datetime.timezone.utc) > validation_deadline:
                     raise GraphQLError("The data access model is no longer valid.")
-            elif validation_unit == ValidationUnits.PER_WEEK:
+            elif validation_unit == ValidationUnits.WEEK:
                 validation_deadline = approval_date + datetime.timedelta(
                     weeks=validation
                 )
                 if datetime.datetime.now(datetime.timezone.utc) > validation_deadline:
                     raise GraphQLError("The data access model is no longer valid.")
-            elif validation_unit == ValidationUnits.PER_MONTH:
+            elif validation_unit == ValidationUnits.MONTH:
                 validation_deadline = approval_date + datetime.timedelta(
                     days=(30 * validation)
                 )
                 if datetime.datetime.now(datetime.timezone.utc) > validation_deadline:
                     raise GraphQLError("The data access model is no longer valid.")
-            elif validation_unit == ValidationUnits.PER_YEAR:
+            elif validation_unit == ValidationUnits.YEAR:
                 validation_deadline = approval_date + datetime.timedelta(
                     days=(365 * validation)
                 )
                 if datetime.datetime.now(datetime.timezone.utc) > validation_deadline:
                     raise GraphQLError("The data access model is no longer valid.")
             return func(*args, **kwargs)
+
     return inner

@@ -58,10 +58,10 @@ class DataType(models.TextChoices):
 
 class ValidationUnits(models.TextChoices):
     LIFETIME = "LIFETIME"
-    PER_DAY = "PER_DAY"
-    PER_WEEK = "PER_WEEK"
-    PER_MONTH = "PER_MONTH"
-    PER_YEAR = "PER_YEAR"
+    DAY = "DAY"
+    WEEK = "WEEK"
+    MONTH = "MONTH"
+    YEAR = "YEAR"
 
 
 class DataAccessModelStatus(models.TextChoices):

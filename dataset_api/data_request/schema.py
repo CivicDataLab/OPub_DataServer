@@ -143,15 +143,15 @@ class DataRequestType(DjangoObjectType):
             )
             approval_date = self.dataset_access_model_request.modified
 
-            if validity_unit == ValidationUnits.PER_DAY:
+            if validity_unit == ValidationUnits.DAY:
                 validation_deadline = approval_date + datetime.timedelta(days=validity)
-            elif validity_unit == ValidationUnits.PER_WEEK:
+            elif validity_unit == ValidationUnits.WEEK:
                 validation_deadline = approval_date + datetime.timedelta(weeks=validity)
-            elif validity_unit == ValidationUnits.PER_MONTH:
+            elif validity_unit == ValidationUnits.MONTH:
                 validation_deadline = approval_date + datetime.timedelta(
                     days=(30 * validity)
                 )
-            elif validity_unit == ValidationUnits.PER_YEAR:
+            elif validity_unit == ValidationUnits.YEAR:
                 validation_deadline = approval_date + datetime.timedelta(
                     days=(365 * validity)
                 )
