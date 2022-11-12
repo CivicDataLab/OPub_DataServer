@@ -50,6 +50,7 @@ class Mutation(dataset_api.dataset.schema.Mutation, dataset_api.organization_sch
                dataset_api.data_request.schema.Mutation, dataset_api.organization_request_schema.Mutation,
                dataset_api.data_access_model.schema.Mutation, dataset_api.dataset_moderation.Mutation,
                dataset_api.dataset_access_model_resource.schema.Mutation, dataset_api.aggrements.schema.Mutation,
+               dataset_api.license_addition.license_addition_schema.Mutation,
                graphene.ObjectType):
     pass
 
