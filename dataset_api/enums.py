@@ -62,3 +62,8 @@ class ValidationUnits(models.TextChoices):
     PER_WEEK = "PER_WEEK"
     PER_MONTH = "PER_MONTH"
     PER_YEAR = "PER_YEAR"
+
+
+class DataAccessModelStatus(models.TextChoices):
+    ACTIVE = "ACTIVE"
+    DISABLED = "DISABLED"
