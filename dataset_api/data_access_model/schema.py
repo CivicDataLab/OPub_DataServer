@@ -8,7 +8,7 @@ from graphql import GraphQLError
 from activity_log.signal import activity
 from ..decorators import validate_token
 from ..models.DataAccessModel import DataAccessModel
-from dataset_api.enums import SubscriptionUnits, ValidationUnits
+from dataset_api.enums import SubscriptionUnits, ValidationUnits, DataAccessModelStatus
 from dataset_api.models import Organization, Agreement, Dataset
 from ..models.LicenseAddition import LicenseAddition
 from ..models.License import License
@@ -98,6 +98,10 @@ class DataAccessModelInput(graphene.InputObjectType):
 
 
 class DeleteDataAccessModelInput(graphene.InputObjectType):
+    id = graphene.ID(required=True)
+
+
+class DisableDataAccessModelInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
 
 
@@ -283,7 +287,34 @@ class DeleteDataAccessModel(Output, graphene.Mutation):
         return DeleteDataAccessModel(success=True)
 
 
+class DisableDataAccessModel(Output, graphene.Mutation):
+    class Arguments:
+        data_access_model_data = DisableDataAccessModelInput()
+
+    success = graphene.String()
+
+    data_access_model = graphene.Field(DataAccessModelType)
+
+    @staticmethod
+    @validate_token
+    @auth_user_action_dam(action="delete_dam")
+    def mutate(
+            root, info, data_access_model_data: DeleteDataAccessModelInput, username=""
+    ):
+        dam_instance = DataAccessModel.objects.get(id=data_access_model_data.id)
+        activity.send(
+            username,
+            verb="Disabled",
+            target=dam_instance,
+            target_group=dam_instance.organization,
+        )
+        dam_instance.status = DataAccessModelStatus.DISABLED
+        dam_instance.save()
+        return DisableDataAccessModel(data_access_model=dam_instance)
+
+
 class Mutation(graphene.ObjectType):
     create_data_access_model = CreateDataAccessModel.Field()
     update_data_access_model = UpdateDataAccessModel.Field()
     delete_data_access_model = DeleteDataAccessModel.Field()
+    disable_data_access_model = DisableDataAccessModel.Field()
