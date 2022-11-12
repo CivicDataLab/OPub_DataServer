@@ -52,8 +52,8 @@ class DataRequestType(DjangoObjectType):
         spec["paths"]["/getresource"]["get"]["parameters"][0][
             "example"
         ] = create_access_jwt_token(self, username)
-        spec["info"]["title"] = self.resource.title
-        spec["info"]["description"] = self.resource.description
+        # spec["info"]["title"] = self.resource.title
+        # spec["info"]["description"] = self.resource.description
         return spec
 
     @validate_token_or_none
