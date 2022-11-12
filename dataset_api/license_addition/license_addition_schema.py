@@ -44,7 +44,7 @@ class Query(graphene.ObjectType):
     license_addition = graphene.Field(LicenseAdditionType, license_id=graphene.Int())
 
     def resolve_all_license_additions(self, info, **kwargs):
-        return LicenseAddition.objects.get().order_by("-modified")
+        return LicenseAddition.objects.all().order_by("-modified")
 
     def resolve_license_additions_by_org(self, info, **kwargs):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
