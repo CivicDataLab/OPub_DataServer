@@ -27,6 +27,7 @@ class OrganizationType(DjangoObjectType):
     username = graphene.String()
     api_count = graphene.Int()
     dataset_count = graphene.Int()
+
     # usecase_count = graphene.Int()
 
     class Meta:
@@ -51,7 +52,7 @@ class OrganizationType(DjangoObjectType):
             Q(catalog__organization=self.id),
         ).count()
         return dataset
-    
+
     # def resolve_usecase_count(self, info):
     #     usecase = Sector.objects.filter(
     #         Q(dataset__catalog__organization=self.id),
@@ -97,7 +98,6 @@ class Query(graphene.ObjectType):
         )
 
     # Access : All
-    @validate_token
     def resolve_organizations(self, info, **kwargs):
         return Organization.objects.filter(
             organizationcreaterequest__status=OrganizationCreationStatusType.APPROVED.value
@@ -225,10 +225,10 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     @validate_token
     @auth_user_by_org(action="approve_organization")
     def mutate(
-        root,
-        info,
-        username="",
-        organization_data: ApproveRejectOrganizationApprovalInput = None,
+            root,
+            info,
+            username="",
+            organization_data: ApproveRejectOrganizationApprovalInput = None,
     ):
         try:
             organization_create_request_instance = (
