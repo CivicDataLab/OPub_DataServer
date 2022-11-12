@@ -18,9 +18,34 @@ from ..enums import ValidationUnits
 
 
 class DataAccessModelRequestType(DjangoObjectType):
+    validity = graphene.String()
+
     class Meta:
         model = DatasetAccessModelRequest
         fields = "__all__"
+
+    @validate_token_or_none
+    def resolve_validity(self: DatasetAccessModelRequest, info, username):
+        if self.status == "APPROVED":
+            validity = (
+                self.access_model.data_access_model.validation
+            )
+            validity_unit = (
+                self.access_model.data_access_model.validation_unit
+            )
+            approval_date = self.modified
+            validation_deadline = approval_date
+            if validity_unit == ValidationUnits.DAY:
+                validation_deadline = approval_date + datetime.timedelta(days=validity)
+            elif validity_unit == ValidationUnits.WEEK:
+                validation_deadline = approval_date + datetime.timedelta(weeks=validity)
+            elif validity_unit == ValidationUnits.MONTH:
+                validation_deadline = approval_date + datetime.timedelta(days=(30 * validity))
+            elif validity_unit == ValidationUnits.YEAR:
+                validation_deadline = approval_date + datetime.timedelta(days=(365 * validity))
+            return validation_deadline.strftime("%d-%m-%Y")
+        else:
+            return None
 
 
 class DataAccessModelRequestStatusType(graphene.Enum):
@@ -45,7 +70,6 @@ class Query(graphene.ObjectType):
     data_access_model_request_org = graphene.List(
         DataAccessModelRequestType, org_id=graphene.Int()
     )
-    validity = graphene.String()
 
     # Access : PMU
     @auth_user_by_org(action="query")
@@ -84,29 +108,6 @@ class Query(graphene.ObjectType):
             )
         else:
             raise GraphQLError("Access Denied")
-
-    @validate_token_or_none
-    def resolve_validity(self: DatasetAccessModelRequest, info, username):
-        if self.status == "APPROVED":
-            validity = (
-                self.access_model.data_access_model.validation
-            )
-            validity_unit = (
-                self.access_model.data_access_model.validation_unit
-            )
-            approval_date = self.modified
-            validation_deadline = approval_date
-            if validity_unit == ValidationUnits.DAY:
-                validation_deadline = approval_date + datetime.timedelta(days=validity)
-            elif validity_unit == ValidationUnits.WEEK:
-                validation_deadline = approval_date + datetime.timedelta(weeks=validity)
-            elif validity_unit == ValidationUnits.MONTH:
-                validation_deadline = approval_date + datetime.timedelta(days=(30 * validity))
-            elif validity_unit == ValidationUnits.YEAR:
-                validation_deadline = approval_date + datetime.timedelta(days=(365 * validity))
-            return validation_deadline.strftime("%d-%m-%Y")
-        else:
-            return None
 
 
 class DataAccessModelRequestInput(graphene.InputObjectType):
