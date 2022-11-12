@@ -105,7 +105,7 @@ class CreateLicenseAddition(graphene.Mutation, Output):
     class Arguments:
         license_addition_data = LicenseAdditionsCreateInput(required=True)
 
-    license = graphene.Field(LicenceAdditionInputType)
+    license = graphene.Field(LicenseAdditionType)
 
     @staticmethod
     @check_license_role
@@ -127,7 +127,7 @@ class UpdateLicenseAddition(graphene.Mutation, Output):
     class Arguments:
         license_addition_data = LicenseAdditionsCreateInput(required=True)
 
-    license = graphene.Field(LicenceAdditionInputType)
+    license = graphene.Field(LicenseAdditionType)
 
     @staticmethod
     @check_license_role
@@ -151,7 +151,7 @@ class ApproveRejectLicenseAddition(graphene.Mutation, Output):
     class Arguments:
         license_data = LicenseAdditionApproveRejectInput(required=True)
 
-    license_requests = graphene.List(LicenceAdditionInputType)
+    license_requests = graphene.List(LicenseAdditionType)
 
     @staticmethod
     @auth_user_by_org(action="approve_license")
