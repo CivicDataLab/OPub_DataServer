@@ -93,6 +93,12 @@ type ApproveRejectLicense {
     success: Boolean
 }
 
+type ApproveRejectLicenseAddition {
+    errors: ExpectedErrorType
+    license_requests: [LicenseAdditionType]
+    success: Boolean
+}
+
 type ApproveRejectModerationRequests {
     errors: ExpectedErrorType
     moderation_requests: [ModerationRequestType]
@@ -187,6 +193,12 @@ type CreateLicense {
     success: Boolean
 }
 
+type CreateLicenseAddition {
+    errors: ExpectedErrorType
+    license: LicenseAdditionType
+    success: Boolean
+}
+
 type CreateOrganization {
     errors: ExpectedErrorType
     organization: CreateOrganizationType
@@ -251,7 +263,9 @@ type DataAccessModelRequestType {
 }
 
 type DataAccessModelType {
+    active_users: Int
     contract: String!
+    dataset_count: Int
     datasetaccessmodel_set: [DatasetAccessModelType!]!
     description: String!
     id: ID!
@@ -262,10 +276,13 @@ type DataAccessModelType {
     organization: OrganizationType!
     rate_limit: Int!
     rate_limit_unit: String!
+    status: DataAccessModelStatus!
     subscription_quota: Int!
     subscription_quota_unit: DataAccessModelSubscriptionQuotaUnit!
     title: String!
     type: String!
+    validation: Int!
+    validation_unit: DataAccessModelValidationUnit!
 }
 
 type DataRequestMutation {
@@ -287,6 +304,7 @@ type DataRequestType {
     spec: JSONString
     status: String!
     user: String!
+    validity: String
 }
 
 type DataRequestUpdateMutation {
@@ -443,6 +461,7 @@ type Mutation {
     approve_reject_data_access_model_request(data_access_model_request: DataAccessModelRequestUpdateInput): ApproveRejectDataAccessModelRequest
     approve_reject_dataset_rating(rating_data: DatasetRatingApproveRejectInput!): ApproveRejectRating
     approve_reject_license(license_data: LicenseApproveRejectInput!): ApproveRejectLicense
+    approve_reject_license_addition(license_data: LicenseAdditionApproveRejectInput!): ApproveRejectLicenseAddition
     approve_reject_moderation_requests(moderation_request: ModerationRequestsApproveRejectInput): ApproveRejectModerationRequests
     approve_reject_organization_approval(organization_data: ApproveRejectOrganizationApprovalInput!): ApproveRejectOrganizationApproval
     approve_reject_organization_request(organization_request: OrganizationRequestUpdateInput): ApproveRejectOrganizationRequest
@@ -455,6 +474,7 @@ type Mutation {
     create_dataset_rating(rating_data: DatasetRatingInput!): CreateDatasetRating
     create_geography(geography_data: GeographyInput!): CreateGeography
     create_license(license_data: LicenseInput!): CreateLicense
+    create_license_addition(license_addition_data: LicenseAdditionsCreateInput!): CreateLicenseAddition
     create_organization(organization_data: OrganizationInput!): CreateOrganization
     create_resource(resource_data: ResourceInput): CreateResource
     create_sector(sector_data: SectorInput!): CreateSector
@@ -477,6 +497,7 @@ type Mutation {
     update_data_request(data_request: DataRequestUpdateInput): DataRequestUpdateMutation
     update_dataset(dataset_data: UpdateDatasetInput): UpdateDataset
     update_license(license_data: LicenseInput!): UpdateLicense
+    update_license_addition(license_addition_data: LicenseAdditionsCreateInput!): UpdateLicenseAddition
     update_organization(organization_data: OrganizationInput!): UpdateOrganization
     update_resource(resource_data: ResourceInput!): UpdateResource
     update_sector(sector_data: SectorInput!): UpdateSector
@@ -500,9 +521,11 @@ type OrganizationRequestType {
 }
 
 type OrganizationType {
+    api_count: Int
     catalog_set: [CatalogType!]!
     contact_email: String!
     dataaccessmodel_set: [DataAccessModelType!]!
+    dataset_count: Int
     description: String!
     homepage: String!
     id: ID!
@@ -541,6 +564,7 @@ type Query {
     all_geography: [GeographyType]
     all_info: [AdditionalInfoType]
     all_license: [LicenseType]
+    all_license_additions: [LicenseAdditionType]
     all_moderation_requests: [ModerationRequestType]
     all_organization_requests: [OrganizationRequestType]
     all_organizations: [OrganizationType]
@@ -564,6 +588,9 @@ type Query {
     geography(geography_id: Int): GeographyType
     info(info_id: Int): AdditionalInfoType
     license(license_id: Int): LicenseType
+    license_addition(license_id: Int): LicenseAdditionType
+    license_additions_by_org: [LicenseAdditionType]
+    license_by_org: [LicenseType]
     moderation_request(moderation_request_id: Int): ModerationRequestType
     moderation_request_user: [ModerationRequestType]
     org_activity(filters: [ActivityFilter], first: Int, organization_id: ID, skip: Int): [ActivityType]
@@ -615,6 +642,7 @@ type ResourceType {
     modified: DateTime!
     resourceschema_set: [ResourceSchemaType!]!
     schema: [ResourceSchemaType]
+    schema_exists: Boolean
     status: String!
     title: String!
 }
@@ -694,6 +722,12 @@ type UpdateLicense {
     success: Boolean
 }
 
+type UpdateLicenseAddition {
+    errors: ExpectedErrorType
+    license: LicenseAdditionType
+    success: Boolean
+}
+
 type UpdateOrganization {
     errors: ExpectedErrorType
     organization: CreateOrganizationType
@@ -746,6 +780,14 @@ enum DataAccessModelRequestStatusType {
 }
 
 "An enumeration."
+enum DataAccessModelStatus {
+    "Active"
+    ACTIVE
+    "Disabled"
+    DISABLED
+}
+
+"An enumeration."
 enum DataAccessModelSubscriptionQuotaUnit {
     "Daily"
     DAILY
@@ -759,6 +801,20 @@ enum DataAccessModelSubscriptionQuotaUnit {
     WEEKLY
     "Yearly"
     YEARLY
+}
+
+"An enumeration."
+enum DataAccessModelValidationUnit {
+    "Lifetime"
+    LIFETIME
+    "Per Day"
+    PER_DAY
+    "Per Month"
+    PER_MONTH
+    "Per Week"
+    PER_WEEK
+    "Per Year"
+    PER_YEAR
 }
 
 "An enumeration."
@@ -821,6 +877,13 @@ enum InfoType {
     DATASTORY
     REPORT
     USECASE
+}
+
+"An enumeration."
+enum LICENSEADDITIONSTATE {
+    CREATED
+    PUBLISHED
+    REJECTED
 }
 
 "An enumeration."
@@ -942,6 +1005,15 @@ enum SubscriptionUnits {
     QUARTERLY
     WEEKLY
     YEARLY
+}
+
+"An enumeration."
+enum ValidationUnits {
+    LIFETIME
+    PER_DAY
+    PER_MONTH
+    PER_WEEK
+    PER_YEAR
 }
 
 """
@@ -1086,6 +1158,8 @@ input DataAccessModelInput {
     subscription_quota_unit: SubscriptionUnits!
     title: String!
     type: AccessTypes!
+    validation: Int!
+    validation_unit: ValidationUnits!
 }
 
 input DataAccessModelRequestInput {
@@ -1155,10 +1229,24 @@ input KeyValueType {
     value: String
 }
 
-input LicenceAdditionType {
+input LicenceAdditionInputType {
     description: String!
     generic_item: Boolean!
     id: ID
+    title: String!
+}
+
+input LicenseAdditionApproveRejectInput {
+    ids: [ID]!
+    reject_reason: String
+    status: LICENSEADDITIONSTATE!
+}
+
+input LicenseAdditionsCreateInput {
+    description: String!
+    generic_item: Boolean!
+    id: ID
+    license: ID!
     title: String!
 }
 
@@ -1172,7 +1260,7 @@ input LicenseInput {
     description: String!
     file: Upload
     id: ID
-    license_additions: [LicenceAdditionType]
+    license_additions: [LicenceAdditionInputType]
     remote_url: String
     title: String!
 }

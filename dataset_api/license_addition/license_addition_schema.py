@@ -7,7 +7,7 @@ from graphql_auth.bases import Output
 
 from dataset_api.decorators import auth_user_by_org
 from dataset_api.license.decorators import check_license_role
-from dataset_api.license_addition.enums import LicenseAdditionStatus
+from dataset_api.license_addition.enums import LICENSEADDITIONSTATE
 from dataset_api.models import LicenseAddition, License, Organization
 
 
@@ -35,7 +35,7 @@ class LicenseAdditionsCreateInput(graphene.InputObjectType):
 class LicenseAdditionApproveRejectInput(graphene.InputObjectType):
     ids: Iterable = graphene.List(graphene.ID, required=True)
     reject_reason = graphene.String(required=False)
-    status = graphene.Enum.from_enum(LicenseAdditionStatus)(required=True)
+    status = graphene.Enum.from_enum(LICENSEADDITIONSTATE)(required=True)
 
 
 class Query(graphene.ObjectType):
@@ -114,10 +114,10 @@ class CreateLicenseAddition(graphene.Mutation, Output):
         addition_instance = LicenseAddition(title=addition_data.title, description=addition_data.description,
                                             license=license_instance)
         if role == "DPA":
-            addition_instance.status = LicenseAdditionStatus.CREATED.value
+            addition_instance.status = LICENSEADDITIONSTATE.CREATED.value
             addition_instance.generic_item = False
         if role == "PMU":
-            addition_instance.status = LicenseAdditionStatus.PUBLISHED.value
+            addition_instance.status = LICENSEADDITIONSTATE.PUBLISHED.value
             addition_instance.generic_item = addition_data.generic_item
         addition_instance.save()
         return CreateLicenseAddition(license=addition_instance)
@@ -138,10 +138,10 @@ class UpdateLicenseAddition(graphene.Mutation, Output):
         addition_instance.title = addition_data.title
         addition_instance.description = addition_data.description
         if role == "DPA":
-            addition_instance.status = LicenseAdditionStatus.CREATED.value
+            addition_instance.status = LICENSEADDITIONSTATE.CREATED.value
             addition_instance.generic_item = False
         if role == "PMU":
-            addition_instance.status = LicenseAdditionStatus.PUBLISHED.value
+            addition_instance.status = LICENSEADDITIONSTATE.PUBLISHED.value
             addition_instance.generic_item = addition_data.generic_item
         addition_instance.save()
         return UpdateLicenseAddition(license=addition_instance)
