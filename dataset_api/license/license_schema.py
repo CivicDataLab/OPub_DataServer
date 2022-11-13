@@ -33,10 +33,14 @@ class LicenseType(DjangoObjectType):
 
 class Query(graphene.ObjectType):
     all_license = graphene.List(LicenseType)
+    licenses = graphene.List(LicenseType)
     license_by_org = graphene.List(LicenseType)
     license = graphene.Field(LicenseType, license_id=graphene.Int())
 
     def resolve_all_license(self, info, **kwargs):
+        return License.objects.get().order_by("-modified")
+
+    def resolve_licenses(self, info, **kwargs):
         return License.objects.get(status=LicenseStatus.PUBLISHED.value).order_by("-modified")
 
     def resolve_license_by_org(self, info, **kwargs):

@@ -266,4 +266,3 @@ class Mutation(graphene.ObjectType):
     data_request = DataRequestMutation.Field()
     open_data_request = OpenDataRequestMutation.Field()
     update_data_request = DataRequestUpdateMutation.Field()
-
