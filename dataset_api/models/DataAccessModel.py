@@ -14,7 +14,7 @@ class DataAccessModel(models.Model):
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, default="")
-    contract = models.FileField(upload_to=_contract_directory_path, blank=True)
+    contract = models.FileField(upload_to=_contract_directory_path, blank=True, max_length=300)
     license = models.ForeignKey(License, on_delete=models.CASCADE, blank=False, null=False)
     subscription_quota = models.IntegerField(blank=False)
     subscription_quota_unit = models.CharField(blank=False, choices=SubscriptionUnits.choices, max_length=50)
