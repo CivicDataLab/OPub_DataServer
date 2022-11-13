@@ -14,6 +14,56 @@ import genson
 import json
 
 
+def parse_schema(schema_dict, parent, schema):
+
+    for key in schema_dict:
+        if key == "required":
+            continue
+        print(key)
+        if key == "items":
+            schema.append(
+                {
+                    "key": parent,
+                    "format": "array",
+                    "description": "",
+                    "parent": "",
+                    "array_field": "items",
+                }
+            )
+            parse_schema(schema_dict["items"], key, schema)
+            continue
+        if key == "type":
+            continue
+
+        if key == "properties":
+            schema.append(
+                {
+                    "key": parent,
+                    "format": "json",
+                    "description": "",
+                    "parent": "",
+                    "array_field": "",
+                }
+            )
+            parse_schema(schema_dict["properties"], parent, schema)
+            continue
+        if "type" in schema_dict[key] and schema_dict[key]["type"] not in [
+            "array",
+            "object",
+        ]:
+            schema.append(
+                {
+                    "key": key,
+                    "format": "string",
+                    "description": "",
+                    "parent": parent,
+                    "array_field": "",
+                }
+            )
+        else:
+            parse_schema(schema_dict[key], key, schema)
+
+
 def preview(request, resource_id):
 
     resp = fetchapi(resource_id)
@@ -46,8 +96,10 @@ def schema(request, resource_id):
         builder = genson.SchemaBuilder()
         jsondata = json.loads(resp["data"])
         builder.add_object(jsondata)
-        schema = builder.to_schema()
-        schema = schema.get("properties", {})
+        schema_dict = builder.to_schema()
+        schema_dict = schema_dict.get("properties", {})
+        schema = []
+        parse_schema(schema_dict, "", schema)
         context = {
             "Success": True,
             "schema": schema,
@@ -58,9 +110,19 @@ def schema(request, resource_id):
         df = resp["data"]
         schema_list = pd.io.json.build_table_schema(df, version=False)
         schema_list = schema_list.get("fields", [])
-        schema = {}
+        schema = []
         for each in schema_list:
-            schema[each["name"]] = {"type": each["type"]}
+            schema.append(
+                {
+                    {
+                        "key": each["name"],
+                        "format": each["type"],
+                        "description": "",
+                        "parent": "",
+                        "array_field": "",
+                    }
+                }
+            )
         context = {
             "Success": True,
             "schema": schema,
