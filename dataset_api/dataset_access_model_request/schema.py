@@ -126,16 +126,18 @@ class DataAccessModelRequestUpdateInput(graphene.InputObjectType):
 
 
 def create_dataset_access_model_request(
-        access_model, description, purpose, username, status="REQUESTED", user_email=None
+        access_model, description, purpose, username, status="REQUESTED", user_email=None, id=None,
 ):
-    data_access_model_request_instance = DatasetAccessModelRequest(
-        status=status,
-        purpose=purpose,
-        description=description,
-        user=username,
-        access_model=access_model,
-        user_email=user_email,
-    )
+    if not id:
+        data_access_model_request_instance = DatasetAccessModelRequest()
+    else:
+        data_access_model_request_instance = DatasetAccessModelRequest.objects.get(id=id)
+    data_access_model_request_instance.status = status,
+    data_access_model_request_instance.purpose = purpose,
+    data_access_model_request_instance.description = description,
+    data_access_model_request_instance.user = username,
+    data_access_model_request_instance.access_model = access_model,
+    data_access_model_request_instance.user_email = user_email,
     data_access_model_request_instance.save()
     access_model.save()
     return data_access_model_request_instance
@@ -155,7 +157,9 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
             data_access_model_request: DataAccessModelRequestInput = None,
             username=None,
     ):
-        # TODO: fix magic strings
+        id = None
+        if data_access_model_request.id:
+            id = data_access_model_request.id
         purpose = data_access_model_request.purpose
         description = data_access_model_request.description
         access_model = DatasetAccessModel.objects.get(
@@ -169,6 +173,7 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
             purpose,
             username,
             user_email=data_access_model_request.user_email,
+            id=id
         )
         return DataAccessModelRequestMutation(
             data_access_model_request=data_access_model_request_instance
