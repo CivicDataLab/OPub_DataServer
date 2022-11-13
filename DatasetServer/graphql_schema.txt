@@ -260,6 +260,7 @@ type DataAccessModelRequestType {
     status: String!
     user: String
     user_email: String
+    validity: String
 }
 
 type DataAccessModelType {
@@ -303,8 +304,7 @@ type DataRequestType {
     resource: ResourceType!
     spec: JSONString
     status: String!
-    user: String!
-    validity: String
+    user: String
 }
 
 type DataRequestUpdateMutation {
@@ -390,6 +390,12 @@ type DeleteLicense {
 }
 
 type DeleteResource {
+    errors: ExpectedErrorType
+    success: String
+}
+
+type DisableDataAccessModel {
+    data_access_model: DataAccessModelType
     errors: ExpectedErrorType
     success: String
 }
@@ -486,7 +492,9 @@ type Mutation {
     delete_data_access_model(data_access_model_data: DeleteDataAccessModelInput): DeleteDataAccessModel
     delete_license(license_id: ID!): DeleteLicense
     delete_resource(resource_data: DeleteResourceInput): DeleteResource
+    disable_data_access_model(data_access_model_data: DisableDataAccessModelInput): DisableDataAccessModel
     moderation_request(moderation_request: ModerationRequestInput): ModerationRequestMutation
+    open_data_request(data_request: OpenDataRequestInput): OpenDataRequestMutation
     organization_request(organization_request: OrganizationRequestInput): OrganizationRequestMutation
     patch_dataset(dataset_data: PatchDatasetInput): PatchDataset
     patch_organization(organization_data: OrganizationPatchInput!): PatchOrganization
@@ -501,6 +509,12 @@ type Mutation {
     update_organization(organization_data: OrganizationInput!): UpdateOrganization
     update_resource(resource_data: ResourceInput!): UpdateResource
     update_sector(sector_data: SectorInput!): UpdateSector
+}
+
+type OpenDataRequestMutation {
+    data_request: DataRequestType
+    errors: ExpectedErrorType
+    success: Boolean
 }
 
 type OrganizationRequestMutation {
@@ -805,16 +819,16 @@ enum DataAccessModelSubscriptionQuotaUnit {
 
 "An enumeration."
 enum DataAccessModelValidationUnit {
+    "Day"
+    DAY
     "Lifetime"
     LIFETIME
-    "Per Day"
-    PER_DAY
-    "Per Month"
-    PER_MONTH
-    "Per Week"
-    PER_WEEK
-    "Per Year"
-    PER_YEAR
+    "Month"
+    MONTH
+    "Week"
+    WEEK
+    "Year"
+    YEAR
 }
 
 "An enumeration."
@@ -1009,11 +1023,11 @@ enum SubscriptionUnits {
 
 "An enumeration."
 enum ValidationUnits {
+    DAY
     LIFETIME
-    PER_DAY
-    PER_MONTH
-    PER_WEEK
-    PER_YEAR
+    MONTH
+    WEEK
+    YEAR
 }
 
 """
@@ -1212,6 +1226,10 @@ input DeleteResourceInput {
     id: ID!
 }
 
+input DisableDataAccessModelInput {
+    id: ID!
+}
+
 input FileInputType {
     file: Upload
     format: String
@@ -1278,6 +1296,11 @@ input ModerationRequestsApproveRejectInput {
     ids: [ID]!
     remark: String
     status: StatusType
+}
+
+input OpenDataRequestInput {
+    dataset_access_model: ID!
+    resource: ID!
 }
 
 input OrganizationInput {
