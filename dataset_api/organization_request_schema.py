@@ -25,7 +25,7 @@ class Query(graphene.ObjectType):
     # Access: PMU
     @auth_user_by_org(action="query")
     def resolve_all_organization_requests(self, info, role, **kwargs):
-        if role == "PMU":
+        if role == "PMU" or role == "DPA":
             return OrganizationRequest.objects.all().order_by("-modified")
         else:
             raise GraphQLError("Access Denied")
@@ -61,7 +61,7 @@ class OrganizationRequestMutation(graphene.Mutation, Output):
     @staticmethod
     @validate_token
     def mutate(
-        root, info, organization_request: OrganizationRequestInput = None, username=""
+            root, info, organization_request: OrganizationRequestInput = None, username=""
     ):
         try:
             organization = Organization.objects.get(

@@ -1,3 +1,5 @@
+from typing import Iterable
+
 import graphene
 from django.db.models import Q
 from graphene_django import DjangoObjectType
@@ -8,7 +10,7 @@ from graphql import GraphQLError
 from activity_log.signal import activity
 from ..decorators import validate_token
 from ..models.DataAccessModel import DataAccessModel
-from dataset_api.enums import SubscriptionUnits, ValidationUnits
+from dataset_api.enums import SubscriptionUnits, ValidationUnits, DataAccessModelStatus
 from dataset_api.models import Organization, Agreement, Dataset
 from ..models.LicenseAddition import LicenseAddition
 from ..models.License import License
@@ -92,12 +94,16 @@ class DataAccessModelInput(graphene.InputObjectType):
     subscription_quota_unit = graphene.Enum.from_enum(SubscriptionUnits)(required=True)
     rate_limit = graphene.Int(required=True)
     rate_limit_unit = RateLimitUnits(required=True)
-    additions = graphene.List(of_type=graphene.ID, required=False, default=[])
+    additions: Iterable = graphene.List(of_type=graphene.ID, required=False, default=[])
     validation = graphene.Int(required=True)
     validation_unit = graphene.Enum.from_enum(ValidationUnits)(required=True)
 
 
 class DeleteDataAccessModelInput(graphene.InputObjectType):
+    id = graphene.ID(required=True)
+
+
+class DisableDataAccessModelInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
 
 
@@ -168,14 +174,14 @@ class CreateDataAccessModel(Output, graphene.Mutation):
                 dam_license,
                 data_access_model_data.additions,
             )
-            create_contract(
-                dam_license,
-                data_access_model_data.additions,
-                data_access_model_instance,
-            )
         except InvalidAddition as e:
             return {"success": False, "errors": {"id": [{str(e)}]}}
 
+        create_contract(
+            dam_license,
+            data_access_model_data.additions,
+            data_access_model_instance,
+        )
         return CreateDataAccessModel(data_access_model=data_access_model_instance)
 
 
@@ -220,20 +226,12 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
         data_access_model_instance.organization = org_instance
         data_access_model_instance.contract = data_access_model_data.contract
         data_access_model_instance.license = dam_license
-        data_access_model_instance.subscription_quota = (
-            data_access_model_data.subscription_quota
-        )
-        data_access_model_instance.subscription_quota_unit = (
-            data_access_model_data.subscription_quota_unit
-        )
+        data_access_model_instance.subscription_quota = data_access_model_data.subscription_quota
+        data_access_model_instance.subscription_quota_unit = data_access_model_data.subscription_quota_unit
         data_access_model_instance.rate_limit = data_access_model_data.rate_limit
-        data_access_model_instance.rate_limit_unit = (
-            data_access_model_data.rate_limit_unit
-        )
+        data_access_model_instance.rate_limit_unit = data_access_model_data.rate_limit_unit
         data_access_model_instance.validation = data_access_model_data.validation
-        data_access_model_instance.validation_unit = (
-            data_access_model_data.validation_unit
-        )
+        data_access_model_instance.validation_unit = data_access_model_data.validation_unit
         data_access_model_instance.save()
 
         try:
@@ -242,13 +240,14 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
                 dam_license,
                 data_access_model_data.additions,
             )
-            create_contract(
-                dam_license,
-                data_access_model_data.additions,
-                data_access_model_instance,
-            )
         except InvalidAddition as e:
             return {"success": False, "errors": {"id": [{str(e)}]}}
+        create_contract(
+            dam_license,
+            data_access_model_data.additions,
+            data_access_model_instance,
+        )
+
         activity.send(
             username,
             verb="Updated",
@@ -283,7 +282,34 @@ class DeleteDataAccessModel(Output, graphene.Mutation):
         return DeleteDataAccessModel(success=True)
 
 
+class DisableDataAccessModel(Output, graphene.Mutation):
+    class Arguments:
+        data_access_model_data = DisableDataAccessModelInput()
+
+    success = graphene.String()
+
+    data_access_model = graphene.Field(DataAccessModelType)
+
+    @staticmethod
+    @validate_token
+    @auth_user_action_dam(action="delete_dam")
+    def mutate(
+            root, info, data_access_model_data: DeleteDataAccessModelInput, username=""
+    ):
+        dam_instance = DataAccessModel.objects.get(id=data_access_model_data.id)
+        activity.send(
+            username,
+            verb="Disabled",
+            target=dam_instance,
+            target_group=dam_instance.organization,
+        )
+        dam_instance.status = DataAccessModelStatus.DISABLED
+        dam_instance.save()
+        return DisableDataAccessModel(data_access_model=dam_instance)
+
+
 class Mutation(graphene.ObjectType):
     create_data_access_model = CreateDataAccessModel.Field()
     update_data_access_model = UpdateDataAccessModel.Field()
     delete_data_access_model = DeleteDataAccessModel.Field()
+    disable_data_access_model = DisableDataAccessModel.Field()

@@ -136,6 +136,10 @@ ELASTICSEARCH = env("ES_URL")
 
 AUTH_URL = env("AUTH_URL")
 PIPELINE_URL = env("PIPELINE_URL")
+
+REDIS_HOST = env("REDIS_HOST")
+REDIS_PORT = env("REDIS_PORT")
+
 X_FRAME_OPTIONS = "ALLOW-FROM http://localhost:3000/"
 
 # Password validation

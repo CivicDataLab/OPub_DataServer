@@ -1,3 +1,5 @@
+import datetime
+
 import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
@@ -12,12 +14,38 @@ from dataset_api.decorators import (
     auth_user_by_org,
 )
 from .decorators import auth_query_dam_request
+from ..enums import ValidationUnits
 
 
 class DataAccessModelRequestType(DjangoObjectType):
+    validity = graphene.String()
+
     class Meta:
         model = DatasetAccessModelRequest
         fields = "__all__"
+
+    @validate_token_or_none
+    def resolve_validity(self: DatasetAccessModelRequest, info, username):
+        if self.status == "APPROVED":
+            validity = (
+                self.access_model.data_access_model.validation
+            )
+            validity_unit = (
+                self.access_model.data_access_model.validation_unit
+            )
+            approval_date = self.modified
+            validation_deadline = approval_date
+            if validity_unit == ValidationUnits.DAY:
+                validation_deadline = approval_date + datetime.timedelta(days=validity)
+            elif validity_unit == ValidationUnits.WEEK:
+                validation_deadline = approval_date + datetime.timedelta(weeks=validity)
+            elif validity_unit == ValidationUnits.MONTH:
+                validation_deadline = approval_date + datetime.timedelta(days=(30 * validity))
+            elif validity_unit == ValidationUnits.YEAR:
+                validation_deadline = approval_date + datetime.timedelta(days=(365 * validity))
+            return validation_deadline.strftime("%d-%m-%Y")
+        else:
+            return None
 
 
 class DataAccessModelRequestStatusType(graphene.Enum):
@@ -54,7 +82,7 @@ class Query(graphene.ObjectType):
     # Access : PMU/DPA of that org.
     @auth_query_dam_request(action="query||request_id")
     def resolve_data_access_model_request(
-        self, info, data_access_model_request_id, role
+            self, info, data_access_model_request_id, role
     ):
         if role == "PMU" or role == "DPA":
             return DatasetAccessModelRequest.objects.get(
@@ -98,16 +126,18 @@ class DataAccessModelRequestUpdateInput(graphene.InputObjectType):
 
 
 def create_dataset_access_model_request(
-    access_model, description, purpose, username, status="REQUESTED", user_email=None
+        access_model, description, purpose, username, status="REQUESTED", user_email=None, id=None,
 ):
-    data_access_model_request_instance = DatasetAccessModelRequest(
-        status=status,
-        purpose=purpose,
-        description=description,
-        user=username,
-        access_model=access_model,
-        user_email=user_email,
-    )
+    if not id:
+        data_access_model_request_instance = DatasetAccessModelRequest()
+    else:
+        data_access_model_request_instance = DatasetAccessModelRequest.objects.get(id=id)
+    data_access_model_request_instance.status = status,
+    data_access_model_request_instance.purpose = purpose,
+    data_access_model_request_instance.description = description,
+    data_access_model_request_instance.user = username,
+    data_access_model_request_instance.access_model = access_model,
+    data_access_model_request_instance.user_email = user_email,
     data_access_model_request_instance.save()
     access_model.save()
     return data_access_model_request_instance
@@ -122,12 +152,14 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
     @staticmethod
     @validate_token_or_none
     def mutate(
-        root,
-        info,
-        data_access_model_request: DataAccessModelRequestInput = None,
-        username=None,
+            root,
+            info,
+            data_access_model_request: DataAccessModelRequestInput = None,
+            username=None,
     ):
-        # TODO: fix magic strings
+        id = None
+        if data_access_model_request.id:
+            id = data_access_model_request.id
         purpose = data_access_model_request.purpose
         description = data_access_model_request.description
         access_model = DatasetAccessModel.objects.get(
@@ -141,6 +173,7 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
             purpose,
             username,
             user_email=data_access_model_request.user_email,
+            id=id
         )
         return DataAccessModelRequestMutation(
             data_access_model_request=data_access_model_request_instance
@@ -155,7 +188,7 @@ class ApproveRejectDataAccessModelRequest(graphene.Mutation, Output):
 
     @staticmethod
     def mutate(
-        root, info, data_access_model_request: DataAccessModelRequestUpdateInput = None
+            root, info, data_access_model_request: DataAccessModelRequestUpdateInput = None
     ):
         try:
             data_access_model_request_instance = DatasetAccessModelRequest.objects.get(

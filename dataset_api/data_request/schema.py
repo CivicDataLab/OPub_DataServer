@@ -16,13 +16,14 @@ from dataset_api.data_request.token_handler import (
     create_access_jwt_token,
     generate_refresh_token,
 )
+from dataset_api.dataset_access_model_request.schema import create_dataset_access_model_request, PurposeType
 from dataset_api.decorators import validate_token, validate_token_or_none
 from dataset_api.enums import DataType, SubscriptionUnits, ValidationUnits
-from dataset_api.models import Resource
+from dataset_api.models import Resource, DatasetAccessModel
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
 
-r = redis.Redis()
+r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
 
 
 class DataRequestType(DjangoObjectType):
@@ -30,7 +31,6 @@ class DataRequestType(DjangoObjectType):
     refresh_token = graphene.String()
     spec = graphene.JSONString()
     remaining_quota = graphene.Int()
-    validity = graphene.String()
 
     class Meta:
         model = DataRequest
@@ -53,8 +53,8 @@ class DataRequestType(DjangoObjectType):
         spec["paths"]["/getresource"]["get"]["parameters"][0][
             "example"
         ] = create_access_jwt_token(self, username)
-        spec["info"]["title"] = self.resource.title
-        spec["info"]["description"] = self.resource.description
+        # spec["info"]["title"] = self.resource.title
+        # spec["info"]["description"] = self.resource.description
         return spec
 
     @validate_token_or_none
@@ -132,33 +132,6 @@ class DataRequestType(DjangoObjectType):
             else:
                 return quota_limit
 
-    @validate_token_or_none
-    def resolve_validity(self: DataRequest, info, username):
-        if self.dataset_access_model_request.status == "APPROVED":
-            validity = (
-                self.dataset_access_model_request.access_model.data_access_model.validation
-            )
-            validity_unit = (
-                self.dataset_access_model_request.access_model.data_access_model.validation_unit
-            )
-            approval_date = self.dataset_access_model_request.modified
-
-            if validity_unit == ValidationUnits.DAY:
-                validation_deadline = approval_date + datetime.timedelta(days=validity)
-            elif validity_unit == ValidationUnits.WEEK:
-                validation_deadline = approval_date + datetime.timedelta(weeks=validity)
-            elif validity_unit == ValidationUnits.MONTH:
-                validation_deadline = approval_date + datetime.timedelta(
-                    days=(30 * validity)
-                )
-            elif validity_unit == ValidationUnits.YEAR:
-                validation_deadline = approval_date + datetime.timedelta(
-                    days=(365 * validity)
-                )
-            return validation_deadline.strftime("%d-%m-%Y")
-        else:
-            return None
-
 
 class DatasetRequestStatusType(graphene.Enum):
     REQUESTED = "REQUESTED"
@@ -187,10 +160,41 @@ class DataRequestInput(graphene.InputObjectType):
     resource = graphene.ID(required=True)
 
 
+class OpenDataRequestInput(graphene.InputObjectType):
+    dataset_access_model = graphene.ID(required=True)
+    resource = graphene.ID(required=True)
+
+
 class DataRequestUpdateInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
     status = DatasetRequestStatusType()
     file = Upload(required=False)
+
+
+def initiate_dam_request(dam_request, resource, username):
+    data_request_instance = DataRequest(
+        status="REQUESTED",
+        user=username,
+        resource=resource,
+        dataset_access_model_request=dam_request,
+    )
+    data_request_instance.save()
+    # TODO: fix magic strings
+    if resource and resource.dataset.dataset_type == "API":
+        url = f"{settings.PIPELINE_URL}transformer/api_source_query?api_source_id={resource.id}&request_id={data_request_instance.id}"
+        payload = {}
+        headers = {}
+        response = requests.request("GET", url, headers=headers, data=payload)
+        print(response.text)
+    elif resource and resource.dataset.dataset_type == DataType.FILE.value:
+
+        data_request_instance.file = File(
+            resource.filedetails.file,
+            os.path.basename(resource.filedetails.file.path),
+        )
+        data_request_instance.status = "FETCHED"
+    data_request_instance.save()
+    return data_request_instance
 
 
 class DataRequestMutation(graphene.Mutation, Output):
@@ -219,29 +223,27 @@ class DataRequestMutation(graphene.Mutation, Output):
                     ]
                 },
             }
-        data_request_instance = DataRequest(
-            status="REQUESTED",
-            user=username,
-            resource=resource,
-            dataset_access_model_request=dam_request,
-        )
-        data_request_instance.save()
-        # TODO: fix magic strings
-        if resource and resource.dataset.dataset_type == "API":
-            url = f"{settings.PIPELINE_URL}transformer/api_source_query?api_source_id={resource.id}&request_id={data_request_instance.id}"
-            payload = {}
-            headers = {}
-            response = requests.request("GET", url, headers=headers, data=payload)
-            print(response.text)
-        elif resource and resource.dataset.dataset_type == DataType.FILE.value:
-
-            data_request_instance.file = File(
-                resource.filedetails.file,
-                os.path.basename(resource.filedetails.file.path),
-            )
-            data_request_instance.status = "FETCHED"
-        data_request_instance.save()
+        data_request_instance = initiate_dam_request(dam_request, resource, username)
         return DataRequestMutation(data_request=data_request_instance)
+
+
+class OpenDataRequestMutation(graphene.Mutation, Output):
+    class Arguments:
+        data_request = OpenDataRequestInput()
+
+    data_request = graphene.Field(DataRequestType)
+
+    @staticmethod
+    @validate_token_or_none
+    def mutate(root, info, data_request: OpenDataRequestInput = None, username=""):
+        resource = Resource.objects.get(id=data_request.resource)
+        dataset_access_model = DatasetAccessModel(
+            id=data_request.dataset_access_model
+        )
+        dam_request = create_dataset_access_model_request(dataset_access_model, "", "OTHERS", username,
+                                                          user_email=username)
+        data_request_instance = initiate_dam_request(dam_request, resource, username)
+        return OpenDataRequestMutation(data_request=data_request_instance)
 
 
 class DataRequestUpdateMutation(graphene.Mutation, Output):
@@ -262,4 +264,5 @@ class DataRequestUpdateMutation(graphene.Mutation, Output):
 
 class Mutation(graphene.ObjectType):
     data_request = DataRequestMutation.Field()
+    open_data_request = OpenDataRequestMutation.Field()
     update_data_request = DataRequestUpdateMutation.Field()
