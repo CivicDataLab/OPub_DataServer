@@ -111,9 +111,9 @@ def schema(request, resource_id):
         schema_list = pd.io.json.build_table_schema(df, version=False)
         schema_list = schema_list.get("fields", [])
         schema = []
+        print (schema_list)
         for each in schema_list:
             schema.append(
-                {
                     {
                         "key": each["name"],
                         "format": each["type"],
@@ -121,7 +121,6 @@ def schema(request, resource_id):
                         "parent": "",
                         "array_field": "",
                     }
-                }
             )
         context = {
             "Success": True,
