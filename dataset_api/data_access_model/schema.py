@@ -1,3 +1,5 @@
+from typing import Iterable
+
 import graphene
 from django.db.models import Q
 from graphene_django import DjangoObjectType
@@ -92,7 +94,7 @@ class DataAccessModelInput(graphene.InputObjectType):
     subscription_quota_unit = graphene.Enum.from_enum(SubscriptionUnits)(required=True)
     rate_limit = graphene.Int(required=True)
     rate_limit_unit = RateLimitUnits(required=True)
-    additions = graphene.List(of_type=graphene.ID, required=False, default=[])
+    additions: Iterable = graphene.List(of_type=graphene.ID, required=False, default=[])
     validation = graphene.Int(required=True)
     validation_unit = graphene.Enum.from_enum(ValidationUnits)(required=True)
 
@@ -172,14 +174,14 @@ class CreateDataAccessModel(Output, graphene.Mutation):
                 dam_license,
                 data_access_model_data.additions,
             )
-            create_contract(
-                dam_license,
-                data_access_model_data.additions,
-                data_access_model_instance,
-            )
         except InvalidAddition as e:
             return {"success": False, "errors": {"id": [{str(e)}]}}
 
+        create_contract(
+            dam_license,
+            data_access_model_data.additions,
+            data_access_model_instance,
+        )
         return CreateDataAccessModel(data_access_model=data_access_model_instance)
 
 
@@ -224,20 +226,12 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
         data_access_model_instance.organization = org_instance
         data_access_model_instance.contract = data_access_model_data.contract
         data_access_model_instance.license = dam_license
-        data_access_model_instance.subscription_quota = (
-            data_access_model_data.subscription_quota
-        )
-        data_access_model_instance.subscription_quota_unit = (
-            data_access_model_data.subscription_quota_unit
-        )
+        data_access_model_instance.subscription_quota = data_access_model_data.subscription_quota
+        data_access_model_instance.subscription_quota_unit = data_access_model_data.subscription_quota_unit
         data_access_model_instance.rate_limit = data_access_model_data.rate_limit
-        data_access_model_instance.rate_limit_unit = (
-            data_access_model_data.rate_limit_unit
-        )
+        data_access_model_instance.rate_limit_unit = data_access_model_data.rate_limit_unit
         data_access_model_instance.validation = data_access_model_data.validation
-        data_access_model_instance.validation_unit = (
-            data_access_model_data.validation_unit
-        )
+        data_access_model_instance.validation_unit = data_access_model_data.validation_unit
         data_access_model_instance.save()
 
         try:
@@ -246,13 +240,14 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
                 dam_license,
                 data_access_model_data.additions,
             )
-            create_contract(
-                dam_license,
-                data_access_model_data.additions,
-                data_access_model_instance,
-            )
         except InvalidAddition as e:
             return {"success": False, "errors": {"id": [{str(e)}]}}
+        create_contract(
+            dam_license,
+            data_access_model_data.additions,
+            data_access_model_instance,
+        )
+
         activity.send(
             username,
             verb="Updated",

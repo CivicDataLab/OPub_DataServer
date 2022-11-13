@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Iterable
 
 import pdfkit
 from django.core.files.base import ContentFile
@@ -20,7 +20,7 @@ pdf_options = {
 }
 
 
-def create_contract(model_license: License, additions: List, data_access_model: DataAccessModel):
+def create_contract(model_license: License, additions: Iterable, data_access_model: DataAccessModel):
     if not additions:
         return
     text = extract_text(additions, model_license, data_access_model)
