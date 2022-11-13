@@ -21,8 +21,6 @@ pdf_options = {
 
 
 def create_contract(model_license: License, additions: Iterable, data_access_model: DataAccessModel):
-    if not additions:
-        return
     text = extract_text(additions, model_license, data_access_model)
 
     pdfkit.from_string(text, 'out.pdf', options=pdf_options)
@@ -46,12 +44,12 @@ def extract_text(additions, model_license, data_access_model: DataAccessModel):
         <meta name="pdfkit-page-size" content="Legal"/>
         <meta name="pdfkit-orientation" content="Portrait"/>
       </head>
-      <h1>Agreeement</h1>
+      <h1>Agreement</h1>
       <h2>{model_license.title} </h2>
       <p>This document acts as license condition set for the Data Access Model {data_access_model.title} <p>
       <br/>
       <p>{model_license.description} </p>
-      <h2>Additional Conditions </h2>
+      <h2>Additional Terms and Conditions </h2>
       <p>{text}<p>
       </html>
     """
