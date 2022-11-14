@@ -189,9 +189,9 @@ class DeleteResourceInput(graphene.InputObjectType):
 
 def _remove_masked_fields(resource_instance: Resource):
     if (
-            resource_instance.masked_fields
-            and len(resource_instance.filedetails.file.path)
-            and "csv" in resource_instance.filedetails.format.lower()
+        resource_instance.masked_fields
+        and len(resource_instance.filedetails.file.path)
+        and "csv" in resource_instance.filedetails.format.lower()
     ):
         df = pd.read_csv(resource_instance.filedetails.file.path)
         df = df.drop(columns=resource_instance.masked_fields)
@@ -308,10 +308,10 @@ class CreateResource(graphene.Mutation, Output):
     @validate_token
     @auth_user_action_resource(action="create_resource")
     def mutate(
-            root,
-            info,
-            username,
-            resource_data: ResourceInput = None,
+        root,
+        info,
+        username,
+        resource_data: ResourceInput = None,
     ):
         """
 
@@ -488,6 +488,9 @@ class DeleteResource(graphene.Mutation, Output):
             username=username,
             verb="Deleted",
         )
+        resource_schema = ResourceSchema.objects.filter(resource=resource_instance)
+        if resource_schema.exists():
+            resource_schema.delete()
         resource_instance.delete()
         return DeleteResource(success=True)
 
