@@ -1,3 +1,5 @@
+from typing import Iterable
+
 import graphene
 from django.db.models import Q
 from graphene_django import DjangoObjectType
@@ -54,7 +56,7 @@ class Query(graphene.ObjectType):
 
 
 class LicenseApproveRejectInput(graphene.InputObjectType):
-    ids = graphene.List(graphene.ID, required=True)
+    ids: Iterable = graphene.List(graphene.ID, required=True)
     reject_reason = graphene.String(required=False)
     # TODO: Re-visit duplicate license status
     status = graphene.String(required=True)
