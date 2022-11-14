@@ -129,14 +129,13 @@ def create_dataset_access_model_request(
         access_model, description, purpose, username, status="REQUESTED", user_email=None, id=None,
 ):
     if not id:
-        data_access_model_request_instance = DatasetAccessModelRequest()
+        data_access_model_request_instance = DatasetAccessModelRequest(access_model=access_model)
     else:
         data_access_model_request_instance = DatasetAccessModelRequest.objects.get(id=id)
     data_access_model_request_instance.status = status,
     data_access_model_request_instance.purpose = purpose,
     data_access_model_request_instance.description = description,
     data_access_model_request_instance.user = username,
-    data_access_model_request_instance.access_model = access_model,
     data_access_model_request_instance.user_email = user_email,
     data_access_model_request_instance.save()
     access_model.save()
