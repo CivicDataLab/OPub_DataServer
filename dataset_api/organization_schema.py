@@ -182,7 +182,7 @@ class UpdateOrganization(Output, graphene.Mutation):
 
     @staticmethod
     @auth_user_by_org(action="update_organization")
-    def mutate(root, info, organization_data: OrganizationInput = None):
+    def mutate(root, info, role, organization_data: OrganizationInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_id = organization_data.id if organization_data.id else org_id
         try:
