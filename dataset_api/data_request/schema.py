@@ -237,7 +237,7 @@ class OpenDataRequestMutation(graphene.Mutation, Output):
     @validate_token_or_none
     def mutate(root, info, data_request: OpenDataRequestInput = None, username=""):
         resource = Resource.objects.get(id=data_request.resource)
-        dataset_access_model = DatasetAccessModel(
+        dataset_access_model = DatasetAccessModel.objects.get(
             id=data_request.dataset_access_model
         )
         dam_request = create_dataset_access_model_request(dataset_access_model, "", "OTHERS", username,
