@@ -38,11 +38,13 @@ class AgreementMutation(graphene.Mutation, Output):
         # TODO: Add check for open dam
         if not username:
             username = agreement_request.username
-        dataset_access_model_request = create_dataset_access_model_request(dataset_access_model,
-                                                                           agreement_request.description,
-                                                                           agreement_request.purpose, username,
-                                                                           status, agreement_request.user_email,
-                                                                           agreement_request.dataset_access_model_request_id)
+        dataset_access_model_request = create_dataset_access_model_request(access_model=dataset_access_model,
+                                                                           description=agreement_request.description,
+                                                                           purpose=agreement_request.purpose,
+                                                                           username=username,
+                                                                           status=status,
+                                                                           user_email=agreement_request.user_email,
+                                                                           id=agreement_request.dataset_access_model_request_id)
         agreement_instance = Agreement(dataset_access_model=dataset_access_model, username=username,
                                        status=AgreementStatus.ACCEPTED.value,
                                        dataset_access_model_request=dataset_access_model_request,
