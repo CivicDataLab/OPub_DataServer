@@ -1,10 +1,12 @@
 import datetime
+import redis
 
 import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from django.db.models import Q
 from graphql import GraphQLError
+from django.conf import settings
 
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
 from dataset_api.models.DatasetAccessModel import DatasetAccessModel
@@ -14,25 +16,24 @@ from dataset_api.decorators import (
     auth_user_by_org,
 )
 from .decorators import auth_query_dam_request
-from ..enums import ValidationUnits
+from dataset_api.enums import SubscriptionUnits, ValidationUnits
+
+r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
 
 
 class DataAccessModelRequestType(DjangoObjectType):
     validity = graphene.String()
+    remaining_quota = graphene.Int()
 
     class Meta:
         model = DatasetAccessModelRequest
         fields = "__all__"
 
     @validate_token_or_none
-    def resolve_validity(self: DatasetAccessModelRequest, info, username):
+    def resolve_validity(self: DatasetAccessModelRequest, info, username=""):
         if self.status == "APPROVED":
-            validity = (
-                self.access_model.data_access_model.validation
-            )
-            validity_unit = (
-                self.access_model.data_access_model.validation_unit
-            )
+            validity = self.access_model.data_access_model.validation
+            validity_unit = self.access_model.data_access_model.validation_unit
             approval_date = self.modified
             validation_deadline = approval_date
             if validity_unit == ValidationUnits.DAY:
@@ -40,12 +41,87 @@ class DataAccessModelRequestType(DjangoObjectType):
             elif validity_unit == ValidationUnits.WEEK:
                 validation_deadline = approval_date + datetime.timedelta(weeks=validity)
             elif validity_unit == ValidationUnits.MONTH:
-                validation_deadline = approval_date + datetime.timedelta(days=(30 * validity))
+                validation_deadline = approval_date + datetime.timedelta(
+                    days=(30 * validity)
+                )
             elif validity_unit == ValidationUnits.YEAR:
-                validation_deadline = approval_date + datetime.timedelta(days=(365 * validity))
+                validation_deadline = approval_date + datetime.timedelta(
+                    days=(365 * validity)
+                )
             return validation_deadline.strftime("%d-%m-%Y")
         else:
             return None
+
+    @validate_token_or_none
+    def resolve_remaining_quota(self: DatasetAccessModelRequest, info, username=""):
+        dam_id = self.access_model.data_access_model_id
+        quota_limit = self.access_model.data_access_model.subscription_quota
+        quota_limit_unit = self.access_model.data_access_model.subscription_quota_unit
+        if not username:
+            username = self.user
+
+        if quota_limit_unit == SubscriptionUnits.DAILY:
+            used_quota = r.get(
+                ":1:rl||"
+                + username
+                + "||"
+                + str(dam_id)
+                + "||"
+                + quota_limit_unit.lower()[0]
+                + "||quota"
+            )
+
+            if used_quota:
+                if quota_limit > int(used_quota.decode()):
+                    return quota_limit - int(used_quota.decode())
+                else:
+                    return 0
+            else:
+                return quota_limit
+        elif quota_limit_unit == SubscriptionUnits.WEEKLY:
+            used_quota = r.get(
+                ":1:rl||" + username + "||" + str(dam_id) + "||" + "7d||quota"
+            )
+            if used_quota:
+                if quota_limit > int(used_quota.decode()):
+                    return quota_limit - int(used_quota.decode())
+                else:
+                    return 0
+            else:
+                return quota_limit
+        elif quota_limit_unit == SubscriptionUnits.MONTHLY:
+            used_quota = r.get(
+                ":1:rl||" + username + "||" + str(dam_id) + "||" + "30d||quota"
+            )
+            if used_quota:
+                if quota_limit > int(used_quota.decode()):
+                    return quota_limit - int(used_quota.decode())
+                else:
+                    return 0
+            else:
+                return quota_limit
+        elif quota_limit_unit == SubscriptionUnits.QUARTERLY:
+            used_quota = r.get(
+                ":1:rl||" + username + "||" + str(dam_id) + "||" + "92d||quota"
+            )
+            if used_quota:
+                if quota_limit > int(used_quota.decode()):
+                    return quota_limit - int(used_quota.decode())
+                else:
+                    return 0
+            else:
+                return quota_limit
+        else:
+            used_quota = r.get(
+                ":1:rl||" + username + "||" + str(dam_id) + "||" + "365d||quota"
+            )
+            if used_quota:
+                if quota_limit > int(used_quota.decode()):
+                    return quota_limit - int(used_quota.decode())
+                else:
+                    return 0
+            else:
+                return quota_limit
 
 
 class DataAccessModelRequestStatusType(graphene.Enum):
@@ -82,7 +158,7 @@ class Query(graphene.ObjectType):
     # Access : PMU/DPA of that org.
     @auth_query_dam_request(action="query||request_id")
     def resolve_data_access_model_request(
-            self, info, data_access_model_request_id, role
+        self, info, data_access_model_request_id, role
     ):
         if role == "PMU" or role == "DPA":
             return DatasetAccessModelRequest.objects.get(
@@ -101,7 +177,7 @@ class Query(graphene.ObjectType):
     @auth_user_by_org(action="query")
     def resolve_data_access_model_request_org(self, info, role):
         if role == "PMU" or role == "DPA":
-            org_id = info.context.headers.get("HTTP_ORGANIZATION")
+            org_id = info.context.META.get("HTTP_ORGANIZATION")
             return DatasetAccessModelRequest.objects.filter(
                 Q(access_model_id__data_access_model__organization=org_id),
                 Q(status__exact="APPROVED"),
@@ -126,12 +202,22 @@ class DataAccessModelRequestUpdateInput(graphene.InputObjectType):
 
 
 def create_dataset_access_model_request(
-        access_model, description, purpose, username, status="REQUESTED", user_email=None, id=None,
+    access_model,
+    description,
+    purpose,
+    username,
+    status="REQUESTED",
+    user_email=None,
+    id=None,
 ):
     if not id:
-        data_access_model_request_instance = DatasetAccessModelRequest(access_model=access_model)
+        data_access_model_request_instance = DatasetAccessModelRequest(
+            access_model=access_model
+        )
     else:
-        data_access_model_request_instance = DatasetAccessModelRequest.objects.get(id=id)
+        data_access_model_request_instance = DatasetAccessModelRequest.objects.get(
+            id=id
+        )
     data_access_model_request_instance.status = status
     data_access_model_request_instance.purpose = purpose
     data_access_model_request_instance.description = description
@@ -151,10 +237,10 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
     @staticmethod
     @validate_token_or_none
     def mutate(
-            root,
-            info,
-            data_access_model_request: DataAccessModelRequestInput = None,
-            username=None,
+        root,
+        info,
+        data_access_model_request: DataAccessModelRequestInput = None,
+        username=None,
     ):
         id = None
         if data_access_model_request.id:
@@ -172,7 +258,7 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
             purpose,
             username,
             user_email=data_access_model_request.user_email,
-            id=id
+            id=id,
         )
         return DataAccessModelRequestMutation(
             data_access_model_request=data_access_model_request_instance
@@ -187,7 +273,7 @@ class ApproveRejectDataAccessModelRequest(graphene.Mutation, Output):
 
     @staticmethod
     def mutate(
-            root, info, data_access_model_request: DataAccessModelRequestUpdateInput = None
+        root, info, data_access_model_request: DataAccessModelRequestUpdateInput = None
     ):
         try:
             data_access_model_request_instance = DatasetAccessModelRequest.objects.get(
