@@ -1,9 +1,8 @@
 import os
 
 import graphene
+import pandas as pd
 import requests
-import redis
-import datetime
 
 from django.core.files import File
 from graphene_django import DjangoObjectType
@@ -16,14 +15,20 @@ from dataset_api.data_request.token_handler import (
     create_access_jwt_token,
     generate_refresh_token,
 )
-from dataset_api.dataset_access_model_request.schema import create_dataset_access_model_request, PurposeType
+from dataset_api.dataset_access_model_request.schema import (
+    create_dataset_access_model_request,
+    PurposeType,
+)
 from dataset_api.decorators import validate_token, validate_token_or_none
-from dataset_api.enums import DataType, SubscriptionUnits, ValidationUnits
-from dataset_api.models import Resource, DatasetAccessModel
+from dataset_api.enums import DataType
+from dataset_api.models import (
+    Resource,
+    DatasetAccessModel,
+    DatasetAccessModelResource,
+    FileDetails,
+)
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
-
-r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
 
 
 class DataRequestType(DjangoObjectType):
@@ -56,81 +61,6 @@ class DataRequestType(DjangoObjectType):
         # spec["info"]["title"] = self.resource.title
         # spec["info"]["description"] = self.resource.description
         return spec
-
-    @validate_token_or_none
-    def resolve_remaining_quota(self: DataRequest, info, username=""):
-        dam_id = self.dataset_access_model_request.access_model.data_access_model_id
-        quota_limit = (
-            self.dataset_access_model_request.access_model.data_access_model.subscription_quota
-        )
-        quota_limit_unit = (
-            self.dataset_access_model_request.access_model.data_access_model.subscription_quota_unit
-        )
-        if not username:
-            username = self.dataset_access_model_request.user
-
-        if quota_limit_unit == SubscriptionUnits.DAILY:
-            used_quota = r.get(
-                ":1:rl||"
-                + "||"
-                + username
-                + "||"
-                + str(dam_id)
-                + "||"
-                + quota_limit_unit.lower()[0]
-                + "||quota"
-            )
-            if used_quota:
-                if quota_limit > int(used_quota.decode()):
-                    return quota_limit - int(used_quota.decode())
-                else:
-                    return 0
-            else:
-                return quota_limit
-        elif quota_limit_unit == SubscriptionUnits.WEEKLY:
-            used_quota = r.get(
-                ":1:rl||" + username + "||" + str(dam_id) + "||" + "7d||quota"
-            )
-            if used_quota:
-                if quota_limit > int(used_quota.decode()):
-                    return quota_limit - int(used_quota.decode())
-                else:
-                    return 0
-            else:
-                return quota_limit
-        elif quota_limit_unit == SubscriptionUnits.MONTHLY:
-            used_quota = r.get(
-                ":1:rl||" + username + "||" + str(dam_id) + "||" + "30d||quota"
-            )
-            if used_quota:
-                if quota_limit > int(used_quota.decode()):
-                    return quota_limit - int(used_quota.decode())
-                else:
-                    return 0
-            else:
-                return quota_limit
-        elif quota_limit_unit == SubscriptionUnits.QUARTERLY:
-            used_quota = r.get(
-                ":1:rl||" + username + "||" + str(dam_id) + "||" + "92d||quota"
-            )
-            if used_quota:
-                if quota_limit > int(used_quota.decode()):
-                    return quota_limit - int(used_quota.decode())
-                else:
-                    return 0
-            else:
-                return quota_limit
-        else:
-            used_quota = r.get(
-                ":1:rl||" + username + "||" + str(dam_id) + "||" + "365d||quota"
-            )
-            if used_quota:
-                if quota_limit > int(used_quota.decode()):
-                    return quota_limit - int(used_quota.decode())
-                else:
-                    return 0
-            else:
-                return quota_limit
 
 
 class DatasetRequestStatusType(graphene.Enum):
@@ -179,19 +109,33 @@ def initiate_dam_request(dam_request, resource, username):
         dataset_access_model_request=dam_request,
     )
     data_request_instance.save()
+    dam_resource = DatasetAccessModelResource.objects.get(
+        dataset_access_model=dam_request.access_model_id, resource=resource.id
+    )
+    fields = dam_resource.fields
+
     # TODO: fix magic strings
     if resource and resource.dataset.dataset_type == "API":
-        url = f"{settings.PIPELINE_URL}transformer/api_source_query?api_source_id={resource.id}&request_id={data_request_instance.id}"
+        url = f"{settings.PIPELINE_URL}api_source_query?api_source_id={resource.id}&request_id={data_request_instance.id}"
         payload = {}
-        headers = {}
+        headers = {x for x in fields}
         response = requests.request("GET", url, headers=headers, data=payload)
         print(response.text)
     elif resource and resource.dataset.dataset_type == DataType.FILE.value:
-
         data_request_instance.file = File(
             resource.filedetails.file,
             os.path.basename(resource.filedetails.file.path),
         )
+        file_instance = FileDetails.objects.get(resource=resource)
+        data_request_instance.save()
+        if file_instance.format.lower() == "csv":
+            file_data = pd.read_csv(data_request_instance.file)
+            file_columns = file_data.columns.values.tolist()
+            remove_cols = [x for x in file_columns if x not in fields]
+            file_data.drop(remove_cols, axis=1, inplace=True)
+            file_data.to_csv(data_request_instance.file.path, index=False)
+        elif file_instance.format.lower() == "json":
+            pass
         data_request_instance.status = "FETCHED"
     data_request_instance.save()
     return data_request_instance
@@ -208,7 +152,7 @@ class DataRequestMutation(graphene.Mutation, Output):
     def mutate(root, info, data_request: DataRequestInput = None, username=""):
         try:
             resource = Resource.objects.get(id=data_request.resource)
-            dam_request = DatasetAccessModelRequest(
+            dam_request = DatasetAccessModelRequest.objects.get(
                 id=data_request.dataset_access_model_request
             )
         except (Resource.DoesNotExist, DatasetAccessModelRequest.DoesNotExist) as e:
@@ -240,8 +184,9 @@ class OpenDataRequestMutation(graphene.Mutation, Output):
         dataset_access_model = DatasetAccessModel.objects.get(
             id=data_request.dataset_access_model
         )
-        dam_request = create_dataset_access_model_request(dataset_access_model, "", "OTHERS", username,
-                                                          user_email=username)
+        dam_request = create_dataset_access_model_request(
+            dataset_access_model, "", "OTHERS", username, user_email=username
+        )
         data_request_instance = initiate_dam_request(dam_request, resource, username)
         return OpenDataRequestMutation(data_request=data_request_instance)
 
