@@ -342,6 +342,8 @@ type DatasetType {
     additionalinfo_set: [AdditionalInfoType!]!
     average_rating: Float
     catalog: CatalogType!
+    confirms_to: String
+    contact_point: String
     dataset_type: DatasetDatasetType!
     datasetaccessmodel_set: [DatasetAccessModelType!]!
     datasetratings_set: [DatasetRatingType!]!
@@ -352,17 +354,25 @@ type DatasetType {
     geography: [GeographyType!]!
     highlights: [String]
     id: ID!
+    in_series: String
     issued: DateTime!
+    language: String
     modified: DateTime!
     period_from: Date
     period_to: Date
+    qualified_attribution: String
     remote_issued: Date
     remote_modified: Date
     resource_set: [ResourceType!]!
     sector: [SectorType!]!
     slug: String
+    spatial_coverage: String
+    spatial_resolution: String
     status: String!
     tags: [TagType!]!
+    temporal_coverage: String
+    temporal_resolution: String
+    theme: String
     title: String!
     update_frequency: String
 }
@@ -467,7 +477,7 @@ type Mutation {
     approve_reject_data_access_model_request(data_access_model_request: DataAccessModelRequestUpdateInput): ApproveRejectDataAccessModelRequest
     approve_reject_dataset_rating(rating_data: DatasetRatingApproveRejectInput!): ApproveRejectRating
     approve_reject_license(license_data: LicenseApproveRejectInput!): ApproveRejectLicense
-    approve_reject_license_addition(license_data: LicenseAdditionApproveRejectInput!): ApproveRejectLicenseAddition
+    approve_reject_license_addition(additions_data: LicenseAdditionApproveRejectInput!): ApproveRejectLicenseAddition
     approve_reject_moderation_requests(moderation_request: ModerationRequestsApproveRejectInput): ApproveRejectModerationRequests
     approve_reject_organization_approval(organization_data: ApproveRejectOrganizationApprovalInput!): ApproveRejectOrganizationApproval
     approve_reject_organization_request(organization_request: OrganizationRequestUpdateInput): ApproveRejectOrganizationRequest
@@ -551,6 +561,7 @@ type OrganizationType {
     organizationcreaterequest: CreateOrganizationType
     organizationrequest_set: [OrganizationRequestType!]!
     title: String!
+    usecase_count: Int
     username: String
 }
 
@@ -605,6 +616,7 @@ type Query {
     license_addition(license_id: Int): LicenseAdditionType
     license_additions_by_org: [LicenseAdditionType]
     license_by_org: [LicenseType]
+    licenses: [LicenseType]
     moderation_request(moderation_request_id: Int): ModerationRequestType
     moderation_request_user: [ModerationRequestType]
     org_activity(filters: [ActivityFilter], first: Int, organization_id: ID, skip: Int): [ActivityType]
@@ -644,6 +656,9 @@ type ResourceSchemaType {
 type ResourceType {
     api_details: ApiDetailsType
     apidetails: ApiDetailsType
+    byte_size: Float
+    checksum: String
+    compression_format: String
     datarequest_set: [DataRequestType!]!
     dataset: DatasetType!
     datasetaccessmodelresource_set: [AccessModelResourceType!]!
@@ -653,7 +668,10 @@ type ResourceType {
     id: ID!
     issued: DateTime!
     masked_fields: [String!]
+    media_type: String
     modified: DateTime!
+    packaging_format: String
+    release_date: Date
     resourceschema_set: [ResourceSchemaType!]!
     schema: [ResourceSchemaType]
     schema_exists: Boolean
@@ -1128,8 +1146,9 @@ input AdditionalInfoInput {
 
 input AgreementInput {
     dataset_access_model: ID!
-    description: String!
-    purpose: PurposeType!
+    dataset_access_model_request_id: ID
+    description: String
+    purpose: PurposeType
     user_email: String
     username: String
 }
