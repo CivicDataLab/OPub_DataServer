@@ -290,7 +290,7 @@ def _create_update_file_details(resource_instance, attribute):
         file_detail_object.remote_url = attribute.remote_url
     file_detail_object.save()
     file_format = attribute.format
-    if attribute.format and attribute.format == "":
+    if attribute.format == "":
         file_format = FORMAT_MAPPING[
             mimetypes.guess_type(file_detail_object.file.path)[0].lower()
         ]
