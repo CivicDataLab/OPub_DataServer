@@ -24,10 +24,10 @@ class Query(graphene.ObjectType):
         else:
             prefetch_agreements = Prefetch("agreements",
                                            queryset=Agreement.objects.filter(
-                                               dataset_access_model_request_id__in=anonymous_users))
+                                               dataset_access_model_request__datarequest__id__in=anonymous_users))
             prefetch_dam_requests = Prefetch("datasetaccessmodelrequest_set",
                                              queryset=DatasetAccessModelRequest.objects.filter(
-                                                 id__in=anonymous_users))
+                                                 datarequest__id__in=anonymous_users))
         return DatasetAccessModel.objects.filter(dataset=dataset).order_by("-modified").prefetch_related(
             prefetch_agreements, prefetch_dam_requests)
 
