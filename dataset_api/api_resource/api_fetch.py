@@ -185,7 +185,7 @@ def fetchapi(resource_id):
             return context
         if response_type == "CSV":
             csv_data = StringIO(api_response)
-            data = pd.read_csv(csv_data, sep=";")
+            data = pd.read_csv(csv_data, sep=",")
             context = {"Success": True, "data": data, "response_type": response_type}
             return context
     except Exception as e:
