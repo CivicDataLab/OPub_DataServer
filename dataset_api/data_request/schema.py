@@ -185,7 +185,7 @@ class OpenDataRequestMutation(graphene.Mutation, Output):
             id=data_request.dataset_access_model
         )
         dam_request = create_dataset_access_model_request(
-            dataset_access_model, "", "OTHERS", username, user_email=username
+            dataset_access_model, "", "OTHERS", username, user_email=username, status="APPROVED"
         )
         data_request_instance = initiate_dam_request(dam_request, resource, username)
         return OpenDataRequestMutation(data_request=data_request_instance)
