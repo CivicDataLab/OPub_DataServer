@@ -27,7 +27,7 @@ class Query(graphene.ObjectType):
                                                dataset_access_model_request_id__in=anonymous_users))
             prefetch_dam_requests = Prefetch("datasetaccessmodelrequest_set",
                                              queryset=DatasetAccessModelRequest.objects.filter(
-                                                 dataset_access_model_request_id__in=anonymous_users))
+                                                 id__in=anonymous_users))
         return DatasetAccessModel.objects.filter(dataset=dataset).order_by("-modified").prefetch_related(
             prefetch_agreements, prefetch_dam_requests)
 
