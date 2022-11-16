@@ -109,16 +109,17 @@ class CreateLicenseAddition(graphene.Mutation, Output):
 
     @staticmethod
     @check_license_role
-    def mutate(root, info, role, addition_data: LicenseAdditionsCreateInput = None):
-        license_instance = License.objects.get(id=addition_data.license)
-        addition_instance = LicenseAddition(title=addition_data.title, description=addition_data.description,
+    def mutate(root, info, role, license_addition_data: LicenseAdditionsCreateInput = None):
+        license_instance = License.objects.get(id=license_addition_data.license)
+        addition_instance = LicenseAddition(title=license_addition_data.title,
+                                            description=license_addition_data.description,
                                             license=license_instance)
         if role == "DPA":
             addition_instance.status = LICENSEADDITIONSTATE.CREATED.value
             addition_instance.generic_item = False
         if role == "PMU":
             addition_instance.status = LICENSEADDITIONSTATE.PUBLISHED.value
-            addition_instance.generic_item = addition_data.generic_item
+            addition_instance.generic_item = license_addition_data.generic_item
         addition_instance.save()
         return CreateLicenseAddition(license=addition_instance)
 
