@@ -17,7 +17,8 @@ class AgreementType(DjangoObjectType):
 
 class AgreementInput(graphene.InputObjectType):
     dataset_access_model = graphene.ID(required=True)
-    dataset_access_model_request_id = graphene.ID(required=False)
+    # TODO: change to dataset_access_model_request_id
+    id = graphene.ID(required=False)
     description = graphene.String(required=False, default="")
     purpose = PurposeType(required=False, default="OTHERS")
     username = graphene.String(required=False, default="")
@@ -44,7 +45,7 @@ class AgreementMutation(graphene.Mutation, Output):
                                                                            username=username,
                                                                            status=status,
                                                                            user_email=agreement_request.user_email,
-                                                                           id=agreement_request.dataset_access_model_request_id)
+                                                                           id=agreement_request.id)
         agreement_instance = Agreement(dataset_access_model=dataset_access_model, username=username,
                                        status=AgreementStatus.ACCEPTED.value,
                                        dataset_access_model_request=dataset_access_model_request,
