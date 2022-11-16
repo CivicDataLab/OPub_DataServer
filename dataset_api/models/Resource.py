@@ -14,3 +14,9 @@ class Resource(models.Model):
         models.CharField(max_length=10, blank=True), blank=True, null=True
     )
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
+    byte_size = models.FloatField(blank=True, null=True)
+    release_date = models.DateField(blank=True, null=True)
+    media_type = models.CharField(blank=True, null=True, max_length=100)
+    compression_format = models.CharField(blank=True, null=True, max_length=100)
+    packaging_format = models.CharField(blank=True, null=True, max_length=100)
+    checksum = models.CharField(blank=True, null=True, max_length=100)

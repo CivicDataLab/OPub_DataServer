@@ -21,6 +21,8 @@ pdf_options = {
 
 
 def create_contract(model_license: License, additions: Iterable, data_access_model: DataAccessModel):
+    if not additions:
+        additions = []
     text = extract_text(additions, model_license, data_access_model)
 
     pdfkit.from_string(text, 'out.pdf', options=pdf_options)

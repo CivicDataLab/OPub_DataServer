@@ -1,3 +1,5 @@
+from typing import Iterable
+
 import graphene
 from django.db.models import Q
 from graphene_django import DjangoObjectType
@@ -54,7 +56,7 @@ class Query(graphene.ObjectType):
 
 
 class LicenseApproveRejectInput(graphene.InputObjectType):
-    ids = graphene.List(graphene.ID, required=True)
+    ids: Iterable = graphene.List(graphene.ID, required=True)
     reject_reason = graphene.String(required=False)
     # TODO: Re-visit duplicate license status
     status = graphene.String(required=True)
@@ -79,12 +81,10 @@ class CreateLicense(graphene.Mutation, Output):
     @staticmethod
     @check_license_role
     def mutate(root, info, role, license_data: LicenseInput = None):
-        org_id = info.context.META.get("HTTP_ORGANIZATION")
-        organization = Organization.objects.get(id=org_id)
+
         license_instance = License(
             title=license_data.title,
             description=license_data.description,
-            created_organization=organization,
         )
         if license_data.file:
             license_instance.file = license_data.file
@@ -92,8 +92,12 @@ class CreateLicense(graphene.Mutation, Output):
             license_instance.remote_url = license_data.remote_url
         if role == "DPA":
             license_instance.status = LicenseStatus.CREATED.value
+            org_id = info.context.META.get("HTTP_ORGANIZATION")
+            organization = Organization.objects.get(id=org_id)
+            license_instance.created_organization_id = org_id
         if role == "PMU":
             license_instance.status = LicenseStatus.PUBLISHED.value
+
         license_instance.save()
         if license_data.license_additions:
             _create_update_license_additions(

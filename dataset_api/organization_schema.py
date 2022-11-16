@@ -6,7 +6,14 @@ from graphql import GraphQLError
 from django.db.models import Q
 
 from activity_log.signal import activity
-from .models import Organization, OrganizationCreateRequest, Catalog, Resource, Dataset, Sector
+from .models import (
+    Organization,
+    OrganizationCreateRequest,
+    Catalog,
+    Resource,
+    Dataset,
+    Sector,
+)
 from .decorators import (
     validate_token,
     create_user_org,
@@ -27,8 +34,7 @@ class OrganizationType(DjangoObjectType):
     username = graphene.String()
     api_count = graphene.Int()
     dataset_count = graphene.Int()
-
-    # usecase_count = graphene.Int()
+    usecase_count = graphene.Int()
 
     class Meta:
         model = Organization
@@ -53,11 +59,12 @@ class OrganizationType(DjangoObjectType):
         ).count()
         return dataset
 
-    # def resolve_usecase_count(self, info):
-    #     usecase = Sector.objects.filter(
-    #         Q(dataset__catalog__organization=self.id),
-    #     ).count()
-    #     return usecase
+    def resolve_usecase_count(self, info):
+        usecase = Sector.objects.filter(
+            Q(dataset__catalog__organization=self.id),
+            Q(dataset__status__exact="PUBLISHED"),
+        )
+        return len(set(usecase))
 
 
 class Query(graphene.ObjectType):
@@ -175,7 +182,7 @@ class UpdateOrganization(Output, graphene.Mutation):
 
     @staticmethod
     @auth_user_by_org(action="update_organization")
-    def mutate(root, info, organization_data: OrganizationInput = None):
+    def mutate(root, info, role, organization_data: OrganizationInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_id = organization_data.id if organization_data.id else org_id
         try:
@@ -225,10 +232,10 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     @validate_token
     @auth_user_by_org(action="approve_organization")
     def mutate(
-            root,
-            info,
-            username="",
-            organization_data: ApproveRejectOrganizationApprovalInput = None,
+        root,
+        info,
+        username="",
+        organization_data: ApproveRejectOrganizationApprovalInput = None,
     ):
         try:
             organization_create_request_instance = (

@@ -149,7 +149,7 @@ class UpdateLicenseAddition(graphene.Mutation, Output):
 
 class ApproveRejectLicenseAddition(graphene.Mutation, Output):
     class Arguments:
-        license_data = LicenseAdditionApproveRejectInput(required=True)
+        additions_data = LicenseAdditionApproveRejectInput(required=True)
 
     license_requests = graphene.List(LicenseAdditionType)
 

@@ -49,15 +49,11 @@ class Query(graphene.ObjectType):
 
     @validate_token
     def resolve_review_request_user(self, info, username, **kwargs):
-        return DatasetReviewRequest.objects.filter(user=username).order_by(
-            "-modeified_date"
-        )
+        return DatasetReviewRequest.objects.filter(user=username).order_by("-modified_date")
 
     @validate_token
     def resolve_moderation_request_user(self, info, username, **kwargs):
-        return DatasetReviewRequest.objects.filter(user=username).order_by(
-            "-modified_date"
-        )
+        return DatasetReviewRequest.objects.filter(user=username).order_by("-modified_date")
 
     def resolve_all_review_requests(self, info, **kwargs):
         return DatasetReviewRequest.objects.filter(
@@ -145,7 +141,8 @@ class ReviewRequestMutation(graphene.Mutation, Output):
                 "success": False,
                 "errors": {
                     "id": [
-                        {"message": f"Moderation request with id {review_request.dataset} does not exist", "code": "404"}
+                        {"message": f"Moderation request with id {review_request.dataset} does not exist",
+                         "code": "404"}
                     ]
                 },
             }
@@ -166,7 +163,7 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
     @staticmethod
     @auth_user_by_org(action="publish_dataset")
     def mutate(
-        root, info, moderation_request: ModerationRequestsApproveRejectInput = None
+            root, info, moderation_request: ModerationRequestsApproveRejectInput = None
     ):
         errors = []
         moderation_requests = []
