@@ -118,10 +118,17 @@ def initiate_dam_request(dam_request, resource, username):
 
     # TODO: fix magic strings
     if resource and resource.dataset.dataset_type == "API":
-        url = f"{settings.PIPELINE_URL}api_source_query?api_source_id={resource.id}&request_id={data_request_instance.id}"
-        payload = {}
-        headers = {x for x in fields}
-        response = requests.request("GET", url, headers=headers, data=payload)
+        url = f"{settings.PIPELINE_URL}api_source_query"
+        payload = json.dumps(
+            {
+                "api_source_id": resource.id,
+                "request_id": data_request_instance.id,
+                "request_columns": [x for x in fields],
+                "request_rows": "",
+            }
+        )
+        headers = {}
+        response = requests.request("POST", url, headers=headers, data=payload)
         print(response.text)
     elif resource and resource.dataset.dataset_type == DataType.FILE.value:
         data_request_instance.file = File(
@@ -195,7 +202,12 @@ class OpenDataRequestMutation(graphene.Mutation, Output):
             id=data_request.dataset_access_model
         )
         dam_request = create_dataset_access_model_request(
-            dataset_access_model, "", "OTHERS", username, user_email=username, status="APPROVED"
+            dataset_access_model,
+            "",
+            "OTHERS",
+            username,
+            user_email=username,
+            status="APPROVED",
         )
         data_request_instance = initiate_dam_request(dam_request, resource, username)
         return OpenDataRequestMutation(data_request=data_request_instance)
