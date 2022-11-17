@@ -137,7 +137,7 @@ def delete_data(id):
 def facets(request):
     filters = []  # List of queries for elasticsearch to filter up on.
     selected_facets = []  # List of facets that are selected.
-    facet = ["license", "geography", "format", "status", "rating", "sector", "type"]
+    facet = ["license", "geography", "format", "status", "rating", "sector"]
     size = request.GET.get("size")
     if not size:
         size = 5
@@ -158,12 +158,8 @@ def facets(request):
     # Creating query for faceted search (filters).
     for value in facet:
         if request.GET.get(value):
-            if value == "type":
-                filters.append({"match": {"data_access_model_type": request.GET.get(value).replace("||", " ")}})
-                selected_facets.append({f"{value}": request.GET.get(value).split("||")})
-            else:
-                filters.append({"match": {f"{value}": request.GET.get(value).replace("||", " ")}})
-                selected_facets.append({f"{value}": request.GET.get(value).split("||")})
+            filters.append({"match": {f"{value}": request.GET.get(value).replace("||", " ")}})
+            selected_facets.append({f"{value}": request.GET.get(value).split("||")})
     if org:
         filters.append({"match": {"org_title": {"query": org, "operator": "AND"}}})
         selected_facets.append({"organization": org.split('||')})
@@ -193,7 +189,6 @@ def facets(request):
         "organization": {"global": {}, "aggs": {"all": {"terms": {"field": "org_title.keyword"}}}},
         "duration": {"global": {}, "aggs": {"min": {"min": {"field": "period_from", "format": "yyyy-MM-dd"}},
                                             "max": {"max": {"field": "period_to", "format": "yyyy-MM-dd"}}}},
-        "type": {"terms": {"field": "data_access_model_type.keyword"}},
     }
     if not query_string:
         # For filter search
