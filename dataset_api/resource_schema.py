@@ -182,7 +182,7 @@ class ResourceInput(graphene.InputObjectType):
     api_details: ApiInputType = graphene.Field(ApiInputType, required=False)
     file_details: FileInputType = graphene.Field(FileInputType, required=False)
     byte_size = graphene.Float(required=False, default_value=0)
-    release_date = graphene.Date(required=False, default_value="")
+    release_date = graphene.Date(required=False)
     media_type = graphene.String(required=False, default_value="")
     compression_format = graphene.String(required=False, default_value="")
     packaging_format = graphene.String(required=False, default_value="")
