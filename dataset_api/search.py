@@ -137,7 +137,7 @@ def delete_data(id):
 def facets(request):
     filters = []  # List of queries for elasticsearch to filter up on.
     selected_facets = []  # List of facets that are selected.
-    facet = ["license", "geography", "format", "status", "rating", "sector"]
+    facet = ["license", "geography", "format", "status", "rating", "sector", "type"]
     size = request.GET.get("size")
     if not size:
         size = 5
@@ -157,12 +157,13 @@ def facets(request):
 
     # Creating query for faceted search (filters).
     for value in facet:
-        if value == "type":
-            filters.append({"match": {"data_access_model_type": request.GET.get(value).replace("||", " ")}})
-            selected_facets.append({f"{value}": request.GET.get(value).split("||")})
-        else:
-            filters.append({"match": {f"{value}": request.GET.get(value).replace("||", " ")}})
-            selected_facets.append({f"{value}": request.GET.get(value).split("||")})
+        if request.GET.get(value):
+            if value == "type":
+                filters.append({"match": {"data_access_model_type": request.GET.get(value).replace("||", " ")}})
+                selected_facets.append({f"{value}": request.GET.get(value).split("||")})
+            else:
+                filters.append({"match": {f"{value}": request.GET.get(value).replace("||", " ")}})
+                selected_facets.append({f"{value}": request.GET.get(value).split("||")})
     if org:
         filters.append({"match": {"org_title": {"query": org, "operator": "AND"}}})
         selected_facets.append({"organization": org.split('||')})
@@ -208,7 +209,7 @@ def facets(request):
     else:
         # For faceted search with query string.
         filters.append(
-            {"match": {"dataset_title": {"query": query_string, "operator": "AND", "fuzziness": "AUTO"}}}
+            {"match": {"dataset_title": {"query": query_string, "operator": "AND"}}}
         )
         query = {"bool": {"must": filters}}
         resp = es_client.search(
