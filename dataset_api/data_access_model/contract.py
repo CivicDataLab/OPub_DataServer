@@ -97,6 +97,35 @@ def extract_agreement_text(dataset_access_model: DatasetAccessModel, username, a
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Data Access Agreement</title>
+        <style>
+        .document{{
+            background-color: rgb(255, 255, 255);
+            border: 1px solid black;
+            margin: auto;
+            padding: 2rem;
+            width: 1216px;
+        }}
+        
+        .header{{
+            display: flex;
+            justify-content: space-between;
+        }}
+        
+        .content p{{
+        
+            line-height: 1.4;
+        
+        }}
+        
+        ol{{
+            margin: 10px 0;
+        }}
+        .footer{{
+            display: flex;
+            justify-content: space-between;
+        }}
+
+        </style>
       </head>
       <body>
         <div class="document">
