@@ -79,6 +79,7 @@ def index_data(dataset_obj):
                 api_details_obj = APIDetails.objects.get(resource_id=resources.id)
                 auth_required.append(api_details_obj.auth_required)
                 auth_type.append(api_details_obj.api_source.auth_type)
+                format.append(api_details_obj.response_type)
             except APIDetails.DoesNotExist as e:
                 pass
         else:
