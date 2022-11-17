@@ -179,6 +179,25 @@ def create_user_org(func):
 
     return inner
 
+def modify_org_status(func):
+    def inner(*args, **kwargs):
+        value = func(*args, **kwargs)
+        org_id = value.organization.id
+        org_status = value.organization.status.lower()
+        user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+        body = json.dumps(
+            {
+                "access_token": user_token,
+                "org_id": org_id,
+                "org_status": org_status,
+            }
+        )
+        response_json = request_to_server(body, "modify_org_status")
+        if response_json["Success"]:
+            return value
+
+    return inner
+
 
 def auth_request_org(func):
     def inner(*args, **kwargs):

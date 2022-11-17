@@ -156,7 +156,10 @@ def facets(request):
 
     # Creating query for faceted search (filters).
     for value in facet:
-        if request.GET.get(value):
+        if value == "type":
+            filters.append({"match": {"data_access_model_type": request.GET.get(value).replace("||", " ")}})
+            selected_facets.append({f"{value}": request.GET.get(value).split("||")})
+        else:
             filters.append({"match": {f"{value}": request.GET.get(value).replace("||", " ")}})
             selected_facets.append({f"{value}": request.GET.get(value).split("||")})
     if org:
@@ -188,6 +191,7 @@ def facets(request):
         "organization": {"global": {}, "aggs": {"all": {"terms": {"field": "org_title.keyword"}}}},
         "duration": {"global": {}, "aggs": {"min": {"min": {"field": "period_from", "format": "yyyy-MM-dd"}},
                                             "max": {"max": {"field": "period_to", "format": "yyyy-MM-dd"}}}},
+        "type": {"terms": {"field": "data_access_model_type.keyword"}},
     }
     if not query_string:
         # For filter search
@@ -203,7 +207,7 @@ def facets(request):
     else:
         # For faceted search with query string.
         filters.append(
-            {"match": {"dataset_title": {"query": query_string, "operator": "AND"}}}
+            {"match": {"dataset_title": {"query": query_string, "operator": "AND", "fuzziness": "AUTO"}}}
         )
         query = {"bool": {"must": filters}}
         resp = es_client.search(
