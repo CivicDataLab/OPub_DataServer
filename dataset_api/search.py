@@ -137,7 +137,7 @@ def delete_data(id):
 def facets(request):
     filters = []  # List of queries for elasticsearch to filter up on.
     selected_facets = []  # List of facets that are selected.
-    facet = ["license", "geography", "format", "status", "rating", "sector"]
+    facet = ["license", "geography", "format", "status", "rating", "sector", "type"]
     size = request.GET.get("size")
     if not size:
         size = 5
