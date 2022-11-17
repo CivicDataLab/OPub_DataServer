@@ -2,7 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
-from dataset_api.data_access_model.contract import create_agreement
+from dataset_api.data_access_model.contract import create_consumer_agreement
 from dataset_api.dataset_access_model_request.schema import create_dataset_access_model_request, PurposeType
 from dataset_api.decorators import validate_token, validate_token_or_none
 from dataset_api.license.enums import AgreementStatus
@@ -52,7 +52,7 @@ class AgreementMutation(graphene.Mutation, Output):
                                        user_email=agreement_request.user_email)
 
         agreement_instance.save()
-        create_agreement(dataset_access_model, username, agreement_instance)
+        create_consumer_agreement(dataset_access_model, username, agreement_instance)
         return AgreementMutation(agreement=agreement_instance)
 
 

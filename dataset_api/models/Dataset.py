@@ -2,6 +2,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 from dataset_api.enums import DataType
+from dataset_api.file_paths import _provider_agreement_directory_path
 from dataset_api.models.Geography import Geography
 from dataset_api.models.Tag import Tag
 from dataset_api.models.Sector import Sector
@@ -38,3 +39,4 @@ class Dataset(models.Model):
     spatial_resolution = models.CharField(blank=True, null=True, max_length=100)
     temporal_resolution = models.CharField(blank=True, null=True, max_length=100)
     temporal_coverage = models.CharField(blank=True, null=True, max_length=100)
+    accepted_agreement = models.FileField(upload_to=_provider_agreement_directory_path, blank=True, null=True)

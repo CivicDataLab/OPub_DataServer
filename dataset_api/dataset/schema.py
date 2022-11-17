@@ -16,6 +16,7 @@ from dataset_api.utils import (
     get_average_rating,
 )
 from .decorators import auth_user_action_dataset, map_user_dataset, auth_query_dataset
+from ..data_access_model.contract import update_provider_agreement
 
 
 class DatasetType(DjangoObjectType):
@@ -44,7 +45,7 @@ class DatasetStatus(graphene.Enum):
 
 
 def _add_update_attributes_to_dataset(
-    dataset_instance, object_field, attribute_list, attribute_type
+        dataset_instance, object_field, attribute_list, attribute_type
 ):
     if not attribute_list:
         return
@@ -82,7 +83,7 @@ class Query(graphene.ObjectType):
     # Access : PMU / DPA
     @auth_user_by_org(action="query")
     def resolve_org_datasets(
-        self, info, role, first=None, skip=None, status: DatasetStatus = None, **kwargs
+            self, info, role, first=None, skip=None, status: DatasetStatus = None, **kwargs
     ):
         if role == "PMU" or role == "DPA":
             org_id = info.context.META.get("HTTP_ORGANIZATION")
@@ -194,10 +195,10 @@ class CreateDataset(Output, graphene.Mutation):
     @auth_user_action_dataset(action="create_dataset")
     @map_user_dataset
     def mutate(
-        root,
-        info,
-        username,
-        dataset_data: CreateDatasetInput = None,
+            root,
+            info,
+            username,
+            dataset_data: CreateDatasetInput = None,
     ):
         try:
             org_id = info.context.META.get("HTTP_ORGANIZATION")
@@ -231,6 +232,7 @@ class CreateDataset(Output, graphene.Mutation):
             username=username,
             verb="Created",
         )
+        update_provider_agreement(dataset_instance, username)
         return CreateDataset(dataset=dataset_instance)
 
 
@@ -298,6 +300,7 @@ class UpdateDataset(Output, graphene.Mutation):
             username=username,
             verb="Updated",
         )
+        update_provider_agreement(dataset_instance, username)
 
         return UpdateDataset(dataset=dataset_instance)
 
@@ -339,6 +342,7 @@ class PatchDataset(Output, graphene.Mutation):
             username=username,
             verb="Updated",
         )
+        update_provider_agreement(dataset_instance, username)
 
         return PatchDataset(success=True, dataset=dataset_instance)
 

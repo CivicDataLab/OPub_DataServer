@@ -82,3 +82,12 @@ def _agreement_directory_path(agreement, filename):
     """
     _, extension = os.path.splitext(filename)
     return f"request/{agreement.id}/{extension[1:]}/{filename}"
+
+
+def _provider_agreement_directory_path(dataset, filename):
+    """
+    Create a directory path for agreement between dataprovider and IDP.
+
+    """
+    _, extension = os.path.splitext(filename)
+    return f"dataset/{dataset.id}/{extension[1:]}/{filename}"
