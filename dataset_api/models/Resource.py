@@ -10,6 +10,7 @@ class Resource(models.Model):
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=50, default="Draft")
+    # TODO remove masked fields
     masked_fields = ArrayField(
         models.CharField(max_length=10, blank=True), blank=True, null=True
     )

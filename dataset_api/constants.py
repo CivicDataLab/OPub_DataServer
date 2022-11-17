@@ -1,12 +1,20 @@
 FORMAT_MAPPING = {
     "text/csv": "CSV",
+    "csv": "CSV",
     "application/json": "JSON",
+    "json": "JSON",
     "application/msword": "DOC",
     "application/doc": "DOC",
     "application/ms-doc": "DOC",
     "application/pdf": "PDF",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
-    "application/xml": "XML"
+    "application/xml": "XML",
+    "xml": "XML",
+    "application/geo+json": "JSON",
+    "application/gml+xml": "XML",
+    "application/gzip": "GZIP",
+    "application/xhtml+xml": "XML",
+
 }
 
 DATAREQUEST_SWAGGER_SPEC = {

@@ -189,9 +189,9 @@ class DeleteResourceInput(graphene.InputObjectType):
 
 def _remove_masked_fields(resource_instance: Resource):
     if (
-        resource_instance.masked_fields
-        and len(resource_instance.filedetails.file.path)
-        and "csv" in resource_instance.filedetails.format.lower()
+            resource_instance.masked_fields
+            and len(resource_instance.filedetails.file.path)
+            and "csv" in resource_instance.filedetails.format.lower()
     ):
         df = pd.read_csv(resource_instance.filedetails.file.path)
         df = df.drop(columns=resource_instance.masked_fields)
@@ -289,11 +289,16 @@ def _create_update_file_details(resource_instance, attribute):
     if attribute.remote_url:
         file_detail_object.remote_url = attribute.remote_url
     file_detail_object.save()
-    file_format = attribute.format
-    if attribute.format and attribute.format == "":
+    file_format = ""
+    if attribute.format == "":
+        mime_type = mimetypes.guess_type(file_detail_object.file.path)[0]
+        if isinstance(mime_type, dict) and "value" in mime_type.keys():
+            mime_type = mime_type["value"]
         file_format = FORMAT_MAPPING[
-            mimetypes.guess_type(file_detail_object.file.path)[0]
+            mime_type.lower()
         ]
+    if not file_format or file_format == "":
+        GraphQLError("Unsupported format")
     file_detail_object.format = file_format
     file_detail_object.save()
 
@@ -308,10 +313,10 @@ class CreateResource(graphene.Mutation, Output):
     @validate_token
     @auth_user_action_resource(action="create_resource")
     def mutate(
-        root,
-        info,
-        username,
-        resource_data: ResourceInput = None,
+            root,
+            info,
+            username,
+            resource_data: ResourceInput = None,
     ):
         """
 
