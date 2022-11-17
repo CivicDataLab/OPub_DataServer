@@ -61,7 +61,7 @@ def extract_text(additions, model_license, data_access_model: DataAccessModel):
 
 def get_agreement_resource_details(dataset_access_model: DatasetAccessModel):
     text = """<ol>"""
-    for resource in dataset_access_model.datasetaccessmodelresource_set:
+    for resource in dataset_access_model.datasetaccessmodelresource_set.all():
         text = text + f"""
           <li>
             {resource.resource.title}, last updated on {resource.resource.modified}: """
