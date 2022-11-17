@@ -3,6 +3,7 @@ import os
 import graphene
 import pandas as pd
 import requests
+import json
 
 from django.core.files import File
 from graphene_django import DjangoObjectType
@@ -29,6 +30,7 @@ from dataset_api.models import (
 )
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
+from dataset_api.utils import get_keys
 
 
 class DataRequestType(DjangoObjectType):
@@ -116,10 +118,17 @@ def initiate_dam_request(dam_request, resource, username):
 
     # TODO: fix magic strings
     if resource and resource.dataset.dataset_type == "API":
-        url = f"{settings.PIPELINE_URL}api_source_query?api_source_id={resource.id}&request_id={data_request_instance.id}"
-        payload = {}
-        headers = {x for x in fields}
-        response = requests.request("GET", url, headers=headers, data=payload)
+        url = f"{settings.PIPELINE_URL}api_source_query"
+        payload = json.dumps(
+            {
+                "api_source_id": resource.id,
+                "request_id": data_request_instance.id,
+                "request_columns": [x for x in fields],
+                "request_rows": "",
+            }
+        )
+        headers = {}
+        response = requests.request("POST", url, headers=headers, data=payload)
         print(response.text)
     elif resource and resource.dataset.dataset_type == DataType.FILE.value:
         data_request_instance.file = File(
@@ -135,7 +144,15 @@ def initiate_dam_request(dam_request, resource, username):
             file_data.drop(remove_cols, axis=1, inplace=True)
             file_data.to_csv(data_request_instance.file.path, index=False)
         elif file_instance.format.lower() == "json":
-            pass
+            read_file = open(data_request_instance.file.path, "r")
+            file = json.load(read_file)
+            remove_cols = [x for x in file.keys() if x not in fields]
+            for x in fields:
+                del file[x]
+            read_file.close()
+            output_file = open(data_request_instance.file.path, "w")
+            file = json.dump(file, output_file, indent=4)
+            output_file.close()
         data_request_instance.status = "FETCHED"
     data_request_instance.save()
     return data_request_instance
@@ -148,7 +165,7 @@ class DataRequestMutation(graphene.Mutation, Output):
     data_request = graphene.Field(DataRequestType)
 
     @staticmethod
-    @validate_token_or_none
+    # @validate_token_or_none
     def mutate(root, info, data_request: DataRequestInput = None, username=""):
         try:
             resource = Resource.objects.get(id=data_request.resource)
@@ -185,7 +202,12 @@ class OpenDataRequestMutation(graphene.Mutation, Output):
             id=data_request.dataset_access_model
         )
         dam_request = create_dataset_access_model_request(
-            dataset_access_model, "", "OTHERS", username, user_email=username, status="APPROVED"
+            dataset_access_model,
+            "",
+            "OTHERS",
+            username,
+            user_email=username,
+            status="APPROVED",
         )
         data_request_instance = initiate_dam_request(dam_request, resource, username)
         return OpenDataRequestMutation(data_request=data_request_instance)
