@@ -81,7 +81,7 @@ def get_dataset_resource_details(dataset: Dataset):
     for resource in dataset.resource_set.all():
         text = text + f"""
           <li>
-            {resource.resource.title}, last updated on {resource.resource.modified}: """
+            {resource.title}, last updated on {resource.modified}: """
         text = text + """</li>"""
     text = text + """</ol>"""
     return text
