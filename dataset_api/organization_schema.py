@@ -19,6 +19,7 @@ from .decorators import (
     create_user_org,
     auth_user_by_org,
     auth_request_org,
+    modify_org_status,
 )
 from .enums import OrganizationTypes, OrganizationCreationStatusType
 from .utils import get_client_ip
@@ -231,6 +232,7 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     @staticmethod
     @validate_token
     @auth_user_by_org(action="approve_organization")
+    @modify_org_status
     def mutate(
         root,
         info,
