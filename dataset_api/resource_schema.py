@@ -181,6 +181,12 @@ class ResourceInput(graphene.InputObjectType):
     masked_fields = graphene.List(of_type=graphene.String, default=[], required=False)
     api_details: ApiInputType = graphene.Field(ApiInputType, required=False)
     file_details: FileInputType = graphene.Field(FileInputType, required=False)
+    byte_size = graphene.String(required=False, default_value="")
+    release_date = graphene.String(required=False, default_value="")
+    media_type = graphene.String(required=False, default_value="")
+    compression_format = graphene.String(required=False, default_value="")
+    packaging_format = graphene.String(required=False, default_value="")
+    checksum = graphene.String(required=False, default_value="")
 
 
 class DeleteResourceInput(graphene.InputObjectType):
@@ -340,6 +346,12 @@ class CreateResource(graphene.Mutation, Output):
             dataset=dataset,
             status=resource_data.status,
             masked_fields=masked_fields,
+            byte_size=resource_data.byte_size,
+            release_date=resource_data.release_date,
+            media_type=resource_data.media_type,
+            compression_format=resource_data.compression_format,
+            packaging_format=resource_data.packaging_format,
+            checksum=resource_data.checksum
         )
         resource_instance.save()
 
@@ -421,6 +433,13 @@ class UpdateResource(graphene.Mutation, Output):
         resource_instance.dataset = dataset
         resource_instance.status = resource_data.status
         resource_instance.masked_fields = resource_data.masked_fields
+        resource_instance.byte_size = resource_data.byte_size
+        resource_instance.release_date = resource_data.release_date
+        resource_instance.media_type = resource_data.media_type
+        resource_instance.compression_format = resource_data.compression_format
+        resource_instance.packaging_format = resource_data.packaging_format
+        resource_instance.checksum = resource_data.checksum
+
         # resource_instance.save()
         # _remove_masked_fields(resource_instance)
         # _create_update_schema(resource_data, resource_instance)
