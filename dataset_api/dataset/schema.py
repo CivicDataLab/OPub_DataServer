@@ -174,6 +174,16 @@ class UpdateDatasetInput(graphene.InputObjectType):
     sector_list: Iterable = graphene.List(
         of_type=graphene.String, default=[], required=True
     )
+    language = graphene.String(required=False, default_value="")
+    in_series = graphene.String(required=False, default_value="")
+    theme = graphene.String(required=False, default_value="")
+    qualified_attribution = graphene.String(required=False, default_value="")
+    contact_point = graphene.String(required=False, default_value="")
+    confirms_to = graphene.String(required=False, default_value="")
+    spatial_coverage = graphene.String(required=False, default_value="")
+    spatial_resolution = graphene.String(required=False, default_value="")
+    temporal_resolution = graphene.String(required=False, default_value="")
+    temporal_coverage = graphene.String(required=False, default_value="")
 
 
 class PatchDatasetInput(graphene.InputObjectType):
@@ -282,7 +292,16 @@ class UpdateDataset(Output, graphene.Mutation):
         dataset_instance.period_from = dataset_data.period_from
         dataset_instance.update_frequency = dataset_data.update_frequency
         dataset_instance.highlights = dataset_data.highlights
-
+        dataset_instance.language = dataset_data.language
+        dataset_instance.in_series = dataset_data.in_series
+        dataset_instance.theme = dataset_data.theme
+        dataset_instance.qualified_attribution = dataset_data.qualified_attribution
+        dataset_instance.contact_point = dataset_data.contact_point
+        dataset_instance.confirms_to = dataset_data.confirms_to
+        dataset_instance.spatial_coverage = dataset_data.spatial_coverage
+        dataset_instance.spatial_resolution = dataset_data.spatial_resolution
+        dataset_instance.temporal_resolution = dataset_data.temporal_resolution
+        dataset_instance.temporal_coverage = dataset_data.temporal_coverage
         dataset_instance.save()
         _add_update_attributes_to_dataset(
             dataset_instance, "tags", dataset_data.tags_list, Tag
