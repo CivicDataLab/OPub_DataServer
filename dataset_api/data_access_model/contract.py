@@ -38,7 +38,7 @@ def create_contract(model_license: License, additions: Iterable, data_access_mod
 def extract_text(additions, model_license, data_access_model: DataAccessModel):
     text = ""
     for addition in additions:
-        # addition = LicenseAddition.objects.get(id=addition)
+        addition = LicenseAddition.objects.get(id=addition)
         text = text + addition.title
         text = text + addition.description
     dam_license_content = body = f"""
