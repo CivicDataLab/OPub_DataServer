@@ -141,12 +141,16 @@ def initiate_dam_request(dam_request, resource, username):
             file_data = pd.read_csv(data_request_instance.file)
             file_columns = file_data.columns.values.tolist()
             remove_cols = [x for x in file_columns if x not in fields]
+            if len(fields) == 0:
+                remove_cols = []
             file_data.drop(remove_cols, axis=1, inplace=True)
             file_data.to_csv(data_request_instance.file.path, index=False)
         elif file_instance.format.lower() == "json":
             read_file = open(data_request_instance.file.path, "r")
             file = json.load(read_file)
             remove_cols = [x for x in file.keys() if x not in fields]
+            if len(fields) == 0:
+                remove_cols = []
             for x in fields:
                 del file[x]
             read_file.close()
