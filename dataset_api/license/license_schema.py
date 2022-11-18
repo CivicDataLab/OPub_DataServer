@@ -13,6 +13,7 @@ from dataset_api.models.License import License
 from dataset_api.decorators import auth_user_by_org
 from .decorators import check_license_role, auth_query_license
 from .enums import LicenseStatus
+from ..license_addition.enums import LICENSEADDITIONSTATE
 from ..license_addition.license_addition_schema import LicenceAdditionInputType, _create_update_license_additions, \
     LicenseAdditionType
 
@@ -177,6 +178,10 @@ class ApproveRejectLicense(graphene.Mutation, Output):
             license_instance.status = license_data.status
             if license_data.reject_reason:
                 license_instance.reject_reason = license_data.reject_reason
+            if license_data.status == LicenseStatus.PUBLISHED.value:
+                for addition in license_instance.licenseaddition_set.all():
+                    addition.status = LICENSEADDITIONSTATE.PUBLISHED.value
+                    addition.save()
             license_instance.save()
             license_requests.append(license_instance)
         if errors:

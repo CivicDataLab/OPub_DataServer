@@ -11,5 +11,6 @@ class LicenseAddition(models.Model):
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     license = models.ForeignKey(License, on_delete=models.CASCADE, null=False, blank=False)
-    status = models.CharField(max_length=50, choices=LICENSEADDITIONSTATE.choices)
+    status = models.CharField(max_length=50, choices=LICENSEADDITIONSTATE.choices, blank=False, null=False,
+                              default=LICENSEADDITIONSTATE.PUBLISHED.value)
     reject_reason = models.CharField(max_length=500, blank=True, null=True)
