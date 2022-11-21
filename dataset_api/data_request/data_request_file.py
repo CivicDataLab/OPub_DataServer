@@ -23,6 +23,7 @@ from ratelimit import core
 # Overwriting ratelimit's cache key function.
 core._make_cache_key = idp_make_cache_key
 
+
 @dam_request_validity
 @validate_token_or_none
 # @ratelimit(
@@ -49,7 +50,7 @@ def download(request, data_request_id, username=None):
         increment=False,
     )
     # If count < limit -- don't increment the counter.
-    if (get_quota_count["count"] < get_quota_count["limit"]):
+    if get_quota_count["count"] < get_quota_count["limit"]:
         # Check for rate.
         get_rate_count = core.get_usage(
             request,
@@ -59,7 +60,7 @@ def download(request, data_request_id, username=None):
             increment=False,
         )
         # Increment rate and quota count.
-        if (get_rate_count["count"] < get_rate_count["limit"]):
+        if get_rate_count["count"] < get_rate_count["limit"]:
             get_rate_count = core.get_usage(
                 request,
                 group="rate",
