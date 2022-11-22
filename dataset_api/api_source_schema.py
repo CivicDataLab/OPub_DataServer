@@ -15,7 +15,8 @@ class APISourceType(DjangoObjectType):
 
 class Query(graphene.ObjectType):
     all_api_source = graphene.List(APISourceType)
-    API_source = graphene.Field(APISourceType, api_source_id=graphene.Int())
+    all_api_source_by_org = graphene.List(APISourceType)
+    api_source = graphene.Field(APISourceType, api_source_id=graphene.Int())
 
     def resolve_all_api_source(self, info, **kwargs):
         return APISource.objects.all()
