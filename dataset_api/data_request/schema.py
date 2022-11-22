@@ -214,6 +214,8 @@ class DataRequestMutation(graphene.Mutation, Output):
                 id=data_request.dataset_access_model_request
             )
             input_parameters = data_request.parameters
+            if not input_parameters:
+                input_parameters = []
             parameters = {}
             for parameter in input_parameters:
                 parameters[parameter.key] = parameter.value
