@@ -159,20 +159,36 @@ class CreateOrganization(Output, graphene.Mutation):
     @staticmethod
     @create_user_org
     def mutate(root, info, organization_data: OrganizationInput = None):
-        organization_additional_info_instance = OrganizationCreateRequest(
-            title=organization_data.title,
-            description=organization_data.description,
-            logo=organization_data.logo,
-            contact_email=organization_data.contact,
-            homepage=organization_data.homepage,
-            organization_types=organization_data.organization_types,
-            upload_sample_data_file=organization_data.upload_sample_data_file,
-            data_description=organization_data.data_description,
-            sample_data_url=organization_data.sample_data_url,
-            status=OrganizationCreationStatusType.REQUESTED.value,
-        )
-        organization_additional_info_instance.save()
-        return CreateOrganization(organization=organization_additional_info_instance)
+        try:
+            Organization.objects.get(title=organization_data.title)
+            return {
+                "success": False,
+                "errors": {
+                    "id": [
+                        {
+                            "message": "Organization with given name already exists.",
+                            "code": "404",
+                        }
+                    ]
+                },
+            }
+        except Organization.DoesNotExist:
+            organization_additional_info_instance = OrganizationCreateRequest(
+                title=organization_data.title,
+                description=organization_data.description,
+                logo=organization_data.logo,
+                contact_email=organization_data.contact,
+                homepage=organization_data.homepage,
+                organization_types=organization_data.organization_types,
+                upload_sample_data_file=organization_data.upload_sample_data_file,
+                data_description=organization_data.data_description,
+                sample_data_url=organization_data.sample_data_url,
+                status=OrganizationCreationStatusType.REQUESTED.value,
+            )
+            organization_additional_info_instance.save()
+            return CreateOrganization(
+                organization=organization_additional_info_instance
+            )
 
 
 class UpdateOrganization(Output, graphene.Mutation):
