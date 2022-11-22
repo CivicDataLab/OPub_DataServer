@@ -7,8 +7,9 @@ import pandas as pd
 import requests
 from redis import Redis
 from django.conf import settings
-from django.http import HttpResponse, FileResponse
-from graphql import GraphQLError
+from django.http import HttpResponse, FileResponse, HttpResponseForbidden
+
+# from graphql import GraphQLError
 
 from dataset_api.constants import FORMAT_MAPPING
 from dataset_api.data_request.token_handler import create_access_jwt_token
@@ -17,7 +18,8 @@ from dataset_api.models.DataRequest import DataRequest
 from dataset_api.search import index_data
 from .decorators import dam_request_validity
 from dataset_api.utils import idp_make_cache_key
-from ratelimit.decorators import ratelimit
+
+# from ratelimit.decorators import ratelimit
 from ratelimit import core
 
 # Overwriting ratelimit's cache key function.
@@ -76,9 +78,9 @@ def download(request, data_request_id, username=None):
                 increment=True,
             )
         else:
-            raise GraphQLError("Rate Limit Exceeded.")
+            return HttpResponseForbidden(content="Rate Limit Exceeded.")
     else:
-        raise GraphQLError("Quota Limit Exceeded.")
+        return HttpResponseForbidden(content="Quota Limit Exceeded.")
 
     return get_request_file(username, data_request_id, target_format)
     # # Second Method of raising error.
