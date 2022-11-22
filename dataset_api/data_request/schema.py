@@ -128,7 +128,7 @@ def initiate_dam_request(dam_request, resource, username, parameters=None):
     # TODO: fix magic strings
     if resource and resource.dataset.dataset_type == "API":
         for parameter in resource.apidetails.apiparameter_set.all():
-            value = parameters[parameter.key] if parameter.key in parameters.keys() else parameter.default
+            value = parameters.get(parameter.key, parameter.default)
             dr_parameter_instance = DataRequestParameter(api_parameter=parameter, value=value,
                                                          data_request=data_request_instance)
             dr_parameter_instance.save()
