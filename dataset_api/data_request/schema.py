@@ -1,4 +1,5 @@
 import os
+from typing import Iterator
 
 import graphene
 import pandas as pd
@@ -26,7 +27,7 @@ from dataset_api.models import (
     Resource,
     DatasetAccessModel,
     DatasetAccessModelResource,
-    FileDetails,
+    FileDetails, DataRequestParameter,
 )
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
@@ -87,9 +88,15 @@ class Query(graphene.ObjectType):
         return DataRequest.objects.get(user=username)
 
 
+class DataRequestParameterInput(graphene.InputObjectType):
+    key = graphene.ID(required=True)
+    value = graphene.String(required=True)
+
+
 class DataRequestInput(graphene.InputObjectType):
     dataset_access_model_request = graphene.ID(required=True)
     resource = graphene.ID(required=True)
+    parameters: Iterator = graphene.List(of_type=DataRequestParameterInput, required=False)
 
 
 class OpenDataRequestInput(graphene.InputObjectType):
@@ -103,7 +110,9 @@ class DataRequestUpdateInput(graphene.InputObjectType):
     file = Upload(required=False)
 
 
-def initiate_dam_request(dam_request, resource, username):
+def initiate_dam_request(dam_request, resource, username, parameters=None):
+    if parameters is None:
+        parameters = {}
     data_request_instance = DataRequest(
         status="REQUESTED",
         user=username,
@@ -118,6 +127,11 @@ def initiate_dam_request(dam_request, resource, username):
 
     # TODO: fix magic strings
     if resource and resource.dataset.dataset_type == "API":
+        for parameter in resource.apidetails.apiparameter_set.all():
+            value = parameters[parameter.key] if parameter.key in parameters.keys() else parameter.default
+            dr_parameter_instance = DataRequestParameter(api_parameter=parameter, value=value,
+                                                         data_request=data_request_instance)
+            dr_parameter_instance.save()
         url = f"{settings.PIPELINE_URL}api_source_query"
         payload = json.dumps(
             {
@@ -170,12 +184,16 @@ class DataRequestMutation(graphene.Mutation, Output):
 
     @staticmethod
     @validate_token_or_none
-    def mutate(root, info, data_request: DataRequestInput = None, username=""):
+    def mutate(root, info, data_request: DataRequestInput, username=""):
         try:
             resource = Resource.objects.get(id=data_request.resource)
             dam_request = DatasetAccessModelRequest.objects.get(
                 id=data_request.dataset_access_model_request
             )
+            input_parameters = data_request.parameters
+            parameters = {}
+            for parameter in input_parameters:
+                parameters[parameter.key] = parameter.value
         except (Resource.DoesNotExist, DatasetAccessModelRequest.DoesNotExist) as e:
             return {
                 "success": False,
@@ -188,7 +206,7 @@ class DataRequestMutation(graphene.Mutation, Output):
                     ]
                 },
             }
-        data_request_instance = initiate_dam_request(dam_request, resource, username)
+        data_request_instance = initiate_dam_request(dam_request, resource, username, parameters)
         return DataRequestMutation(data_request=data_request_instance)
 
 
@@ -213,7 +231,7 @@ class OpenDataRequestMutation(graphene.Mutation, Output):
             user_email=username,
             status="APPROVED",
         )
-        data_request_instance = initiate_dam_request(dam_request, resource, username)
+        data_request_instance = initiate_dam_request(dam_request, resource, username, None)
         return OpenDataRequestMutation(data_request=data_request_instance)
 
 

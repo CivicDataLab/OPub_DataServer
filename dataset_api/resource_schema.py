@@ -160,9 +160,9 @@ class ResponseType(graphene.Enum):
 
 class APIParameterInputType(graphene.InputObjectType):
     id = graphene.ID(required=False)
-    key = graphene.String(required=False)
+    key = graphene.String(required=True)
     format = graphene.String(required=False)
-    default = graphene.String(required=False)
+    default = graphene.String(required=True)
 
 
 class ApiInputType(graphene.InputObjectType):
