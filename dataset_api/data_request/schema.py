@@ -38,6 +38,7 @@ class DataRequestType(DjangoObjectType):
     access_token = graphene.String()
     refresh_token = graphene.String()
     spec = graphene.JSONString()
+    parameters = graphene.JSONString()
     remaining_quota = graphene.Int()
 
     class Meta:
@@ -61,9 +62,31 @@ class DataRequestType(DjangoObjectType):
         spec["paths"]["/getresource"]["get"]["parameters"][0][
             "example"
         ] = create_access_jwt_token(self, username)
+        parameters = []
+        resource = self.resource
+        if resource and resource.dataset.dataset_type == "API":
+            parameters = resource.apidetails.apiparameter_set.all()
+        for parameter in parameters:
+            param_input = {
+                "name": parameter.api_parameter.key,
+                "in": "query",
+                "required": "true",
+                "description": parameter.api_parameter.key,
+                "schema": {
+                    "type": parameter.api_parameter.format
+                },
+                "example": parameter.value
+            }
+            spec["paths"]["/update_data"]["get"]["parameters"].append(param_input)
         # spec["info"]["title"] = self.resource.title
         # spec["info"]["description"] = self.resource.description
         return spec
+
+    def resolve_parameters(self: DataRequest, info):
+        parameters = {}
+        for parameter in self.datarequestparameter_set.all():
+            parameters[parameter.api_parameter.key] = parameter.value
+        return parameters
 
 
 class DatasetRequestStatusType(graphene.Enum):

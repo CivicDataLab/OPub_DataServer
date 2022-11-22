@@ -55,6 +55,40 @@ DATAREQUEST_SWAGGER_SPEC = {
                 }
             }
         },
+        "/update_data": {
+            "get": {
+                "description": "Updates the data from source",
+                "tags": [
+                    "Resource"
+                ],
+                "operationId": "updateData",
+                "parameters": [
+                    {
+                        "name": "token",
+                        "in": "query",
+                        "required": "true",
+                        "description": "Access Token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "format",
+                        "in": "query",
+                        "required": "true",
+                        "description": "Format of return",
+                        "schema": {
+                            "type": "string",
+                            "enum": ["CSV", "XML", "JSON"]
+                        }
+                    }],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/getresource": {
             "get": {
                 "description": "Returns file with requested resource",
