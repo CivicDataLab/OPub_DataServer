@@ -23,28 +23,70 @@ from ratelimit import core
 # Overwriting ratelimit's cache key function.
 core._make_cache_key = idp_make_cache_key
 
+
 @dam_request_validity
 @validate_token_or_none
-@ratelimit(
-    group="quota",
-    key="dataset_api.ratelimits.user_key",
-    rate="dataset_api.ratelimits.quota_per_user",
-    block=False,  # If TRUE will raise error, otherwise
-)
-@ratelimit(
-    group="rate",
-    key="dataset_api.ratelimits.user_key",
-    rate="dataset_api.ratelimits.rate_per_user",
-    block=False,  # If TRUE will raise error, otherwise
-)
+# @ratelimit(
+#     group="rate",
+#     key="dataset_api.ratelimits.user_key",
+#     rate="dataset_api.ratelimits.rate_per_user",
+#     block=True,  # If TRUE will raise error, otherwise
+# )
+# @ratelimit(
+#     group="quota",
+#     key="dataset_api.ratelimits.user_key",
+#     rate="dataset_api.ratelimits.quota_per_user",
+#     block=True,  # If TRUE will raise error, otherwise
+# )
 def download(request, data_request_id, username=None):
     target_format = request.GET.get("format", None)
-    # Second Method of raising error.
-    was_limited = getattr(request, "limited", False)
-    if not was_limited:
-        return get_request_file(username, data_request_id, target_format)
+
+    # Get the quota count.
+    get_quota_count = core.get_usage(
+        request,
+        group="quota",
+        key="dataset_api.ratelimits.user_key",
+        rate="dataset_api.ratelimits.quota_per_user",
+        increment=False,
+    )
+    # If count < limit -- don't increment the counter.
+    if get_quota_count["count"] < get_quota_count["limit"]:
+        # Check for rate.
+        get_rate_count = core.get_usage(
+            request,
+            group="rate",
+            key="dataset_api.ratelimits.user_key",
+            rate="dataset_api.ratelimits.rate_per_user",
+            increment=False,
+        )
+        # Increment rate and quota count.
+        if get_rate_count["count"] < get_rate_count["limit"]:
+            get_rate_count = core.get_usage(
+                request,
+                group="rate",
+                key="dataset_api.ratelimits.user_key",
+                rate="dataset_api.ratelimits.rate_per_user",
+                increment=True,
+            )
+            get_quota_count = core.get_usage(
+                request,
+                group="quota",
+                key="dataset_api.ratelimits.user_key",
+                rate="dataset_api.ratelimits.quota_per_user",
+                increment=True,
+            )
+        else:
+            raise GraphQLError("Rate Limit Exceeded.")
     else:
-        raise GraphQLError("Rate limit or Quota Exceeded.")
+        raise GraphQLError("Quota Limit Exceeded.")
+
+    return get_request_file(username, data_request_id, target_format)
+    # # Second Method of raising error.
+    # was_limited = getattr(request, "limited", False)
+    # if not was_limited:
+    #     return get_request_file(username, data_request_id, target_format)
+    # else:
+    #     raise GraphQLError("Rate limit or Quota Exceeded.")
 
 
 def update_download_count(username, data_request: DataRequest):
