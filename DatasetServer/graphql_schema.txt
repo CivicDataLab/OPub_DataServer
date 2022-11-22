@@ -256,6 +256,7 @@ type DataAccessModelRequestType {
     issued: DateTime!
     modified: DateTime!
     purpose: String!
+    remaining_quota: Int
     remark: String
     status: String!
     user: String
@@ -338,6 +339,7 @@ type DatasetRatingType {
 }
 
 type DatasetType {
+    accepted_agreement: String
     action: String!
     additionalinfo_set: [AdditionalInfoType!]!
     average_rating: Float
@@ -1108,6 +1110,13 @@ that will be handled by the multipart request spec
 """
 scalar Upload
 
+input APIParameterInputType {
+    default: String
+    format: String
+    id: ID
+    key: String
+}
+
 input APISourceInput {
     api_version: String
     auth_credentials: [KeyValueType]
@@ -1146,8 +1155,8 @@ input AdditionalInfoInput {
 
 input AgreementInput {
     dataset_access_model: ID!
-    dataset_access_model_request_id: ID
     description: String
+    id: ID
     purpose: PurposeType
     user_email: String
     username: String
@@ -1156,6 +1165,7 @@ input AgreementInput {
 input ApiInputType {
     api_source: ID!
     auth_required: Boolean!
+    parameters: [APIParameterInputType]
     response_type: ResponseType
     url_path: String!
 }
@@ -1373,11 +1383,17 @@ input ResourceFieldInput {
 
 input ResourceInput {
     api_details: ApiInputType
+    byte_size: Float = 0.0
+    checksum: String = ""
+    compression_format: String = ""
     dataset: ID!
     description: String
     file_details: FileInputType
     id: ID
     masked_fields: [String]
+    media_type: String = ""
+    packaging_format: String = ""
+    release_date: Date
     schema: [ResourceSchemaInputType]
     status: String!
     title: String!
@@ -1419,15 +1435,25 @@ input TagInput {
 
 input UpdateDatasetInput {
     action: String = "create data"
+    confirms_to: String = ""
+    contact_point: String = ""
     funnel: String = "upload"
     geo_list: [String]!
     highlights: [String]
     id: ID
+    in_series: String = ""
+    language: String = ""
     period_from: Date
     period_to: Date
+    qualified_attribution: String = ""
     remote_issued: Date!
     remote_modified: Date
     sector_list: [String]!
+    spatial_coverage: String = ""
+    spatial_resolution: String = ""
     tags_list: [String]
+    temporal_coverage: String = ""
+    temporal_resolution: String = ""
+    theme: String = ""
     update_frequency: String!
 }
