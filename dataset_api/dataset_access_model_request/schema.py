@@ -180,7 +180,6 @@ class Query(graphene.ObjectType):
             org_id = info.context.META.get("HTTP_ORGANIZATION")
             return DatasetAccessModelRequest.objects.filter(
                 Q(access_model_id__data_access_model__organization=org_id),
-                Q(status__exact="APPROVED"),
             )
         else:
             raise GraphQLError("Access Denied")
