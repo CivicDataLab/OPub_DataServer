@@ -71,16 +71,6 @@ DATAREQUEST_SWAGGER_SPEC = {
                         "schema": {
                             "type": "string"
                         }
-                    },
-                    {
-                        "name": "format",
-                        "in": "query",
-                        "required": "true",
-                        "description": "Format of return",
-                        "schema": {
-                            "type": "string",
-                            "enum": ["CSV", "XML", "JSON"]
-                        }
                     }],
                 "responses": {
                     "200": {

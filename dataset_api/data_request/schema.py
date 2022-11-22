@@ -59,9 +59,13 @@ class DataRequestType(DjangoObjectType):
         spec["paths"]["/refreshtoken"]["get"]["parameters"][0][
             "example"
         ] = generate_refresh_token(self, username)
+        token = create_access_jwt_token(self, username)
         spec["paths"]["/getresource"]["get"]["parameters"][0][
             "example"
-        ] = create_access_jwt_token(self, username)
+        ] = token
+        spec["paths"]["/update_data"]["get"]["parameters"][0][
+            "example"
+        ] = token
         parameters = []
         resource = self.resource
         if resource and resource.dataset.dataset_type == "API":
