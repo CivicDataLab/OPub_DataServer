@@ -1,5 +1,6 @@
 import mimetypes
 import os
+from typing import Iterator
 
 import graphene
 import pandas as pd
@@ -17,7 +18,7 @@ from .models import (
     Dataset,
     ResourceSchema,
     APIDetails,
-    FileDetails,
+    FileDetails, APIParameter,
 )
 from .decorators import (
     auth_user_action_resource,
@@ -157,11 +158,19 @@ class ResponseType(graphene.Enum):
     CSV = "CSV"
 
 
+class APIParameterInputType(graphene.InputObjectType):
+    id = graphene.ID(required=False)
+    key = graphene.String(required=False)
+    format = graphene.String(required=False)
+    default = graphene.String(required=False)
+
+
 class ApiInputType(graphene.InputObjectType):
     api_source = graphene.ID(required=True)
     auth_required = graphene.Boolean(required=True)
     url_path = graphene.String(required=True)
     response_type = ResponseType()
+    parameters: Iterator = graphene.List(of_type=APIParameterInputType, required=False)
 
 
 class FileInputType(graphene.InputObjectType):
@@ -195,9 +204,9 @@ class DeleteResourceInput(graphene.InputObjectType):
 
 def _remove_masked_fields(resource_instance: Resource):
     if (
-        resource_instance.masked_fields
-        and len(resource_instance.filedetails.file.path)
-        and "csv" in resource_instance.filedetails.format.lower()
+            resource_instance.masked_fields
+            and len(resource_instance.filedetails.file.path)
+            and "csv" in resource_instance.filedetails.format.lower()
     ):
         df = pd.read_csv(resource_instance.filedetails.file.path)
         df = df.drop(columns=resource_instance.masked_fields)
@@ -268,6 +277,40 @@ def _create_resource_schema_instance(resource_instance, schema):
     return schema_instance
 
 
+def _create_update_api_parameter(api_detail_instance, parameters):
+    parameter_ids = []  # List of schemas that already exists.
+    parameter_instances = APIParameter.objects.filter(api_details=api_detail_instance.id)
+    for parameter in parameter_instances:
+        parameter_ids.append(parameter.id)
+    for parameter in parameters:
+        if parameter.id:
+            parameter_ids.remove(int(parameter.id))
+    # Delete parameter which were not updated or created.
+    if parameter_ids:
+        APIParameter.objects.filter(id__in=parameter_ids).delete()
+    for parameter in parameters:
+        try:
+            # Update existing schema
+            if parameter.id:
+                parameter_instance = APIParameter.objects.get(id=int(parameter.id))
+                parameter_instance.key = parameter.key
+                parameter_instance.format = parameter.format
+                parameter_instance.default = parameter.default
+                parameter_instance.api_details = api_detail_instance
+                parameter_instance.save()
+            else:
+                # Add new schema
+                parameter_instance = APIParameter(default=parameter.default, key=parameter.key, format=parameter.format,
+                                                  api_details=api_detail_instance)
+                parameter_instance.save()
+        except ResourceSchema.DoesNotExist as e:
+            parameter_instance = APIParameter(default=parameter.default, key=parameter.key, format=parameter.format,
+                                              api_details=api_detail_instance)
+            parameter_instance.save()
+
+        parameter_instance.save()
+
+
 def _create_update_api_details(resource_instance, attribute):
     api_source_instance = APISource.objects.get(id=attribute.api_source)
     try:
@@ -280,6 +323,7 @@ def _create_update_api_details(resource_instance, attribute):
     api_detail_object.auth_required = attribute.auth_required
     api_detail_object.url_path = attribute.url_path
     api_detail_object.response_type = attribute.response_type
+    _create_update_api_parameter(api_detail_object, attribute.parameters)
     api_detail_object.save()
 
 
@@ -316,10 +360,10 @@ class CreateResource(graphene.Mutation, Output):
     @validate_token
     @auth_user_action_resource(action="create_resource")
     def mutate(
-        root,
-        info,
-        username,
-        resource_data: ResourceInput = None,
+            root,
+            info,
+            username,
+            resource_data: ResourceInput = None,
     ):
         """
 
