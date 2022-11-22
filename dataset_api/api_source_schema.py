@@ -2,9 +2,10 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
-from .models import APISource
+from .models import APISource, Organization
 from .enums import AuthLocation, AuthType
 from .decorators import auth_user_by_org
+
 
 class APISourceType(DjangoObjectType):
     class Meta:
@@ -18,6 +19,11 @@ class Query(graphene.ObjectType):
 
     def resolve_all_api_source(self, info, **kwargs):
         return APISource.objects.all()
+
+    def resolve_all_api_source_by_org(self, info, **kwargs):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
+        organization = Organization.objects.get(id=org_id)
+        return APISource.objects.filter(organization=organization)
 
     def resolve_api_source(self, info, api_source_id):
         return APISource.objects.get(pk=api_source_id)
@@ -51,6 +57,8 @@ class CreateAPISource(Output, graphene.Mutation):
     @staticmethod
     @auth_user_by_org(action="create_api_source")
     def mutate(root, info, api_source_data=None):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
+        organization = Organization.objects.get(id=org_id)
         api_source_instance = APISource(
             title=api_source_data.title,
             base_url=api_source_data.base_url,
@@ -61,6 +69,7 @@ class CreateAPISource(Output, graphene.Mutation):
             auth_type=api_source_data.auth_type,
             auth_credentials=api_source_data.auth_credentials,
             auth_token=api_source_data.auth_token,
+            organization=organization
         )
         api_source_instance.save()
         return CreateAPISource(API_source=api_source_instance)

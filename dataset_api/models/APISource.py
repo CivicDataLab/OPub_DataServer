@@ -1,6 +1,8 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
+from dataset_api.models.Organization import Organization
+
 
 class APISource(models.Model):
     title = models.CharField(max_length=100)
@@ -12,3 +14,4 @@ class APISource(models.Model):
     auth_type = models.CharField(max_length=50)
     auth_credentials = models.JSONField(blank=True, null=True)
     auth_token = models.CharField(blank=True, null=True, max_length=200)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
