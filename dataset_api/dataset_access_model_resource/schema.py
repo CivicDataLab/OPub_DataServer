@@ -143,13 +143,14 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                 raise GraphQLError("Please select at least one distribution and corresponding fields")
             for resources in access_model_resource_data.resource_map:
                 try:
+                    resource = Resource.objects.get(id=resources.resource_id)
                     access_model_resource_instance = (
                         DatasetAccessModelResource.objects.get(
                             dataset_access_model=dataset_access_model_instance,
                             resource_id=resources.resource_id,
                         )
                     )
-                    access_model_resource_instance.fields = resources.fields
+                    access_model_resource_instance.fields = get_selected_fields(resource, resources.fields)
                     access_model_resource_instance.save()
                 except DatasetAccessModelResource.DoesNotExist as e:
                     try:
