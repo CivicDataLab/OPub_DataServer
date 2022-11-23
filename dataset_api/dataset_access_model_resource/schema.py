@@ -89,13 +89,9 @@ class CreateAccessModelResource(Output, graphene.Mutation):
             for resources in access_model_resource_data.resource_map:
                 try:
                     resource = Resource.objects.get(id=resources.resource_id)
-                    selected_fields = []
-                    for field in resource.resourceschema_set.all():
-                        if field.id in resources.fields:
-                            selected_fields.append(field.key)
                     access_model_resource_instance = DatasetAccessModelResource(
                         resource_id=resources.resource_id,
-                        fields=selected_fields,
+                        fields=get_selected_fields(resource, resources.fields),
                         dataset_access_model=dataset_access_model,
                     )
                     access_model_resource_instance.save()
@@ -120,6 +116,14 @@ class CreateAccessModelResource(Output, graphene.Mutation):
                     "id": [{"message": "Access Model id not found", "code": "404"}]
                 },
             }
+
+
+def get_selected_fields(resource, fields):
+    selected_fields = []
+    for field in resource.resourceschema_set.all():
+        if field.id in fields:
+            selected_fields.append(field.key)
+    return selected_fields
 
 
 class UpdateAccessModelResource(Output, graphene.Mutation):
@@ -149,10 +153,10 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                     access_model_resource_instance.save()
                 except DatasetAccessModelResource.DoesNotExist as e:
                     try:
-                        Resource.objects.get(id=resources.resource_id)
+                        resource = Resource.objects.get(id=resources.resource_id)
                         access_model_resource_instance = DatasetAccessModelResource(
                             resource_id=resources.resource_id,
-                            fields=resources.fields,
+                            fields=get_selected_fields(resource, resources.fields),
                             dataset_access_model=dataset_access_model_instance,
                         )
                         access_model_resource_instance.save()
