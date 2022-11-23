@@ -174,8 +174,8 @@ def initiate_dam_request(dam_request, resource, username, parameters=None, defau
     )
     fields = []
     for field in dam_resource.fields:
-        ResourceSchema.objects.get(id=field)
-        fields.append(field.key)
+        schema_field = ResourceSchema.objects.get(id=field)
+        fields.append(schema_field.key)
 
     # TODO: fix magic strings
     if resource and resource.dataset.dataset_type == "API":
