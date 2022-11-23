@@ -1,3 +1,4 @@
+import mimetypes
 import os
 from typing import Iterator
 
@@ -8,12 +9,13 @@ import json
 
 from django.core.files import File
 from django.db.models import Q
+from elasticsearch import Elasticsearch, helpers
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
 from DatasetServer import settings
-from dataset_api.constants import DATAREQUEST_SWAGGER_SPEC
+from dataset_api.constants import DATAREQUEST_SWAGGER_SPEC, FORMAT_MAPPING
 from dataset_api.data_request.token_handler import (
     create_access_jwt_token,
     generate_refresh_token, create_data_jwt_token, create_data_refresh_token,
@@ -284,6 +286,30 @@ class OpenDataRequestMutation(graphene.Mutation, Output):
         return OpenDataRequestMutation(data_request=data_request_instance)
 
 
+def generator(dict_df, index):
+    for _, line in enumerate(dict_df):
+        yield {
+            '_index': index,
+            '_type': '_doc',
+            '_source': line
+        }
+
+
+def update_data_request_index(data_request: DataRequest):
+    es_client = Elasticsearch(settings.ELASTICSEARCH)
+    file_path = data_request.file.path
+    if len(file_path):
+        mime_type = mimetypes.guess_type(file_path)[0]
+        src_format = FORMAT_MAPPING[mime_type]
+        csv_file = pd.DataFrame(
+            pd.read_csv(file_path, sep=",", header=0, index_col=False)
+        )
+        json_df = csv_file.to_dict()
+        dataset_title = data_request.dataset_access_model_request.access_model.dataset.title
+        res = helpers.bulk(es_client, generator(json_df,
+                                                index=dataset_title + str(data_request.id)))
+
+
 class DataRequestUpdateMutation(graphene.Mutation, Output):
     class Arguments:
         data_request = DataRequestUpdateInput()
@@ -297,6 +323,7 @@ class DataRequestUpdateMutation(graphene.Mutation, Output):
             data_request_instance.status = data_request.status
             data_request_instance.file = data_request.file
         data_request_instance.save()
+        update_data_request_index(data_request_instance)
         return DataRequestUpdateMutation(data_request=data_request_instance)
 
 
