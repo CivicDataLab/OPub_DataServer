@@ -2,6 +2,7 @@ from typing import Iterable
 
 import graphene
 from graphene_django import DjangoObjectType
+from graphql import GraphQLError
 from graphql_auth.bases import Output
 
 from dataset_api.models import DataAccessModel, DataRequest

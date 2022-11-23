@@ -7,6 +7,7 @@ import requests
 import json
 
 from django.core.files import File
+from django.db.models import Q
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
@@ -15,7 +16,7 @@ from DatasetServer import settings
 from dataset_api.constants import DATAREQUEST_SWAGGER_SPEC
 from dataset_api.data_request.token_handler import (
     create_access_jwt_token,
-    generate_refresh_token,
+    generate_refresh_token, create_data_jwt_token, create_data_refresh_token,
 )
 from dataset_api.dataset_access_model_request.schema import (
     create_dataset_access_model_request,
@@ -31,12 +32,13 @@ from dataset_api.models import (
 )
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
-from dataset_api.utils import get_keys
 
 
 class DataRequestType(DjangoObjectType):
     access_token = graphene.String()
     refresh_token = graphene.String()
+    data_token = graphene.String()
+    data_refresh_token = graphene.String()
     spec = graphene.JSONString()
     parameters = graphene.JSONString()
     remaining_quota = graphene.Int()
@@ -54,18 +56,35 @@ class DataRequestType(DjangoObjectType):
         return generate_refresh_token(self, username)
 
     @validate_token_or_none
+    def resolve_data_token(self: DataRequest, info, username):
+        dam_resource = DatasetAccessModelResource.objects.get(Q(resource=self.resource),
+                                                              Q(dataset_access_model=self.dataset_access_model_request.access_model))
+        return create_data_jwt_token(dam_resource, username)
+
+    @validate_token_or_none
+    def resolve_data_refresh_token(self: DataRequest, info, username):
+        dam_resource = DatasetAccessModelResource.objects.get(Q(resource=self.resource),
+                                                              Q(dataset_access_model=self.dataset_access_model_request.access_model))
+        return create_data_refresh_token(dam_resource, username)
+
+    @validate_token_or_none
     def resolve_spec(self: DataRequest, info, username):
         spec = DATAREQUEST_SWAGGER_SPEC.copy()
+        dam_resource = DatasetAccessModelResource.objects.get(Q(resource=self.resource),
+                                                              Q(dataset_access_model=self.dataset_access_model_request.access_model))
         spec["paths"]["/refreshtoken"]["get"]["parameters"][0][
             "example"
         ] = generate_refresh_token(self, username)
-        token = create_access_jwt_token(self, username)
+        spec["paths"]["/refresh_data_token"]["get"]["parameters"][0][
+            "example"
+        ] = create_data_refresh_token(dam_resource, username)
+        data_token = create_data_jwt_token(dam_resource, username)
         spec["paths"]["/getresource"]["get"]["parameters"][0][
             "example"
-        ] = token
+        ] = create_access_jwt_token(self, username)
         spec["paths"]["/update_data"]["get"]["parameters"][0][
             "example"
-        ] = token
+        ] = data_token
         parameters = []
         resource = self.resource
         if resource and resource.dataset.dataset_type == "API":
@@ -137,7 +156,7 @@ class DataRequestUpdateInput(graphene.InputObjectType):
     file = Upload(required=False)
 
 
-def initiate_dam_request(dam_request, resource, username, parameters=None):
+def initiate_dam_request(dam_request, resource, username, parameters=None, default=False):
     if parameters is None:
         parameters = {}
     data_request_instance = DataRequest(
@@ -145,6 +164,7 @@ def initiate_dam_request(dam_request, resource, username, parameters=None):
         user=username,
         resource=resource,
         dataset_access_model_request=dam_request,
+        default=default
     )
     data_request_instance.save()
     dam_resource = DatasetAccessModelResource.objects.get(
@@ -235,7 +255,7 @@ class DataRequestMutation(graphene.Mutation, Output):
                     ]
                 },
             }
-        data_request_instance = initiate_dam_request(dam_request, resource, username, parameters)
+        data_request_instance = initiate_dam_request(dam_request, resource, username, parameters, default=True)
         return DataRequestMutation(data_request=data_request_instance)
 
 
