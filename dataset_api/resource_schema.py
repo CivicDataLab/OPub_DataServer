@@ -280,7 +280,7 @@ def _create_resource_schema_instance(resource_instance, schema):
 
 def _create_update_api_parameter(api_detail_instance, parameters):
     parameter_ids = []  # List of schemas that already exists.
-    parameter_instances = APIParameter.objects.filter(api_details_id=api_detail_instance.id)
+    parameter_instances = APIParameter.objects.filter(api_details=api_detail_instance)
     for parameter in parameter_instances:
         parameter_ids.append(parameter.id)
     for parameter in parameters:

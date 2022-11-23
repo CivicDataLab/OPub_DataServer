@@ -20,3 +20,4 @@ class DataRequest(models.Model):
     reject_reason = models.CharField(max_length=500, blank=True)
     dataset_access_model_request = models.ForeignKey(DatasetAccessModelRequest, on_delete=models.CASCADE)
     user = models.CharField(max_length=50, blank=True, null=True)
+    default = models.BooleanField(default=False, db_index=True)

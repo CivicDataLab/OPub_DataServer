@@ -31,7 +31,7 @@ DATAREQUEST_SWAGGER_SPEC = {
     "paths": {
         "/refreshtoken": {
             "get": {
-                "description": "Returns updaed access token",
+                "description": "Returns updated access token",
                 "tags": [
                     "Token"
                 ],
@@ -45,7 +45,33 @@ DATAREQUEST_SWAGGER_SPEC = {
                         "schema": {
                             "type": "string"
                         },
-                        "example": "asdfaasdfasdfsdfasdfasdf"
+                        "example": "refreshToken"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/refresh_data_token": {
+            "get": {
+                "description": "Returns updated data token",
+                "tags": [
+                    "Token"
+                ],
+                "operationId": "refreshDataToken",
+                "parameters": [
+                    {
+                        "name": "token",
+                        "in": "query",
+                        "required": "true",
+                        "description": "Access Token",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "refreshToken"
                     }
                 ],
                 "responses": {
@@ -59,7 +85,7 @@ DATAREQUEST_SWAGGER_SPEC = {
             "get": {
                 "description": "Updates the data from source",
                 "tags": [
-                    "Resource"
+                    "Distribution"
                 ],
                 "operationId": "updateData",
                 "parameters": [
@@ -83,7 +109,7 @@ DATAREQUEST_SWAGGER_SPEC = {
             "get": {
                 "description": "Returns file with requested resource",
                 "tags": [
-                    "Resource"
+                    "Distribution"
                 ],
                 "operationId": "getResource",
                 "parameters": [
