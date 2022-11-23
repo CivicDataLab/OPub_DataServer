@@ -3,6 +3,7 @@ import os
 from typing import Iterator
 
 import graphene
+import numpy as np
 import pandas as pd
 import requests
 import json
@@ -307,11 +308,12 @@ def update_data_request_index(data_request: DataRequest):
         mime_type = mimetypes.guess_type(file_path)[0]
         src_format = FORMAT_MAPPING[mime_type]
         csv_file = pd.DataFrame(
-            pd.read_csv(file_path, sep=",", header=0, index_col=False)
+            pd.read_csv(file_path, sep=",")
         )
-        json_df = csv_file.to_dict()
+        csv_file.replace(np.nan, '')
+        json_df = csv_file.to_dict(orient="records")
         dataset_title = data_request.dataset_access_model_request.access_model.dataset.title
-        index_name = dataset_title + str(data_request.id)
+        index_name = str(data_request.id)
         es_create_index_if_not_exists(es_client, index_name)
         res = helpers.bulk(es_client, generator(json_df,
                                                 index=index_name))
