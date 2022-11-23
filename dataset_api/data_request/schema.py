@@ -26,6 +26,7 @@ from dataset_api.dataset_access_model_request.schema import (
 )
 from dataset_api.decorators import validate_token, validate_token_or_none
 from dataset_api.enums import DataType
+from dataset_api.es_utils import es_create_index_if_not_exists
 from dataset_api.models import (
     Resource,
     DatasetAccessModel,
@@ -310,8 +311,10 @@ def update_data_request_index(data_request: DataRequest):
         )
         json_df = csv_file.to_dict()
         dataset_title = data_request.dataset_access_model_request.access_model.dataset.title
+        index_name = dataset_title + str(data_request.id)
+        es_create_index_if_not_exists(es_client, index_name)
         res = helpers.bulk(es_client, generator(json_df,
-                                                index=dataset_title + str(data_request.id)))
+                                                index=index_name))
 
 
 class DataRequestUpdateMutation(graphene.Mutation, Output):
