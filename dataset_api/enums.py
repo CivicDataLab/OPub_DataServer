@@ -67,3 +67,8 @@ class ValidationUnits(models.TextChoices):
 class DataAccessModelStatus(models.TextChoices):
     ACTIVE = "ACTIVE"
     DISABLED = "DISABLED"
+
+
+class SubscriptionAction(models.TextChoices):
+    SUBSCRIBE = "SUBSCRIBE"
+    UNSUBSCRIBE = "UNSUBSCRIBE"
