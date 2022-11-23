@@ -138,6 +138,7 @@ def facets(request):
     filters = []  # List of queries for elasticsearch to filter up on.
     selected_facets = []  # List of facets that are selected.
     facet = ["license", "geography", "format", "status", "rating", "sector"]
+    dam_type = request.GET.get("type")
     size = request.GET.get("size")
     if not size:
         size = 5
@@ -160,8 +161,13 @@ def facets(request):
         if request.GET.get(value):
             filters.append({"match": {f"{value}": request.GET.get(value).replace("||", " ")}})
             selected_facets.append({f"{value}": request.GET.get(value).split("||")})
+    
+    if dam_type:
+        filters.append({"match": {"data_access_model_type": dam_type.replace("||", " ")}})
+        selected_facets.append({"type": dam_type.split("||")})
+    
     if org:
-        filters.append({"match": {"org_title": {"query": org, "operator": "AND"}}})
+        filters.append({"match": {"org_title": {"query": org.replace("||", " ")}}})
         selected_facets.append({"organization": org.split('||')})
 
     if start_duration and end_duration:
@@ -189,6 +195,7 @@ def facets(request):
         "organization": {"global": {}, "aggs": {"all": {"terms": {"field": "org_title.keyword"}}}},
         "duration": {"global": {}, "aggs": {"min": {"min": {"field": "period_from", "format": "yyyy-MM-dd"}},
                                             "max": {"max": {"field": "period_to", "format": "yyyy-MM-dd"}}}},
+        "type": {"terms": {"field": "data_access_model_type.keyword"}}
     }
     if not query_string:
         # For filter search
@@ -204,7 +211,7 @@ def facets(request):
     else:
         # For faceted search with query string.
         filters.append(
-            {"match": {"dataset_title": {"query": query_string, "operator": "AND"}}}
+            {"match": {"dataset_title": {"query": query_string,  "operator": "AND", "fuzziness": "AUTO"}}}
         )
         query = {"bool": {"must": filters}}
         resp = es_client.search(
