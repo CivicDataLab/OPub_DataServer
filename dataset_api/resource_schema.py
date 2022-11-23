@@ -325,8 +325,8 @@ def _create_update_api_details(resource_instance, attribute):
     api_detail_object.auth_required = attribute.auth_required
     api_detail_object.url_path = attribute.url_path
     api_detail_object.response_type = attribute.response_type
-    _create_update_api_parameter(api_detail_object, attribute.parameters)
     api_detail_object.save()
+    _create_update_api_parameter(api_detail_object, attribute.parameters)
 
 
 def _create_update_file_details(resource_instance, attribute):
