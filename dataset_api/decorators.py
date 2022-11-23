@@ -242,3 +242,18 @@ def update_user_org(func):
                 return value
 
     return inner
+
+
+def get_user_org(func):
+    def inner(*args, **kwargs):
+        user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+        body = json.dumps(
+            {
+                "access_token": user_token,
+            }
+        )
+        response_json = request_to_server(body, "get_user_orgs")
+        if response_json["Success"]:
+            kwargs["org_ids"] =  response_json["orgs"]
+            return func(*args, **kwargs)
+    return inner

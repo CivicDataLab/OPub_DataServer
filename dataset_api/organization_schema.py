@@ -20,6 +20,7 @@ from .decorators import (
     auth_user_by_org,
     auth_request_org,
     modify_org_status,
+    get_user_org
 )
 from .enums import OrganizationTypes, OrganizationCreationStatusType
 from .utils import get_client_ip
@@ -79,6 +80,7 @@ class Query(graphene.ObjectType):
     organizations = graphene.List(OrganizationType)
 
     requested_organizations = graphene.List(OrganizationType)
+    organizations_by_user = graphene.List(OrganizationType)
 
     # TODO: Allow all org list for PMU? Current State -- YES
     @auth_user_by_org(action="query")
@@ -121,6 +123,10 @@ class Query(graphene.ObjectType):
         else:
             raise GraphQLError("Access Denied")
 
+    @get_user_org
+    def resolve_organizations_by_user(self, info, org_ids, **kwargs):
+        return Organization.objects.filter(
+            organizationcreaterequest__organization_ptr_id__in=org_ids).order_by("-modified")
 
 class OrganizationInput(graphene.InputObjectType):
     id = graphene.ID()
