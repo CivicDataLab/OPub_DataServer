@@ -163,6 +163,7 @@ class APIParameterInputType(graphene.InputObjectType):
     key = graphene.String(required=True)
     format = graphene.String(required=False)
     default = graphene.String(required=True)
+    description = graphene.String(required=True)
 
 
 class ApiInputType(graphene.InputObjectType):
@@ -279,7 +280,7 @@ def _create_resource_schema_instance(resource_instance, schema):
 
 def _create_update_api_parameter(api_detail_instance, parameters):
     parameter_ids = []  # List of schemas that already exists.
-    parameter_instances = APIParameter.objects.filter(api_details=api_detail_instance.id)
+    parameter_instances = APIParameter.objects.filter(api_details_id=api_detail_instance.id)
     for parameter in parameter_instances:
         parameter_ids.append(parameter.id)
     for parameter in parameters:
@@ -297,6 +298,7 @@ def _create_update_api_parameter(api_detail_instance, parameters):
                 parameter_instance.format = parameter.format
                 parameter_instance.default = parameter.default
                 parameter_instance.api_details = api_detail_instance
+                parameter_instance.description = parameter.description
                 parameter_instance.save()
             else:
                 # Add new schema
@@ -323,8 +325,8 @@ def _create_update_api_details(resource_instance, attribute):
     api_detail_object.auth_required = attribute.auth_required
     api_detail_object.url_path = attribute.url_path
     api_detail_object.response_type = attribute.response_type
-    _create_update_api_parameter(api_detail_object, attribute.parameters)
     api_detail_object.save()
+    _create_update_api_parameter(api_detail_object, attribute.parameters)
 
 
 def _create_update_file_details(resource_instance, attribute):
