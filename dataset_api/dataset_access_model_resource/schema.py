@@ -91,7 +91,7 @@ class CreateAccessModelResource(Output, graphene.Mutation):
                     resource = Resource.objects.get(id=resources.resource_id)
                     access_model_resource_instance = DatasetAccessModelResource(
                         resource_id=resources.resource_id,
-                        fields=get_selected_fields(resource, resources.fields),
+                        fields=resources.fields,
                         dataset_access_model=dataset_access_model,
                     )
                     access_model_resource_instance.save()
@@ -118,14 +118,6 @@ class CreateAccessModelResource(Output, graphene.Mutation):
             }
 
 
-def get_selected_fields(resource, fields):
-    selected_fields = []
-    for field in resource.resourceschema_set.all():
-        if field.id in fields:
-            selected_fields.append(field.key)
-    return selected_fields
-
-
 class UpdateAccessModelResource(Output, graphene.Mutation):
     class Arguments:
         access_model_resource_data = AccessModelResourceInput()
@@ -150,14 +142,14 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                             resource_id=resources.resource_id,
                         )
                     )
-                    access_model_resource_instance.fields = get_selected_fields(resource, resources.fields)
+                    access_model_resource_instance.fields = resources.fields
                     access_model_resource_instance.save()
                 except DatasetAccessModelResource.DoesNotExist as e:
                     try:
                         resource = Resource.objects.get(id=resources.resource_id)
                         access_model_resource_instance = DatasetAccessModelResource(
                             resource_id=resources.resource_id,
-                            fields=get_selected_fields(resource, resources.fields),
+                            fields=resources.fields,
                             dataset_access_model=dataset_access_model_instance,
                         )
                         access_model_resource_instance.save()

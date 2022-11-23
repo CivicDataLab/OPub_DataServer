@@ -30,7 +30,7 @@ from dataset_api.models import (
     Resource,
     DatasetAccessModel,
     DatasetAccessModelResource,
-    FileDetails, DataRequestParameter,
+    FileDetails, DataRequestParameter, ResourceSchema,
 )
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
@@ -172,7 +172,10 @@ def initiate_dam_request(dam_request, resource, username, parameters=None, defau
     dam_resource = DatasetAccessModelResource.objects.get(
         dataset_access_model=dam_request.access_model_id, resource=resource.id
     )
-    fields = dam_resource.fields
+    fields = []
+    for field in dam_resource.fields:
+        ResourceSchema.objects.get(id=field)
+        fields.append(field.key)
 
     # TODO: fix magic strings
     if resource and resource.dataset.dataset_type == "API":
