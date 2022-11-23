@@ -17,7 +17,7 @@ class Query(graphene.ObjectType):
     all_subscriptions = graphene.List(SubscribeType)
     user_subscriptions = graphene.List(SubscribeType)
     subscribe = graphene.Field(SubscribeType, subscribe_id=graphene.Int())
-    user_dataset_subscription = graphene.Field(SubscribeType, subscribe_id=graphene.Int())
+    user_dataset_subscription = graphene.Field(SubscribeType, dataset_id=graphene.Int())
 
     def resolve_all_subscriptions(self, info, **kwargs):
         return Subscribe.objects.all().order_by("-modified")
