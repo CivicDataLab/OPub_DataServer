@@ -88,10 +88,14 @@ class CreateAccessModelResource(Output, graphene.Mutation):
 
             for resources in access_model_resource_data.resource_map:
                 try:
-                    Resource.objects.get(id=resources.resource_id)
+                    resource = Resource.objects.get(id=resources.resource_id)
+                    selected_fields = []
+                    for field in resource.resourceschema_set.all():
+                        if field.id in resources.fields:
+                            selected_fields.append(field.key)
                     access_model_resource_instance = DatasetAccessModelResource(
                         resource_id=resources.resource_id,
-                        fields=resources.fields,
+                        fields=selected_fields,
                         dataset_access_model=dataset_access_model,
                     )
                     access_model_resource_instance.save()
