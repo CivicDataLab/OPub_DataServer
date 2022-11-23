@@ -167,7 +167,7 @@ def facets(request):
         selected_facets.append({"type": dam_type.split("||")})
     
     if org:
-        filters.append({"match": {"org_title": {"query": org.replace("||", " ")}}})
+        filters.append({"terms": {"org_title.keyword": org.split('||')}})
         selected_facets.append({"organization": org.split('||')})
 
     if start_duration and end_duration:
