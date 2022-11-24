@@ -146,7 +146,7 @@ DATAREQUEST_SWAGGER_SPEC = {
                         "example": 5
                     },
                     {
-                        "name": "paginate_from",
+                        "name": "from",
                         "in": "query",
                         "required": "true",
                         "description": "start of records to return",
