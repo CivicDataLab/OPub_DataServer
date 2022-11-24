@@ -21,7 +21,6 @@ from dataset_api.search import index_data
 from .decorators import dam_request_validity
 from dataset_api.utils import idp_make_cache_key
 
-# from ratelimit.decorators import ratelimit
 from ratelimit import core
 
 # Overwriting ratelimit's cache key function.
@@ -32,67 +31,56 @@ es_client = Elasticsearch(settings.ELASTICSEARCH)
 
 @dam_request_validity
 @validate_token_or_none
-# @ratelimit(
-#     group="rate",
-#     key="dataset_api.ratelimits.user_key",
-#     rate="dataset_api.ratelimits.rate_per_user",
-#     block=True,  # If TRUE will raise error, otherwise
-# )
-# @ratelimit(
-#     group="quota",
-#     key="dataset_api.ratelimits.user_key",
-#     rate="dataset_api.ratelimits.quota_per_user",
-#     block=True,  # If TRUE will raise error, otherwise
-# )
 def download(request, data_request_id, username=None):
     target_format = request.GET.get("format", None)
 
-    # Get the quota count.
-    get_quota_count = core.get_usage(
-        request,
-        group="quota",
-        key="dataset_api.ratelimits.user_key",
-        rate="dataset_api.ratelimits.quota_per_user",
-        increment=False,
+    data_request_instance = DataRequest.objects.get(pk=data_request_id)
+    dam = (
+        data_request_instance.dataset_access_model_request.access_model.data_access_model
     )
-    # If count < limit -- don't increment the counter.
-    if get_quota_count["count"] < get_quota_count["limit"]:
-        # Check for rate.
-        get_rate_count = core.get_usage(
+    if dam.type == "OPEN":
+        return get_request_file(username, data_request_id, target_format)
+    else:
+        # Get the quota count.
+        get_quota_count = core.get_usage(
             request,
-            group="rate",
+            group="quota",
             key="dataset_api.ratelimits.user_key",
-            rate="dataset_api.ratelimits.rate_per_user",
+            rate="dataset_api.ratelimits.quota_per_user",
             increment=False,
         )
-        # Increment rate and quota count.
-        if get_rate_count["count"] < get_rate_count["limit"]:
+        # If count < limit -- don't increment the counter.
+        if get_quota_count["count"] < get_quota_count["limit"]:
+            # Check for rate.
             get_rate_count = core.get_usage(
                 request,
                 group="rate",
                 key="dataset_api.ratelimits.user_key",
                 rate="dataset_api.ratelimits.rate_per_user",
-                increment=True,
+                increment=False,
             )
-            get_quota_count = core.get_usage(
-                request,
-                group="quota",
-                key="dataset_api.ratelimits.user_key",
-                rate="dataset_api.ratelimits.quota_per_user",
-                increment=True,
-            )
+            # Increment rate and quota count.
+            if get_rate_count["count"] < get_rate_count["limit"]:
+                get_file = get_request_file(username, data_request_id, target_format)
+                get_rate_count = core.get_usage(
+                    request,
+                    group="rate",
+                    key="dataset_api.ratelimits.user_key",
+                    rate="dataset_api.ratelimits.rate_per_user",
+                    increment=True,
+                )
+                get_quota_count = core.get_usage(
+                    request,
+                    group="quota",
+                    key="dataset_api.ratelimits.user_key",
+                    rate="dataset_api.ratelimits.quota_per_user",
+                    increment=True,
+                )
+                return get_file
+            else:
+                return HttpResponseForbidden(content="Rate Limit Exceeded.")
         else:
-            return HttpResponseForbidden(content="Rate Limit Exceeded.")
-    else:
-        return HttpResponseForbidden(content="Quota Limit Exceeded.")
-
-    return get_request_file(username, data_request_id, target_format)
-    # # Second Method of raising error.
-    # was_limited = getattr(request, "limited", False)
-    # if not was_limited:
-    #     return get_request_file(username, data_request_id, target_format)
-    # else:
-    #     raise GraphQLError("Rate limit or Quota Exceeded.")
+            return HttpResponseForbidden(content="Quota Limit Exceeded.")
 
 
 def update_download_count(username, data_request: DataRequest):
@@ -149,7 +137,7 @@ class FormatConverter:
                 open("file.json", "rb"), content_type="application/x-download"
             )
             file_name = (
-                    ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
+                ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -171,7 +159,7 @@ class FormatConverter:
                 open("file.xml", "rb"), content_type="application/x-download"
             )
             file_name = (
-                    ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".xml"
+                ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".xml"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -220,7 +208,7 @@ class FormatConverter:
                 open("file.csv", "rb"), content_type="application/x-download"
             )
             file_name = (
-                    ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".json"
+                ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".json"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -240,7 +228,7 @@ class FormatConverter:
                 open("file.xml", "rb"), content_type="application/x-download"
             )
             file_name = (
-                    ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".xml"
+                ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".xml"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -261,7 +249,9 @@ class FormatExporter:
                 open("file.csv", "rb"), content_type="application/x-download"
             )
             file_name = "output.csv"
-            response["Content-Disposition"] = 'attachment; filename="{}"'.format(file_name)
+            response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                file_name
+            )
             os.remove("file.csv")
             return response
         elif return_type == "data":
@@ -271,27 +261,33 @@ class FormatExporter:
     @classmethod
     def convert_df_to_json(cls, df: DataFrame, return_type="data"):
         if return_type == "file":
-            df.to_json("file.json",
-                       orient="records",
-                       date_format="epoch",
-                       double_precision=10,
-                       force_ascii=True,
-                       date_unit="ms",
-                       default_handler=None, )
+            df.to_json(
+                "file.json",
+                orient="records",
+                date_format="epoch",
+                double_precision=10,
+                force_ascii=True,
+                date_unit="ms",
+                default_handler=None,
+            )
             response = FileResponse(
                 open("file.json", "rb"), content_type="application/x-download"
             )
             file_name = "output.json"
-            response["Content-Disposition"] = 'attachment; filename="{}"'.format(file_name)
+            response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                file_name
+            )
             os.remove("file.json")
             return response
         elif return_type == "data":
-            json_result = df.to_json(orient="records",
-                                     date_format="epoch",
-                                     double_precision=10,
-                                     force_ascii=True,
-                                     date_unit="ms",
-                                     default_handler=None)
+            json_result = df.to_json(
+                orient="records",
+                date_format="epoch",
+                double_precision=10,
+                force_ascii=True,
+                date_unit="ms",
+                default_handler=None,
+            )
             response = HttpResponse(json_result, content_type="application/json")
             return response
 
@@ -303,7 +299,9 @@ class FormatExporter:
                 open("file.xml", "rb"), content_type="application/x-download"
             )
             file_name = "output.xml"
-            response["Content-Disposition"] = 'attachment; filename="{}"'.format(file_name)
+            response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                file_name
+            )
             os.remove("file.xml")
             return response
         elif return_type == "data":
@@ -311,7 +309,14 @@ class FormatExporter:
             return response
 
 
-def get_request_file(username, data_request_id, target_format, return_type="file", size=5, paginate_from=0):
+def get_request_file(
+    username,
+    data_request_id,
+    target_format,
+    return_type="file",
+    size=5,
+    paginate_from=0,
+):
     data_request = DataRequest.objects.get(pk=data_request_id)
     if target_format and target_format not in ["CSV", "XML", "JSON"]:
         return HttpResponse("invalid format", content_type="text/plain")
@@ -321,7 +326,7 @@ def get_request_file(username, data_request_id, target_format, return_type="file
         size=size,
         from_=paginate_from,
     )
-    items = result['hits']['hits']
+    items = result["hits"]["hits"]
     docs = pd.DataFrame()
     for num, doc in enumerate(items):
         source_data = doc["_source"]
@@ -356,7 +361,7 @@ def get_resource(request):
             format,
             "data",
             size,
-            paginate_from
+            paginate_from,
         )
 
     return HttpResponse(json.dumps(token_payload), content_type="application/json")
