@@ -298,6 +298,32 @@ def generator(dict_df, index):
         }
 
 
+def cell_size_equalize2(row, cols='', fill_mode='internal', fill_value=''):
+    jcols = [j for j, v in enumerate(row.index) if v in cols]
+    if len(jcols) < 1:
+        jcols = range(len(row.index))
+    lengths = []
+    for x in row.values:
+        if type(x) == list:
+            lengths.append(len(x))
+        else:
+            lengths.append(1)
+    if not lengths[:-1] == lengths[1:]:
+        vals = [v if isinstance(v, list) else [v] for v in row.values]
+        if fill_mode == 'external':
+            vals = [[e] + [fill_value] * (max(lengths) - 1) if (not j in jcols) and (isinstance(row.values[j], list))
+                    else e + [fill_value] * (max(lengths) - len(e))
+                    for j, e in enumerate(vals)]
+        elif fill_mode == 'internal':
+            vals = [[e] + [e] * (max(lengths) - 1) if (not j in jcols) and (isinstance(row.values[j], list))
+                    else e + [e[-1]] * (max(lengths) - len(e))
+                    for j, e in enumerate(vals)]
+        else:
+            vals = [e[0:min(lengths)] for e in vals]
+        row = pd.Series(vals, index=row.index.tolist())
+    return row
+
+
 def update_data_request_index(data_request: DataRequest):
     es_client = Elasticsearch(settings.ELASTICSEARCH)
     file_path = data_request.file.path
@@ -310,17 +336,23 @@ def update_data_request_index(data_request: DataRequest):
             csv_file = pd.DataFrame(
                 pd.read_csv(file_path, sep=",")
             )
-            csv_file.fillna("")
+            csv_file.fillna("", inplace=True)
             json_df = csv_file.to_dict(orient="records")
             res = helpers.bulk(es_client, generator(json_df, index=index_name))
         elif src_format.lower() == "json":
-            df = pd.DataFrame(pd.read_json(file_path, orient="index"))
-            df.fillna("")
+            df = pd.DataFrame(pd.read_json(file_path, orient="records"))
+            df.fillna("", inplace=True)
             json_df = df.to_dict(orient="records")
+            json_df = pd.json_normalize(json_df)
+            json_df.fillna("", inplace=True)
+            json_df = json_df.apply(cell_size_equalize2, cols=list(json_df.columns), fill_mode='external',
+                                    fill_value="NA",
+                                    axis=1).apply(pd.Series.explode)
+            json_df = json_df.to_dict(orient="records")
             res = helpers.bulk(es_client, generator(json_df, index=index_name))
         elif src_format.lower() == "xml":
-            df = pd.DataFrame(pd.read_xml(file_path, orient="index"))
-            df.fillna("")
+            df = pd.DataFrame(pd.read_xml(file_path))
+            df.fillna("", inplace=True)
             json_df = df.to_dict(orient="records")
             res = helpers.bulk(es_client, generator(json_df, index=index_name))
 
