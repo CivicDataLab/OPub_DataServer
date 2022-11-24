@@ -302,7 +302,12 @@ def cell_size_equalize2(row, cols='', fill_mode='internal', fill_value=''):
     jcols = [j for j, v in enumerate(row.index) if v in cols]
     if len(jcols) < 1:
         jcols = range(len(row.index))
-    lengths = [len(x) for x in row.values]
+    lengths = []
+    for x in row.values:
+        if type(x) == list:
+            lengths.append(len(x))
+        else:
+            lengths.append(1)
     if not lengths[:-1] == lengths[1:]:
         vals = [v if isinstance(v, list) else [v] for v in row.values]
         if fill_mode == 'external':
