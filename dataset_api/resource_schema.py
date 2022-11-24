@@ -31,7 +31,7 @@ from .decorators import (
 from .constants import FORMAT_MAPPING
 from .utils import log_activity, get_client_ip, get_keys
 
-from api_resource import api_fetch
+from .api_resource import api_fetch
 import genson
 
 
