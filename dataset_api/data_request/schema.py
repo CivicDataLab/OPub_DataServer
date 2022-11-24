@@ -317,7 +317,8 @@ def update_data_request_index(data_request: DataRequest):
             df = pd.DataFrame(pd.read_json(file_path, orient="index"))
             df.fillna("", inplace=True)
             json_df = df.to_dict(orient="records")
-            json_df = pd.json_normalize(json_df).fillna("", inplace=True).to_dict(orient="records")
+            json_df = pd.json_normalize(json_df).fillna("", inplace=True)
+            json_df = json_df.to_dict(orient="records")
             res = helpers.bulk(es_client, generator(json_df, index=index_name))
         elif src_format.lower() == "xml":
             df = pd.DataFrame(pd.read_xml(file_path))
