@@ -415,18 +415,21 @@ def update_data(request):
         return HttpResponse("Authentication failed", content_type="text/plain")
     except IndexError:
         return HttpResponse("Token prefix missing", content_type="text/plain")
-    data_resource = DatasetAccessModelResource.objects.get(token_payload.get("dam_resource"))
-    username = token_payload.get("username")
-    default_parameters = data_resource.resource.apidetails.apiparameter_set.all()
-    parameters = {}
-    for param in default_parameters:
-        if param.key in request.GET:
-            parameters[param.key] = request.GET.get(param.key)
-        else:
-            parameters[param.key] = param.default
-
     if token_payload:
+        data_resource = DatasetAccessModelResource.objects.get(token_payload.get("dam_resource"))
+        username = token_payload.get("username")
+        default_parameters = data_resource.resource.apidetails.apiparameter_set.all()
+        parameters = {}
+        for param in default_parameters:
+            if param.key in request.GET:
+                parameters[param.key] = request.GET.get(param.key)
+            else:
+                parameters[param.key] = param.default
+
         data_request = initiate_dam_request(data_resource, data_resource.resource, username, parameters)
         access_token = create_access_jwt_token(data_request, username)
         return HttpResponse(json.dumps({"access_token": access_token, "message": "Get resource with provided token"}),
                             content_type="application/json")
+    return HttpResponse(
+        "Something went wrong request again!!", content_type="text/plain"
+    )
