@@ -5,6 +5,8 @@ import os
 import jwt
 import pandas as pd
 import requests
+from elasticsearch import Elasticsearch
+from pandas import DataFrame
 from redis import Redis
 from django.conf import settings
 from django.http import HttpResponse, FileResponse, HttpResponseForbidden
@@ -24,6 +26,8 @@ from ratelimit import core
 
 # Overwriting ratelimit's cache key function.
 core._make_cache_key = idp_make_cache_key
+
+es_client = Elasticsearch(settings.ELASTICSEARCH)
 
 
 @dam_request_validity
@@ -145,7 +149,7 @@ class FormatConverter:
                 open("file.json", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
+                    ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -167,7 +171,7 @@ class FormatConverter:
                 open("file.xml", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".xml"
+                    ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".xml"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -216,7 +220,7 @@ class FormatConverter:
                 open("file.csv", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".json"
+                    ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".json"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -224,7 +228,7 @@ class FormatConverter:
             os.remove("file.csv")
             return response
         elif return_type == "data":
-            response = HttpResponse(json_file.to_csv(), content_type="application/json")
+            response = HttpResponse(json_file.to_csv(), content_type="application/csv")
             return response
 
     @classmethod
@@ -236,7 +240,7 @@ class FormatConverter:
                 open("file.xml", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".xml"
+                    ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".xml"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -244,41 +248,101 @@ class FormatConverter:
             os.remove("file.xml")
             return response
         elif return_type == "data":
-            response = HttpResponse(json_file.to_dict(), content_type="application/xml")
+            response = HttpResponse(json_file.to_xml(), content_type="application/xml")
             return response
 
 
-def get_request_file(username, data_request_id, target_format, return_type="file"):
+class FormatExporter:
+    @classmethod
+    def convert_df_to_csv(cls, df, return_type="data"):
+        if return_type == "file":
+            df.to_csv("file.csv")
+            response = FileResponse(
+                open("file.csv", "rb"), content_type="application/x-download"
+            )
+            file_name = "output.csv"
+            response["Content-Disposition"] = 'attachment; filename="{}"'.format(file_name)
+            os.remove("file.csv")
+            return response
+        elif return_type == "data":
+            response = HttpResponse(df.to_csv(), content_type="text/csv")
+            return response
+
+    @classmethod
+    def convert_df_to_json(cls, df: DataFrame, return_type="data"):
+        if return_type == "file":
+            df.to_json("file.json",
+                       orient="records",
+                       date_format="epoch",
+                       double_precision=10,
+                       force_ascii=True,
+                       date_unit="ms",
+                       default_handler=None, )
+            response = FileResponse(
+                open("file.json", "rb"), content_type="application/x-download"
+            )
+            file_name = "output.json"
+            response["Content-Disposition"] = 'attachment; filename="{}"'.format(file_name)
+            os.remove("file.json")
+            return response
+        elif return_type == "data":
+            json_result = df.to_json(orient="records",
+                                     date_format="epoch",
+                                     double_precision=10,
+                                     force_ascii=True,
+                                     date_unit="ms",
+                                     default_handler=None)
+            response = HttpResponse(json_result, content_type="application/json")
+            return response
+
+    @classmethod
+    def convert_df_to_xml(cls, df, return_type="data"):
+        if return_type == "file":
+            df.to_xml("file.xml")
+            response = FileResponse(
+                open("file.xml", "rb"), content_type="application/x-download"
+            )
+            file_name = "output.xml"
+            response["Content-Disposition"] = 'attachment; filename="{}"'.format(file_name)
+            os.remove("file.xml")
+            return response
+        elif return_type == "data":
+            response = HttpResponse(df.to_xml(), content_type="application/xml")
+            return response
+
+
+def get_request_file(username, data_request_id, target_format, return_type="file", size=5, paginate_from=0):
     data_request = DataRequest.objects.get(pk=data_request_id)
     if target_format and target_format not in ["CSV", "XML", "JSON"]:
         return HttpResponse("invalid format", content_type="text/plain")
-    file_path = data_request.file.path
-    if len(file_path):
-        mime_type = mimetypes.guess_type(file_path)[0]
-        if target_format:
-            src_format = FORMAT_MAPPING[mime_type]
-            response = getattr(
-                FormatConverter,
-                f"convert_{src_format.lower()}_to_{target_format.lower()}",
-            )(file_path, mime_type, return_type)
-        else:
-            response = HttpResponse(data_request.file, content_type=mime_type)
-            response["Content-Disposition"] = 'attachment; filename="{}"'.format(
-                os.path.basename(file_path)
-            )
-        update_download_count(username, data_request)
-        return response
-
-        # TODO: delete file after download
-
-    else:
-        response = HttpResponse("file doesnt exist", content_type="text/plain")
+    index = str(data_request.id)
+    result = es_client.search(
+        index=index,
+        size=size,
+        from_=paginate_from,
+    )
+    items = result['hits']['hits']
+    docs = pd.DataFrame()
+    for num, doc in enumerate(items):
+        source_data = doc["_source"]
+        _id = doc["_id"]
+        doc_data = pd.Series(source_data, name=_id)
+        docs = docs.append(doc_data)
+    response = getattr(
+        FormatExporter,
+        f"convert_df_to_{target_format.lower()}",
+    )(docs, return_type)
+    update_download_count(username, data_request)
     return response
 
 
 def get_resource(request):
     token = request.GET.get("token")
     format = request.GET.get("format")
+    size = request.GET.get("size")
+    if not size:
+        size = 5
+    paginate_from = request.GET.get("from", 0)
     try:
         token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
@@ -291,6 +355,8 @@ def get_resource(request):
             token_payload.get("data_request"),
             format,
             "data",
+            size,
+            paginate_from
         )
 
     return HttpResponse(json.dumps(token_payload), content_type="application/json")
