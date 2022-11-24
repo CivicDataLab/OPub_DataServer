@@ -1,29 +1,27 @@
 import json
-import mimetypes
 import os
 
 import jwt
 import pandas as pd
 import requests
-from elasticsearch import Elasticsearch
-from pandas import DataFrame
-from redis import Redis
 from django.conf import settings
 from django.http import HttpResponse, FileResponse, HttpResponseForbidden
+from elasticsearch import Elasticsearch
+from pandas import DataFrame
+from ratelimit import core
 
-# from graphql import GraphQLError
-
-from dataset_api.constants import FORMAT_MAPPING
-from dataset_api.data_request.token_handler import create_access_jwt_token
+from dataset_api.data_request.token_handler import create_access_jwt_token, create_data_jwt_token
 from dataset_api.decorators import validate_token_or_none
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.search import index_data
-from .decorators import dam_request_validity
 from dataset_api.utils import idp_make_cache_key
-
-from ratelimit import core
-
+from .decorators import dam_request_validity
 # Overwriting ratelimit's cache key function.
+from .schema import initiate_dam_request
+from ..models import DatasetAccessModelResource
+
+# from graphql import GraphQLError
+
 core._make_cache_key = idp_make_cache_key
 
 es_client = Elasticsearch(settings.ELASTICSEARCH)
@@ -137,7 +135,7 @@ class FormatConverter:
                 open("file.json", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
+                    ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -159,7 +157,7 @@ class FormatConverter:
                 open("file.xml", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".xml"
+                    ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".xml"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -208,7 +206,7 @@ class FormatConverter:
                 open("file.csv", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".json"
+                    ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".json"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -228,7 +226,7 @@ class FormatConverter:
                 open("file.xml", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".xml"
+                    ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".xml"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -310,12 +308,12 @@ class FormatExporter:
 
 
 def get_request_file(
-    username,
-    data_request_id,
-    target_format,
-    return_type="file",
-    size=5,
-    paginate_from=0,
+        username,
+        data_request_id,
+        target_format,
+        return_type="file",
+        size=5,
+        paginate_from=0,
 ):
     data_request = DataRequest.objects.get(pk=data_request_id)
     if target_format and target_format not in ["CSV", "XML", "JSON"]:
@@ -355,9 +353,13 @@ def get_resource(request):
     except IndexError:
         return HttpResponse("Token prefix missing", content_type="text/plain")
     if token_payload:
+        data_request_id = token_payload.get("data_request")
+        data_request = DataRequest.objects.get(pk=data_request_id)
+        if data_request.status != "FETCHED":
+            return HttpResponse("Request in progress. Please try again in some time", content_type="text/plain")
         return get_request_file(
             token_payload.get("username"),
-            token_payload.get("data_request"),
+            data_request_id,
             format,
             "data",
             size,
@@ -384,3 +386,47 @@ def refresh_token(request):
     return HttpResponse(
         "Something went wrong request again!!", content_type="text/plain"
     )
+
+
+def refresh_data_token(request):
+    token = request.GET.get("token")
+    try:
+        token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        return HttpResponse("Authentication failed", content_type="text/plain")
+    except IndexError:
+        return HttpResponse("Token prefix missing", content_type="text/plain")
+    if token_payload:
+        data_resource_id = token_payload.get("dam_resource")
+        username = token_payload.get("username")
+        data_resource_instance = DatasetAccessModelResource.objects.get(pk=data_resource_id)
+        access_token = create_data_jwt_token(data_resource_instance, username)
+        return HttpResponse(access_token, content_type="text/plain")
+    return HttpResponse(
+        "Something went wrong request again!!", content_type="text/plain"
+    )
+
+
+def update_data(request):
+    token = request.GET.get("token")
+    try:
+        token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        return HttpResponse("Authentication failed", content_type="text/plain")
+    except IndexError:
+        return HttpResponse("Token prefix missing", content_type="text/plain")
+    data_resource = DatasetAccessModelResource.objects.get(token_payload.get("dam_resource"))
+    username = token_payload.get("username")
+    default_parameters = data_resource.resource.apidetails.apiparameter_set.all()
+    parameters = {}
+    for param in default_parameters:
+        if param.key in request.GET:
+            parameters[param.key] = request.GET.get(param.key)
+        else:
+            parameters[param.key] = param.default
+
+    if token_payload:
+        data_request = initiate_dam_request(data_resource, data_resource.resource, username, parameters)
+        access_token = create_access_jwt_token(data_request, username)
+        return HttpResponse(json.dumps({"access_token": access_token, "message": "Get resource with provided token"}),
+                            content_type="application/json")
