@@ -8,6 +8,7 @@ class ResourceSchema(models.Model):
         unique_together = ('resource', 'key')
 
     key = models.CharField(max_length=100)
+    display_name = models.CharField(max_length=100)
     format = models.CharField(max_length=100)
     description = models.CharField(max_length=500)
     resource = models.ForeignKey(Resource, on_delete=models.PROTECT)
