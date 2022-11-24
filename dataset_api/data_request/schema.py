@@ -92,14 +92,14 @@ class DataRequestType(DjangoObjectType):
             parameters = resource.apidetails.apiparameter_set.all()
         for parameter in parameters:
             param_input = {
-                "name": parameter.api_parameter.key,
+                "name": parameter.key,
                 "in": "query",
                 "required": "true",
-                "description": parameter.api_parameter.key,
+                "description": parameter.description,
                 "schema": {
-                    "type": parameter.api_parameter.format
+                    "type": parameter.format
                 },
-                "example": parameter.value
+                "example": parameter.default
             }
             spec["paths"]["/update_data"]["get"]["parameters"].append(param_input)
         # spec["info"]["title"] = self.resource.title
