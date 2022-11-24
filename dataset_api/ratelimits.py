@@ -6,13 +6,11 @@ def user_key(group, request):
     request_id = request.path.split("/")[3]
     data_request_instance = DataRequest.objects.get(pk=request_id)
     user = data_request_instance.user
-    dam = (
-        data_request_instance.dataset_access_model_request.access_model.data_access_model
-    )
+    dam_request = data_request_instance.dataset_access_model_request
     # TODO: Handle for OPEN data access models.
     # if dam.type == "OPEN":
     #     user = "Unlimited"
-    return user + "||" + str(dam.id)
+    return user + "||" + str(dam_request.id)
 
 
 def rate_per_user(group, request):
