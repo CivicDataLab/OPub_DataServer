@@ -35,6 +35,7 @@ from .utils import log_activity, get_client_ip, get_keys
 class ResourceSchemaInputType(graphene.InputObjectType):
     id = graphene.ID(required=False)
     key = graphene.String()
+    display_name = graphene.String()
     format = graphene.String()
     description = graphene.String(required=False)
     parent = graphene.String(required=False)
@@ -253,6 +254,7 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
             if schema.id:
                 schema_instance = ResourceSchema.objects.get(id=int(schema.id))
                 schema_instance.key = schema.key
+                schema_instance.display_name = getattr(schema, 'display_name', schema.key),
                 schema_instance.format = schema.format
                 schema_instance.description = schema.description
                 schema_instance.resource = resource_instance
@@ -287,6 +289,7 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
 def _create_resource_schema_instance(resource_instance, schema):
     schema_instance = ResourceSchema(
         key=schema.key,
+        display_name= getattr(schema, 'display_name', schema.key),
         format=schema.format,
         description=schema.description,
         resource=resource_instance,
