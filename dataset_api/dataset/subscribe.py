@@ -31,9 +31,9 @@ class Query(graphene.ObjectType):
         return Subscribe.objects.filter(username=username)
 
     @validate_token
-    def resolve_user_dataset_subscription(self, info, dataset_id, username, **kwargs):
+    def resolve_user_dataset_subscription(self, info, dataset_id, username="", **kwargs):
         dataset = Dataset.objects.get(id=dataset_id)
-        return Subscribe.objects.get(Q(username=username), Q(dataset=dataset))
+        return Subscribe.objects.get(Q(user=username), Q(dataset=dataset))
 
 
 class SubscribeInput(graphene.InputObjectType):
