@@ -10,6 +10,8 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 from graphql import GraphQLError
+import pandas as pd
+import json
 
 from .enums import DataType
 from .models import (
@@ -347,6 +349,7 @@ def _create_update_api_details(resource_instance, attribute):
 def _create_update_file_details(resource_instance, attribute):
     if not attribute:
         return
+    
     try:
         file_detail_object = FileDetails.objects.get(resource=resource_instance)
     except FileDetails.DoesNotExist as e:
@@ -357,6 +360,17 @@ def _create_update_file_details(resource_instance, attribute):
         if isinstance(mime_type, dict) and "value" in mime_type.keys():
             mime_type = mime_type["value"]
         file_format = FORMAT_MAPPING[mime_type.lower()]
+        try:
+            if file_format.lower() == "csv":
+                data = pd.read_csv(attribute.file)
+            if file_format.lower() == "xlsx":
+                data = pd.read_excel(attribute.file)               
+            if file_format.lower() == "json":
+                data = json.load(attribute.file)
+        except Exception as e:
+            resource_instance.delete()
+            raise GraphQLError(str(e))
+            
         if file_format:
             file_detail_object.format = file_format
         else:
