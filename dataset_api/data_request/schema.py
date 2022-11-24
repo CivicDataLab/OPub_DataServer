@@ -310,17 +310,18 @@ def update_data_request_index(data_request: DataRequest):
             csv_file = pd.DataFrame(
                 pd.read_csv(file_path, sep=",")
             )
-            csv_file.fillna("")
+            csv_file.fillna("", inplace=True)
             json_df = csv_file.to_dict(orient="records")
             res = helpers.bulk(es_client, generator(json_df, index=index_name))
         elif src_format.lower() == "json":
             df = pd.DataFrame(pd.read_json(file_path, orient="index"))
-            df.fillna("")
+            df.fillna("", inplace=True)
             json_df = df.to_dict(orient="records")
+            json_df = pd.json_normalize(json_df).fillna("", inplace=True).to_dict(orient="records")
             res = helpers.bulk(es_client, generator(json_df, index=index_name))
         elif src_format.lower() == "xml":
-            df = pd.DataFrame(pd.read_xml(file_path, orient="index"))
-            df.fillna("")
+            df = pd.DataFrame(pd.read_xml(file_path))
+            df.fillna("", inplace=True)
             json_df = df.to_dict(orient="records")
             res = helpers.bulk(es_client, generator(json_df, index=index_name))
 
