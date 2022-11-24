@@ -417,7 +417,7 @@ def update_data(request):
         return HttpResponse("Token prefix missing", content_type="text/plain")
     if token_payload:
         dam_resource_id = token_payload.get("dam_resource")
-        data_resource = DatasetAccessModelResource.objects.get(dam_resource_id)
+        data_resource = DatasetAccessModelResource.objects.get(id=dam_resource_id)
         username = token_payload.get("username")
         default_parameters = data_resource.resource.apidetails.apiparameter_set.all()
         parameters = {}
