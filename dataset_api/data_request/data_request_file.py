@@ -416,7 +416,8 @@ def update_data(request):
     except IndexError:
         return HttpResponse("Token prefix missing", content_type="text/plain")
     if token_payload:
-        data_resource = DatasetAccessModelResource.objects.get(token_payload.get("dam_resource"))
+        dam_resource_id = token_payload.get("dam_resource")
+        data_resource = DatasetAccessModelResource.objects.get(dam_resource_id)
         username = token_payload.get("username")
         default_parameters = data_resource.resource.apidetails.apiparameter_set.all()
         parameters = {}
