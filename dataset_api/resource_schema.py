@@ -370,6 +370,8 @@ def _create_update_file_details(resource_instance, attribute):
                 data = pd.read_excel(attribute.file)               
             if file_format.lower() == "json":
                 data = json.load(attribute.file)
+            if file_format.lower() == "xml":
+                data = pd.read_xml(attribute.file)                
         except Exception as e:
             resource_instance.delete()
             raise GraphQLError(str(e))
