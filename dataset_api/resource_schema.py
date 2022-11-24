@@ -31,6 +31,11 @@ from .decorators import (
 from .constants import FORMAT_MAPPING
 from .utils import log_activity, get_client_ip, get_keys
 
+from api_resource import api_fetch
+import genson
+
+
+
 
 class ResourceSchemaInputType(graphene.InputObjectType):
     id = graphene.ID(required=False)
@@ -148,7 +153,15 @@ class Query(graphene.ObjectType):
                         return file.columns.tolist()
                     if resource.filedetails.format.lower() == "json":
                         with open(resource.filedetails.file) as jsonFile:
-                            return list(set(get_keys(jsonFile.read(), [])))
+                            # return list(set(get_keys(jsonFile.read(), [])))
+                            builder = genson.SchemaBuilder()
+                            jsondata = jsonFile.read()  #json.loads(resource.filedetails.file)
+                            builder.add_object(jsondata)
+                            schema_dict = builder.to_schema()
+                            schema_dict = schema_dict.get("properties", {})
+                            schema = []
+                            api_fetch.parse_schema(schema_dict, "", schema)
+                            return schema
             return []
         else:
             raise GraphQLError("Access Denied")
