@@ -51,7 +51,7 @@ class SubscribeMutation(Output, graphene.Mutation):
     def mutate(root, info, subscribe_input: SubscribeInput = None, username=""):
         dataset = Dataset.objects.get(id=subscribe_input.dataset_id)
         try:
-            subscribe_instance = Subscribe.objects.get(username=username, dataset=dataset)
+            subscribe_instance = Subscribe.objects.get(user=username, dataset=dataset)
         except Subscribe.DoesNotExist as e:
             subscribe_instance = Subscribe(dataset=dataset, user=username)
         if subscribe_input.action == SubscriptionAction.UNSUBSCRIBE:
