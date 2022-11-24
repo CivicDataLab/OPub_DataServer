@@ -32,38 +32,40 @@ REFRESH_TOKEN_SECRET = (
     "django-insecure-ya3++8kan(4=ny+d@^g6(le^a1p@9@d2q=eqp&ksh_lrt!--$+"
 )
 ACCESS_TOKEN_EXPIRY_MINS = 5
+BASE_DOMAIN = env("BASE_DOMAIN")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['http://idpbe.civicdatalab.in', 'http://43.205.200.192', 'idp.civicdatalab.in', 'http://localhost:3000', '*', 'idpbe.civicdatalab.in']
+ALLOWED_HOSTS = ['http://idpbe.civicdatalab.in', 'http://43.205.200.192', 'idp.civicdatalab.in',
+                 'http://localhost:3000', '*', 'idpbe.civicdatalab.in']
 
 CORS_ORIGIN_WHITELIST = ['idpbe.civicdatalab.in', '43.205.200.192', 'idp.civicdatalab.in', 'localhost:3000']
 
 CORS_ALLOW_METHODS = [
-        'DELETE',
-        'GET',
-        'OPTIONS',
-        'PATCH',
-        'POST',
-        'PUT',
-        ]
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
 CORS_ALLOW_HEADERS = [
-        'accept',
-        'accept-encoding',
-        'authorization',
-        'content-type',
-        'dnt',
-        'origin',
-        'user-agent',
-        'x-csrftoken',
-        'x-requested-with',
-        'referer',
-        'organization',
-        ]
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'referer',
+    'organization',
+]
 
-CORS_ORIGIN_ALLOW_ALL=True
+CORS_ORIGIN_ALLOW_ALL = True
 
 # Application definition
 
