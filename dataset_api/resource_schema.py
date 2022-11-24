@@ -45,6 +45,12 @@ class ResourceSchemaType(DjangoObjectType):
         fields = "__all__"
 
 
+class APIParametersType(DjangoObjectType):
+    class Meta:
+        model = APIParameter
+        fields = "__all__"
+
+
 class FileDetailsType(DjangoObjectType):
     class Meta:
         model = FileDetails
@@ -52,9 +58,18 @@ class FileDetailsType(DjangoObjectType):
 
 
 class ApiDetailsType(DjangoObjectType):
+    parameters = graphene.List(APIParametersType)
+
     class Meta:
         model = APIDetails
         fields = "__all__"
+
+    def resolve_parameters(self: APIDetails, info):
+        try:
+            parameters = APIParameter.objects.filter(api_details=self)
+            return parameters
+        except APIParameter.DoesNotExist as e:
+            return []
 
 
 class ResourceType(DjangoObjectType):
