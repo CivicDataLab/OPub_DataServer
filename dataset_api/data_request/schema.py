@@ -6,7 +6,6 @@ from typing import Iterator
 import graphene
 import pandas as pd
 import requests
-import xmltodict
 from django.core.files import File
 from django.db.models import Q
 from elasticsearch import Elasticsearch, helpers
