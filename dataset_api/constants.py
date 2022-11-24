@@ -16,7 +16,6 @@ FORMAT_MAPPING = {
     "application/gml+xml": "XML",
     "application/gzip": "GZIP",
     "application/xhtml+xml": "XML",
-
 }
 
 DATAREQUEST_SWAGGER_SPEC = {
