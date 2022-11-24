@@ -37,10 +37,11 @@ def validate_token(func):
 def validate_token_or_none(func):
     def inner(*args, **kwargs):
         username = None
-        rest_auth = ""
+        user_token = ""
         if hasattr(args[0], "META"):
-            rest_auth = args[0].META.get("HTTP_AUTHORIZATION")
-        user_token = args[1].context.META.get("HTTP_AUTHORIZATION", rest_auth)
+            user_token = args[0].META.get("HTTP_AUTHORIZATION", "")
+        else:
+            user_token = args[1].context.META.get("HTTP_AUTHORIZATION", "")
         if user_token == "":
             print("Whoops! Empty user")
         else:
@@ -179,6 +180,7 @@ def create_user_org(func):
 
     return inner
 
+
 def modify_org_status(func):
     def inner(*args, **kwargs):
         value = func(*args, **kwargs)
@@ -254,6 +256,7 @@ def get_user_org(func):
         )
         response_json = request_to_server(body, "get_user_orgs")
         if response_json["Success"]:
-            kwargs["org_ids"] =  response_json["orgs"]
+            kwargs["org_ids"] = response_json["orgs"]
             return func(*args, **kwargs)
+
     return inner

@@ -1,3 +1,5 @@
+from DatasetServer import settings
+
 FORMAT_MAPPING = {
     "text/csv": "CSV",
     "csv": "CSV",
@@ -14,7 +16,6 @@ FORMAT_MAPPING = {
     "application/gml+xml": "XML",
     "application/gzip": "GZIP",
     "application/xhtml+xml": "XML",
-
 }
 
 DATAREQUEST_SWAGGER_SPEC = {
@@ -25,7 +26,7 @@ DATAREQUEST_SWAGGER_SPEC = {
     },
     "servers": [
         {
-            "url": "https://idpbe.civicdatalab.in/"
+            "url": settings.BASE_DOMAIN
         }
     ],
     "paths": {
@@ -131,7 +132,30 @@ DATAREQUEST_SWAGGER_SPEC = {
                             "type": "string",
                             "enum": ["CSV", "XML", "JSON"]
                         }
-                    }],
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "required": "true",
+                        "description": "number of records to return",
+                        "schema": {
+                            "type": "integer",
+                            "miniumum": 1
+                        },
+                        "example": 5
+                    },
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "required": "true",
+                        "description": "start of records to return",
+                        "schema": {
+                            "type": "integer",
+                            "miniumum": 0
+                        },
+                        "example": 0
+                    },
+                ],
                 "responses": {
                     "200": {
                         "description": "OK"

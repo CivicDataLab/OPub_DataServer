@@ -1,4 +1,5 @@
 import graphene
+from django.db.models import Q
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
@@ -30,9 +31,9 @@ class Query(graphene.ObjectType):
         return Subscribe.objects.filter(username=username)
 
     @validate_token
-    def resolve_user_dataset_subscription(self, dataset_id, username):
+    def resolve_user_dataset_subscription(self, info, dataset_id, username="", **kwargs):
         dataset = Dataset.objects.get(id=dataset_id)
-        return Subscribe.objects.get(username=username, dataset=dataset)
+        return Subscribe.objects.get(Q(user=username), Q(dataset=dataset))
 
 
 class SubscribeInput(graphene.InputObjectType):

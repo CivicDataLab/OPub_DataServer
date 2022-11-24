@@ -49,7 +49,7 @@ class Query(graphene.ObjectType):
     @auth_query_dam(action="query||id")
     # Access : PMU/DPA of that org.
     def resolve_org_data_access_models(self, info, organization_id, role):
-        if role == "PMU" or role == "DPA":
+        if role == "PMU" or role == "DPA" or role == "DP":
             organization = Organization.objects.get(pk=organization_id)
             return DataAccessModel.objects.filter(organization=organization).order_by(
                 "-modified"

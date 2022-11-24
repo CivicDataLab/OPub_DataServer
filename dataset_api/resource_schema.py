@@ -1,6 +1,6 @@
 import mimetypes
 import os
-from typing import Iterator
+from typing import Iterable
 
 import graphene
 import pandas as pd
@@ -45,6 +45,12 @@ class ResourceSchemaType(DjangoObjectType):
         fields = "__all__"
 
 
+class APIParametersType(DjangoObjectType):
+    class Meta:
+        model = APIParameter
+        fields = "__all__"
+
+
 class FileDetailsType(DjangoObjectType):
     class Meta:
         model = FileDetails
@@ -52,9 +58,18 @@ class FileDetailsType(DjangoObjectType):
 
 
 class ApiDetailsType(DjangoObjectType):
+    parameters = graphene.List(APIParametersType)
+
     class Meta:
         model = APIDetails
         fields = "__all__"
+
+    def resolve_parameters(self: APIDetails, info):
+        try:
+            parameters = APIParameter.objects.filter(api_details=self)
+            return parameters
+        except APIParameter.DoesNotExist as e:
+            return []
 
 
 class ResourceType(DjangoObjectType):
@@ -171,7 +186,7 @@ class ApiInputType(graphene.InputObjectType):
     auth_required = graphene.Boolean(required=True)
     url_path = graphene.String(required=True)
     response_type = ResponseType()
-    parameters: Iterator = graphene.List(of_type=APIParameterInputType, required=False)
+    parameters: Iterable = graphene.List(of_type=APIParameterInputType, required=False)
 
 
 class FileInputType(graphene.InputObjectType):
@@ -187,7 +202,7 @@ class ResourceInput(graphene.InputObjectType):
     description = graphene.String(required=False)
     dataset = graphene.ID(required=True)
     status = graphene.String(required=True)
-    schema: List = graphene.List(of_type=ResourceSchemaInputType, required=False)
+    schema: Iterable = graphene.List(of_type=ResourceSchemaInputType, required=False)
     masked_fields = graphene.List(of_type=graphene.String, default=[], required=False)
     api_details: ApiInputType = graphene.Field(ApiInputType, required=False)
     file_details: FileInputType = graphene.Field(FileInputType, required=False)

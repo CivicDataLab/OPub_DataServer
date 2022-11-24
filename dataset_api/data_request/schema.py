@@ -1,3 +1,4 @@
+import json
 import mimetypes
 import os
 from typing import Iterator
@@ -5,8 +6,6 @@ from typing import Iterator
 import graphene
 import pandas as pd
 import requests
-import json
-
 from django.core.files import File
 from django.db.models import Q
 from elasticsearch import Elasticsearch, helpers
@@ -22,15 +21,15 @@ from dataset_api.data_request.token_handler import (
 )
 from dataset_api.dataset_access_model_request.schema import (
     create_dataset_access_model_request,
-    PurposeType,
 )
 from dataset_api.decorators import validate_token, validate_token_or_none
 from dataset_api.enums import DataType
+from dataset_api.es_utils import es_create_index_if_not_exists
 from dataset_api.models import (
     Resource,
     DatasetAccessModel,
     DatasetAccessModelResource,
-    FileDetails, DataRequestParameter,
+    FileDetails, DataRequestParameter, ResourceSchema,
 )
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
@@ -172,7 +171,10 @@ def initiate_dam_request(dam_request, resource, username, parameters=None, defau
     dam_resource = DatasetAccessModelResource.objects.get(
         dataset_access_model=dam_request.access_model_id, resource=resource.id
     )
-    fields = dam_resource.fields
+    fields = []
+    for field in dam_resource.fields:
+        schema_field = ResourceSchema.objects.get(id=field)
+        fields.append(schema_field.key)
 
     # TODO: fix magic strings
     if resource and resource.dataset.dataset_type == "API":
@@ -302,13 +304,25 @@ def update_data_request_index(data_request: DataRequest):
     if len(file_path):
         mime_type = mimetypes.guess_type(file_path)[0]
         src_format = FORMAT_MAPPING[mime_type]
-        csv_file = pd.DataFrame(
-            pd.read_csv(file_path, sep=",", header=0, index_col=False)
-        )
-        json_df = csv_file.to_dict()
-        dataset_title = data_request.dataset_access_model_request.access_model.dataset.title
-        res = helpers.bulk(es_client, generator(json_df,
-                                                index=dataset_title + str(data_request.id)))
+        index_name = str(data_request.id)
+        es_create_index_if_not_exists(es_client, index_name)
+        if src_format.lower() == "csv":
+            csv_file = pd.DataFrame(
+                pd.read_csv(file_path, sep=",")
+            )
+            csv_file.fillna("")
+            json_df = csv_file.to_dict(orient="records")
+            res = helpers.bulk(es_client, generator(json_df, index=index_name))
+        elif src_format.lower() == "json":
+            df = pd.DataFrame(pd.read_json(file_path, orient="index"))
+            df.fillna("")
+            json_df = df.to_dict(orient="records")
+            res = helpers.bulk(es_client, generator(json_df, index=index_name))
+        elif src_format.lower() == "xml":
+            df = pd.DataFrame(pd.read_xml(file_path, orient="index"))
+            df.fillna("")
+            json_df = df.to_dict(orient="records")
+            res = helpers.bulk(es_client, generator(json_df, index=index_name))
 
 
 class DataRequestUpdateMutation(graphene.Mutation, Output):
