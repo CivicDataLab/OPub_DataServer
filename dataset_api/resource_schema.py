@@ -254,7 +254,7 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
             if schema.id:
                 schema_instance = ResourceSchema.objects.get(id=int(schema.id))
                 schema_instance.key = schema.key
-                schema_instance.display_name = getattr(schema, 'display_name', schema.key),
+                schema_instance.display_name = get_display_name(schema),
                 schema_instance.format = schema.format
                 schema_instance.description = schema.description
                 schema_instance.resource = resource_instance
@@ -289,13 +289,20 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
 def _create_resource_schema_instance(resource_instance, schema):
     schema_instance = ResourceSchema(
         key=schema.key,
-        display_name= getattr(schema, 'display_name', schema.key),
+        display_name=get_display_name(schema),
         format=schema.format,
         description=schema.description,
         resource=resource_instance,
     )
     schema_instance.save()
     return schema_instance
+
+
+def get_display_name(schema: ResourceSchemaInputType):
+    if schema.display_name:
+        return schema.display_name
+    else:
+        return schema.key
 
 
 def _create_update_api_parameter(api_detail_instance, parameters):
@@ -352,7 +359,7 @@ def _create_update_api_details(resource_instance, attribute):
 def _create_update_file_details(resource_instance, attribute):
     if not attribute:
         return
-    
+
     try:
         file_detail_object = FileDetails.objects.get(resource=resource_instance)
     except FileDetails.DoesNotExist as e:
@@ -367,15 +374,15 @@ def _create_update_file_details(resource_instance, attribute):
             if file_format.lower() == "csv":
                 data = pd.read_csv(attribute.file)
             if file_format.lower() == "xlsx":
-                data = pd.read_excel(attribute.file)               
+                data = pd.read_excel(attribute.file)
             if file_format.lower() == "json":
                 data = json.load(attribute.file)
             if file_format.lower() == "xml":
-                data = pd.read_xml(attribute.file)                
+                data = pd.read_xml(attribute.file)
         except Exception as e:
             resource_instance.delete()
             raise GraphQLError(str(e))
-            
+
         if file_format:
             file_detail_object.format = file_format
         else:
