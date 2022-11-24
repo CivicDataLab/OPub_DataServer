@@ -1,6 +1,6 @@
 import mimetypes
 import os
-from typing import Iterator
+from typing import Iterable
 
 import graphene
 import pandas as pd
@@ -171,7 +171,7 @@ class ApiInputType(graphene.InputObjectType):
     auth_required = graphene.Boolean(required=True)
     url_path = graphene.String(required=True)
     response_type = ResponseType()
-    parameters: Iterator = graphene.List(of_type=APIParameterInputType, required=False)
+    parameters: Iterable = graphene.List(of_type=APIParameterInputType, required=False)
 
 
 class FileInputType(graphene.InputObjectType):
@@ -187,7 +187,7 @@ class ResourceInput(graphene.InputObjectType):
     description = graphene.String(required=False)
     dataset = graphene.ID(required=True)
     status = graphene.String(required=True)
-    schema: List = graphene.List(of_type=ResourceSchemaInputType, required=False)
+    schema: Iterable = graphene.List(of_type=ResourceSchemaInputType, required=False)
     masked_fields = graphene.List(of_type=graphene.String, default=[], required=False)
     api_details: ApiInputType = graphene.Field(ApiInputType, required=False)
     file_details: FileInputType = graphene.Field(FileInputType, required=False)
