@@ -17,7 +17,9 @@ from DatasetServer import settings
 from dataset_api.constants import DATAREQUEST_SWAGGER_SPEC, FORMAT_MAPPING
 from dataset_api.data_request.token_handler import (
     create_access_jwt_token,
-    generate_refresh_token, create_data_jwt_token, create_data_refresh_token,
+    generate_refresh_token,
+    create_data_jwt_token,
+    create_data_refresh_token,
 )
 from dataset_api.dataset_access_model_request.schema import (
     create_dataset_access_model_request,
@@ -29,10 +31,13 @@ from dataset_api.models import (
     Resource,
     DatasetAccessModel,
     DatasetAccessModelResource,
-    FileDetails, DataRequestParameter, ResourceSchema,
+    FileDetails,
+    DataRequestParameter,
+    ResourceSchema,
 )
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
+from dataset_api.utils import skip_col
 
 
 class DataRequestType(DjangoObjectType):
@@ -58,22 +63,32 @@ class DataRequestType(DjangoObjectType):
 
     @validate_token_or_none
     def resolve_data_token(self: DataRequest, info, username):
-        dam_resource = DatasetAccessModelResource.objects.get(Q(resource=self.resource),
-                                                              Q(dataset_access_model=self.dataset_access_model_request.access_model))
-        return create_data_jwt_token(dam_resource, self.dataset_access_model_request, username)
+        dam_resource = DatasetAccessModelResource.objects.get(
+            Q(resource=self.resource),
+            Q(dataset_access_model=self.dataset_access_model_request.access_model),
+        )
+        return create_data_jwt_token(
+            dam_resource, self.dataset_access_model_request, username
+        )
 
     @validate_token_or_none
     def resolve_data_refresh_token(self: DataRequest, info, username):
-        dam_resource = DatasetAccessModelResource.objects.get(Q(resource=self.resource),
-                                                              Q(dataset_access_model=self.dataset_access_model_request.access_model))
-        return create_data_refresh_token(dam_resource, self.dataset_access_model_request, username)
+        dam_resource = DatasetAccessModelResource.objects.get(
+            Q(resource=self.resource),
+            Q(dataset_access_model=self.dataset_access_model_request.access_model),
+        )
+        return create_data_refresh_token(
+            dam_resource, self.dataset_access_model_request, username
+        )
 
     @validate_token_or_none
     def resolve_spec(self: DataRequest, info, username):
         spec = DATAREQUEST_SWAGGER_SPEC.copy()
         dam_request = self.dataset_access_model_request
-        dam_resource = DatasetAccessModelResource.objects.get(Q(resource=self.resource),
-                                                              Q(dataset_access_model=self.dataset_access_model_request.access_model))
+        dam_resource = DatasetAccessModelResource.objects.get(
+            Q(resource=self.resource),
+            Q(dataset_access_model=self.dataset_access_model_request.access_model),
+        )
         spec["paths"]["/refreshtoken"]["get"]["parameters"][0][
             "example"
         ] = generate_refresh_token(self, username)
@@ -84,9 +99,7 @@ class DataRequestType(DjangoObjectType):
         spec["paths"]["/getresource"]["get"]["parameters"][0][
             "example"
         ] = create_access_jwt_token(self, username)
-        spec["paths"]["/update_data"]["get"]["parameters"][0][
-            "example"
-        ] = data_token
+        spec["paths"]["/update_data"]["get"]["parameters"][0]["example"] = data_token
         parameters = []
         resource = self.resource
         if resource and resource.dataset.dataset_type == "API":
@@ -97,10 +110,8 @@ class DataRequestType(DjangoObjectType):
                 "in": "query",
                 "required": "true",
                 "description": parameter.description,
-                "schema": {
-                    "type": parameter.format
-                },
-                "example": parameter.default
+                "schema": {"type": parameter.format},
+                "example": parameter.default,
             }
             spec["paths"]["/update_data"]["get"]["parameters"].append(param_input)
         # spec["info"]["title"] = self.resource.title
@@ -144,7 +155,9 @@ class DataRequestParameterInput(graphene.InputObjectType):
 class DataRequestInput(graphene.InputObjectType):
     dataset_access_model_request = graphene.ID(required=True)
     resource = graphene.ID(required=True)
-    parameters: Iterator = graphene.List(of_type=DataRequestParameterInput, required=False)
+    parameters: Iterator = graphene.List(
+        of_type=DataRequestParameterInput, required=False
+    )
 
 
 class OpenDataRequestInput(graphene.InputObjectType):
@@ -158,7 +171,9 @@ class DataRequestUpdateInput(graphene.InputObjectType):
     file = Upload(required=False)
 
 
-def initiate_dam_request(dam_request, resource, username, parameters=None, default=False):
+def initiate_dam_request(
+    dam_request, resource, username, parameters=None, default=False
+):
     if parameters is None:
         parameters = {}
     data_request_instance = DataRequest(
@@ -166,7 +181,7 @@ def initiate_dam_request(dam_request, resource, username, parameters=None, defau
         user=username,
         resource=resource,
         dataset_access_model_request=dam_request,
-        default=default
+        default=default,
     )
     data_request_instance.save()
     dam_resource = DatasetAccessModelResource.objects.get(
@@ -181,8 +196,9 @@ def initiate_dam_request(dam_request, resource, username, parameters=None, defau
     if resource and resource.dataset.dataset_type == "API":
         for parameter in resource.apidetails.apiparameter_set.all():
             value = parameters.get(parameter.key, parameter.default)
-            dr_parameter_instance = DataRequestParameter(api_parameter=parameter, value=value,
-                                                         data_request=data_request_instance)
+            dr_parameter_instance = DataRequestParameter(
+                api_parameter=parameter, value=value, data_request=data_request_instance
+            )
             dr_parameter_instance.save()
         url = f"{settings.PIPELINE_URL}api_source_query"
         payload = json.dumps(
@@ -215,11 +231,7 @@ def initiate_dam_request(dam_request, resource, username, parameters=None, defau
         elif file_instance.format.lower() == "json":
             read_file = open(data_request_instance.file.path, "r")
             file = json.load(read_file)
-            remove_cols = [x for x in file.keys() if x not in fields]
-            if len(fields) == 0:
-                remove_cols = []
-            for x in fields:
-                del file[x]
+            skip_col(file, fields)
             read_file.close()
             output_file = open(data_request_instance.file.path, "w")
             file = json.dump(file, output_file, indent=4)
@@ -261,7 +273,9 @@ class DataRequestMutation(graphene.Mutation, Output):
                     ]
                 },
             }
-        data_request_instance = initiate_dam_request(dam_request, resource, username, parameters, default=True)
+        data_request_instance = initiate_dam_request(
+            dam_request, resource, username, parameters, default=True
+        )
         return DataRequestMutation(data_request=data_request_instance)
 
 
@@ -286,20 +300,18 @@ class OpenDataRequestMutation(graphene.Mutation, Output):
             user_email=username,
             status="APPROVED",
         )
-        data_request_instance = initiate_dam_request(dam_request, resource, username, None)
+        data_request_instance = initiate_dam_request(
+            dam_request, resource, username, None
+        )
         return OpenDataRequestMutation(data_request=data_request_instance)
 
 
 def generator(dict_df, index):
     for _, line in enumerate(dict_df):
-        yield {
-            '_index': index,
-            '_type': '_doc',
-            '_source': line
-        }
+        yield {"_index": index, "_type": "_doc", "_source": line}
 
 
-def cell_size_equalize2(row, cols='', fill_mode='internal', fill_value=''):
+def cell_size_equalize2(row, cols="", fill_mode="internal", fill_value=""):
     jcols = [j for j, v in enumerate(row.index) if v in cols]
     if len(jcols) < 1:
         jcols = range(len(row.index))
@@ -311,16 +323,22 @@ def cell_size_equalize2(row, cols='', fill_mode='internal', fill_value=''):
             lengths.append(1)
     if not lengths[:-1] == lengths[1:]:
         vals = [v if isinstance(v, list) else [v] for v in row.values]
-        if fill_mode == 'external':
-            vals = [[e] + [fill_value] * (max(lengths) - 1) if (not j in jcols) and (isinstance(row.values[j], list))
-                    else e + [fill_value] * (max(lengths) - len(e))
-                    for j, e in enumerate(vals)]
-        elif fill_mode == 'internal':
-            vals = [[e] + [e] * (max(lengths) - 1) if (not j in jcols) and (isinstance(row.values[j], list))
-                    else e + [e[-1]] * (max(lengths) - len(e))
-                    for j, e in enumerate(vals)]
+        if fill_mode == "external":
+            vals = [
+                [e] + [fill_value] * (max(lengths) - 1)
+                if (not j in jcols) and (isinstance(row.values[j], list))
+                else e + [fill_value] * (max(lengths) - len(e))
+                for j, e in enumerate(vals)
+            ]
+        elif fill_mode == "internal":
+            vals = [
+                [e] + [e] * (max(lengths) - 1)
+                if (not j in jcols) and (isinstance(row.values[j], list))
+                else e + [e[-1]] * (max(lengths) - len(e))
+                for j, e in enumerate(vals)
+            ]
         else:
-            vals = [e[0:min(lengths)] for e in vals]
+            vals = [e[0 : min(lengths)] for e in vals]
         row = pd.Series(vals, index=row.index.tolist())
     return row
 
@@ -334,9 +352,7 @@ def update_data_request_index(data_request: DataRequest):
         index_name = str(data_request.id)
         es_create_index_if_not_exists(es_client, index_name)
         if src_format.lower() == "csv":
-            csv_file = pd.DataFrame(
-                pd.read_csv(file_path, sep=",")
-            )
+            csv_file = pd.DataFrame(pd.read_csv(file_path, sep=","))
             csv_file.fillna("", inplace=True)
             json_df = csv_file.to_dict(orient="records")
             res = helpers.bulk(es_client, generator(json_df, index=index_name))
@@ -347,11 +363,11 @@ def update_data_request_index(data_request: DataRequest):
                 list_cols = []
                 all_cols = []
                 for v in list(temp.columns):
-                    if '.' in v:
-                        all_cols.append(v.split('.'))
+                    if "." in v:
+                        all_cols.append(v.split("."))
                     else:
                         all_cols.append(v)
-                    keys = v.split('.')
+                    keys = v.split(".")
                     rv = data
                     for key in keys:
                         rv = rv[key]
@@ -361,13 +377,15 @@ def update_data_request_index(data_request: DataRequest):
                 df = data
                 for col_path in list_cols:
                     meta = all_cols.copy()
-                    if '.' in col_path:
-                        path_list = col_path.split('.')
+                    if "." in col_path:
+                        path_list = col_path.split(".")
                         meta.remove(path_list)
                     else:
                         meta.remove(col_path)
 
-                    df = pd.json_normalize(df, record_path=col_path.split('.'), meta=meta)
+                    df = pd.json_normalize(
+                        df, record_path=col_path.split("."), meta=meta
+                    )
                 df.fillna("", inplace=True)
                 json_df = df.to_dict(orient="records")
                 res = helpers.bulk(es_client, generator(json_df, index=index_name))

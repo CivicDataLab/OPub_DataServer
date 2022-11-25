@@ -49,3 +49,22 @@ def idp_make_cache_key(group, window, rate, value, methods):
     print(rate, value)
     prefix = getattr(settings, "RATELIMIT_CACHE_PREFIX", "rl||")
     return prefix + value + "||" + rate + "||" + group
+
+
+def remove_a_key(d, remove_key):
+    for key in list(d.keys()):
+        if key not in remove_key:
+            del d[key]
+        else:
+            skip_col(d[key], remove_key)
+
+
+def skip_col(d, remove_key):
+    if isinstance(d, dict):
+        remove_a_key(d, remove_key)
+    if isinstance(d, list):
+        for each in d:
+            if isinstance(each, dict):
+                remove_a_key(each, remove_key)
+
+    return d
