@@ -340,16 +340,35 @@ def update_data_request_index(data_request: DataRequest):
             json_df = csv_file.to_dict(orient="records")
             res = helpers.bulk(es_client, generator(json_df, index=index_name))
         elif src_format.lower() == "json":
-            df = pd.DataFrame(pd.read_json(file_path, orient="records"))
-            df.fillna("", inplace=True)
-            json_df = df.to_dict(orient="records")
-            json_df = pd.json_normalize(json_df)
-            json_df.fillna("", inplace=True)
-            json_df = json_df.apply(cell_size_equalize2, cols=list(json_df.columns), fill_mode='external',
-                                    fill_value="NA",
-                                    axis=1).apply(pd.Series.explode)
-            json_df = json_df.to_dict(orient="records")
-            res = helpers.bulk(es_client, generator(json_df, index=index_name))
+            with open(file_path, "r") as fp:
+                data = json.load(fp)
+                temp = pd.json_normalize(data, max_level=2)
+                list_cols = []
+                all_cols = []
+                for v in list(temp.columns):
+                    if '.' in v:
+                        all_cols.append(v.split('.'))
+                    else:
+                        all_cols.append(v)
+                    keys = v.split('.')
+                    rv = data
+                    for key in keys:
+                        rv = rv[key]
+                    # print(rv)
+                    if type(rv) == list:
+                        list_cols.append(v)
+                df = data
+                for col_path in list_cols:
+                    meta = all_cols.copy()
+                    if '.' in col_path:
+                        path_list = col_path.split('.')
+                        meta.remove(path_list)
+                    else:
+                        meta.remove(col_path)
+                    
+                    df = pd.json_normalize(df, record_path=col_path.split('.'), meta=meta)
+                df.fillna("", inplace=True)
+                res = helpers.bulk(es_client, generator(df, index=index_name))
         elif src_format.lower() == "xml":
             df = pd.DataFrame(pd.read_xml(file_path))
             df.fillna("", inplace=True)
