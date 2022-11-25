@@ -152,10 +152,10 @@ class Query(graphene.ObjectType):
                         file = pd.read_csv(resource.filedetails.file.path)
                         return file.columns.tolist()
                     if resource.filedetails.format.lower() == "json":
-                        with open(resource.filedetails.file) as jsonFile:
+                        with open(resource.filedetails.file.path) as jsonFile:
                             # return list(set(get_keys(jsonFile.read(), [])))
                             builder = genson.SchemaBuilder()
-                            jsondata = jsonFile.read()  #json.loads(resource.filedetails.file)
+                            jsondata = json.loads(jsonFile.read())  #json.loads(resource.filedetails.file)
                             builder.add_object(jsondata)
                             schema_dict = builder.to_schema()
                             schema_dict = schema_dict.get("properties", {})

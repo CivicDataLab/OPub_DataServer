@@ -4,12 +4,12 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
-from .decorators import validate_token
+from .decorators import validate_token, validate_token_or_none
 from .enums import ReviewType
 from .models import DatasetReviewRequest, Dataset
 from .decorators import auth_user_by_org, auth_user_action_resource
 from .search import index_data
-
+from .email_utils import dataset_approval_notif
 
 class ModerationRequestType(DjangoObjectType):
     class Meta:
@@ -49,11 +49,15 @@ class Query(graphene.ObjectType):
 
     @validate_token
     def resolve_review_request_user(self, info, username, **kwargs):
-        return DatasetReviewRequest.objects.filter(user=username).order_by("-modified_date")
+        return DatasetReviewRequest.objects.filter(user=username).order_by(
+            "-modified_date"
+        )
 
     @validate_token
     def resolve_moderation_request_user(self, info, username, **kwargs):
-        return DatasetReviewRequest.objects.filter(user=username).order_by("-modified_date")
+        return DatasetReviewRequest.objects.filter(user=username).order_by(
+            "-modified_date"
+        )
 
     def resolve_all_review_requests(self, info, **kwargs):
         return DatasetReviewRequest.objects.filter(
@@ -141,8 +145,10 @@ class ReviewRequestMutation(graphene.Mutation, Output):
                 "success": False,
                 "errors": {
                     "id": [
-                        {"message": f"Moderation request with id {review_request.dataset} does not exist",
-                         "code": "404"}
+                        {
+                            "message": f"Moderation request with id {review_request.dataset} does not exist",
+                            "code": "404",
+                        }
                     ]
                 },
             }
@@ -161,9 +167,10 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
     moderation_requests = graphene.List(of_type=ModerationRequestType)
 
     @staticmethod
+    @validate_token_or_none
     @auth_user_by_org(action="publish_dataset")
     def mutate(
-            root, info, moderation_request: ModerationRequestsApproveRejectInput = None
+        root, info, username="", moderation_request: ModerationRequestsApproveRejectInput = None
     ):
         errors = []
         moderation_requests = []
@@ -190,6 +197,7 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
                 dataset = moderation_request_instance.dataset
                 dataset.status = "PUBLISHED"
                 dataset.save()
+                dataset_approval_notif(username, dataset.id, dataset.catalog.organization.id)
                 # Index data in Elasticsearch
                 index_data(dataset)
             if moderation_request.status == "REJECTED":

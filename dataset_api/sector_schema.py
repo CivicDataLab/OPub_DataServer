@@ -46,10 +46,14 @@ class SectorType(DjangoObjectType):
 
 class Query(graphene.ObjectType):
     all_sector = graphene.List(SectorType)
+    active_sector = graphene.List(SectorType)
     sector = graphene.Field(SectorType, sector_id=graphene.Int())
     sector_by_title = graphene.Field(SectorType, sector_title=graphene.String())
 
     def resolve_all_sector(self, info, **kwargs):
+        return Sector.objects.all().distinct()
+
+    def resolve_active_sector(self, info, **kwargs):
         return Sector.objects.filter(dataset__status="PUBLISHED").distinct()
 
     def resolve_sector(self, info, sector_id):
