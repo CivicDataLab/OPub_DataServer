@@ -58,7 +58,10 @@ class DataAccessModelRequestType(DjangoObjectType):
         quota_limit = self.access_model.data_access_model.subscription_quota
         quota_limit_unit = self.access_model.data_access_model.subscription_quota_unit
         if not username:
-            username = self.user
+            if self.user:
+                username = self.user
+            else:
+                username = ""
 
         if quota_limit_unit == SubscriptionUnits.DAILY:
             used_quota = r.get(
