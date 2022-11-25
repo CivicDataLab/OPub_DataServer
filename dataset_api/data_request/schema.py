@@ -366,10 +366,11 @@ def update_data_request_index(data_request: DataRequest):
                         meta.remove(path_list)
                     else:
                         meta.remove(col_path)
-                    
+
                     df = pd.json_normalize(df, record_path=col_path.split('.'), meta=meta)
                 df.fillna("", inplace=True)
-                res = helpers.bulk(es_client, generator(df, index=index_name))
+                json_df = df.to_dict(orient="records")
+                res = helpers.bulk(es_client, generator(json_df, index=index_name))
         elif src_format.lower() == "xml":
             df = pd.DataFrame(pd.read_xml(file_path))
             df.fillna("", inplace=True)
