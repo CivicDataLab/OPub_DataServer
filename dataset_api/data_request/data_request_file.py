@@ -312,7 +312,7 @@ def get_request_file(
         data_request_id,
         target_format,
         return_type="file",
-        size=5,
+        size=10000,
         paginate_from=0,
 ):
     data_request = DataRequest.objects.get(pk=data_request_id)
