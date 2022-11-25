@@ -329,7 +329,7 @@ def get_request_file(
     for num, doc in enumerate(items):
         source_data = doc["_source"]
         _id = doc["_id"]
-        doc_data = pd.Series(source_data, name=_id)
+        doc_data = pd.Series(source_data)
         docs = docs.append(doc_data)
     response = getattr(
         FormatExporter,
