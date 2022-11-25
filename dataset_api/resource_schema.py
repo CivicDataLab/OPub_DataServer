@@ -10,7 +10,6 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 from graphql import GraphQLError
-import pandas as pd
 import json
 
 from .enums import DataType
@@ -33,8 +32,6 @@ from .utils import log_activity, get_client_ip, get_keys
 
 from .api_resource import api_fetch
 import genson
-
-
 
 
 class ResourceSchemaInputType(graphene.InputObjectType):
@@ -387,9 +384,9 @@ def _create_update_file_details(resource_instance, attribute):
             if file_format.lower() == "csv":
                 data = pd.read_csv(attribute.file)
             if file_format.lower() == "xlsx":
-                data = pd.read_excel(attribute.file)
+                data = pd.read_excel(attribute.file, 1)
             if file_format.lower() == "json":
-                data = json.load(attribute.file)
+                data = pd.read_json(attribute.file)
             if file_format.lower() == "xml":
                 data = pd.read_xml(attribute.file)
         except Exception as e:
