@@ -13,6 +13,6 @@ def dataset_approval_notif(username, dataset_id, org_id):
         "extras": {"tgt_org": org_id},
     }
     headers = {}
-    response = requests.request("POST", email_url, data=body, headers=headers)
+    response = requests.request("POST", email_url, json=body, headers=headers)
     response_json = response.text
     return response_json
