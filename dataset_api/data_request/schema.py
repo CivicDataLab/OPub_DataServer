@@ -227,7 +227,6 @@ def initiate_dam_request(
                 remove_cols = []
             file_data.drop(remove_cols, axis=1, inplace=True)
             file_data.to_csv(data_request_instance.file.path, index=False)
-            update_data_request_index(data_request_instance)
         elif file_instance.format.lower() == "json":
             read_file = open(data_request_instance.file.path, "r")
             file = json.load(read_file)
@@ -236,6 +235,7 @@ def initiate_dam_request(
             output_file = open(data_request_instance.file.path, "w")
             file = json.dump(file, output_file, indent=4)
             output_file.close()
+        update_data_request_index(data_request_instance)
         data_request_instance.status = "FETCHED"
     data_request_instance.save()
     return data_request_instance

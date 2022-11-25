@@ -46,7 +46,6 @@ def get_keys(json_obj, keys_list):
 def idp_make_cache_key(group, window, rate, value, methods):
     # Same values from all arguments - {dataset_api.data_request.data_request_file.download 1668506571 12/7d Archit||1 (None,)}
     rate = rate.split("/")[1]
-    print(rate, value)
     prefix = getattr(settings, "RATELIMIT_CACHE_PREFIX", "rl||")
     return prefix + value + "||" + rate + "||" + group
 
