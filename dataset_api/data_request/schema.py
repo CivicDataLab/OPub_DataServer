@@ -60,17 +60,18 @@ class DataRequestType(DjangoObjectType):
     def resolve_data_token(self: DataRequest, info, username):
         dam_resource = DatasetAccessModelResource.objects.get(Q(resource=self.resource),
                                                               Q(dataset_access_model=self.dataset_access_model_request.access_model))
-        return create_data_jwt_token(dam_resource, username)
+        return create_data_jwt_token(dam_resource, self.dataset_access_model_request, username)
 
     @validate_token_or_none
     def resolve_data_refresh_token(self: DataRequest, info, username):
         dam_resource = DatasetAccessModelResource.objects.get(Q(resource=self.resource),
                                                               Q(dataset_access_model=self.dataset_access_model_request.access_model))
-        return create_data_refresh_token(dam_resource, username)
+        return create_data_refresh_token(dam_resource, self.dataset_access_model_request, username)
 
     @validate_token_or_none
     def resolve_spec(self: DataRequest, info, username):
         spec = DATAREQUEST_SWAGGER_SPEC.copy()
+        dam_request = self.dataset_access_model_request
         dam_resource = DatasetAccessModelResource.objects.get(Q(resource=self.resource),
                                                               Q(dataset_access_model=self.dataset_access_model_request.access_model))
         spec["paths"]["/refreshtoken"]["get"]["parameters"][0][
@@ -78,8 +79,8 @@ class DataRequestType(DjangoObjectType):
         ] = generate_refresh_token(self, username)
         spec["paths"]["/refresh_data_token"]["get"]["parameters"][0][
             "example"
-        ] = create_data_refresh_token(dam_resource, username)
-        data_token = create_data_jwt_token(dam_resource, username)
+        ] = create_data_refresh_token(dam_resource, dam_request, username)
+        data_token = create_data_jwt_token(dam_resource, dam_request, username)
         spec["paths"]["/getresource"]["get"]["parameters"][0][
             "example"
         ] = create_access_jwt_token(self, username)

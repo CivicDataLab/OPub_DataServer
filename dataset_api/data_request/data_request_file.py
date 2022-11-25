@@ -18,7 +18,7 @@ from dataset_api.utils import idp_make_cache_key
 from .decorators import dam_request_validity
 # Overwriting ratelimit's cache key function.
 from .schema import initiate_dam_request
-from ..models import DatasetAccessModelResource
+from ..models import DatasetAccessModelResource, DatasetAccessModelRequest
 
 # from graphql import GraphQLError
 
@@ -398,9 +398,11 @@ def refresh_data_token(request):
         return HttpResponse("Token prefix missing", content_type="text/plain")
     if token_payload:
         data_resource_id = token_payload.get("dam_resource")
+        data_request_id = token_payload.get("dam_request")
         username = token_payload.get("username")
         data_resource_instance = DatasetAccessModelResource.objects.get(pk=data_resource_id)
-        access_token = create_data_jwt_token(data_resource_instance, username)
+        dam_request_instance = DatasetAccessModelRequest.objects.get(pk=data_request_id)
+        access_token = create_data_jwt_token(data_resource_instance, dam_request_instance, username)
         return HttpResponse(access_token, content_type="text/plain")
     return HttpResponse(
         "Something went wrong request again!!", content_type="text/plain"
@@ -417,7 +419,9 @@ def update_data(request):
         return HttpResponse("Token prefix missing", content_type="text/plain")
     if token_payload:
         dam_resource_id = token_payload.get("dam_resource")
+        data_request_id = token_payload.get("dam_request")
         data_resource = DatasetAccessModelResource.objects.get(id=dam_resource_id)
+        dam_request_instance = DatasetAccessModelRequest.objects.get(pk=data_request_id)
         username = token_payload.get("username")
         default_parameters = data_resource.resource.apidetails.apiparameter_set.all()
         parameters = {}
@@ -427,7 +431,7 @@ def update_data(request):
             else:
                 parameters[param.key] = param.default
 
-        data_request = initiate_dam_request(data_resource, data_resource.resource, username, parameters)
+        data_request = initiate_dam_request(dam_request_instance, data_resource.resource, username, parameters)
         access_token = create_access_jwt_token(data_request, username)
         return HttpResponse(json.dumps({"access_token": access_token, "message": "Get resource with provided token"}),
                             content_type="application/json")

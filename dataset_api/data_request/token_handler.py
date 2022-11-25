@@ -3,7 +3,7 @@ import datetime
 import jwt
 from django.conf import settings
 
-from dataset_api.models import DataRequest, DatasetAccessModelResource
+from dataset_api.models import DataRequest, DatasetAccessModelResource, DatasetAccessModelRequest
 
 
 def create_access_jwt_token(data_request: DataRequest, username):
@@ -35,10 +35,11 @@ def generate_refresh_token(data_request: DataRequest, username):
     return refresh_token
 
 
-def create_data_jwt_token(dam_resource: DatasetAccessModelResource, username):
+def create_data_jwt_token(dam_resource: DatasetAccessModelResource, dam_request: DatasetAccessModelRequest, username):
     access_token_payload = {
         'username': username,
         'dam_resource': dam_resource.id,
+        'dam_request': dam_request.id,
         'dam': dam_resource.dataset_access_model.id,
         'resource_id': dam_resource.resource.id,
         'exp': datetime.datetime.utcnow() + datetime.timedelta(days=0, minutes=settings.ACCESS_TOKEN_EXPIRY_MINS),
@@ -49,10 +50,12 @@ def create_data_jwt_token(dam_resource: DatasetAccessModelResource, username):
     return access_token
 
 
-def create_data_refresh_token(dam_resource: DatasetAccessModelResource, username):
+def create_data_refresh_token(dam_resource: DatasetAccessModelResource, dam_request: DatasetAccessModelRequest,
+                              username):
     refresh_token_payload = {
         'username': username,
         'dam_resource': dam_resource.id,
+        'dam_request': dam_request.id,
         'dam': dam_resource.dataset_access_model.id,
         'resource_id': dam_resource.resource.id,
         'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7, minutes=0),
