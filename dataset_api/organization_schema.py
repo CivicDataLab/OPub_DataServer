@@ -79,7 +79,7 @@ class Query(graphene.ObjectType):
     )
     organizations = graphene.List(OrganizationType)
 
-    requested_organizations = graphene.List(OrganizationType)
+    requested_rejected_organizations = graphene.List(OrganizationType)
     organizations_by_user = graphene.List(OrganizationType)
 
     # TODO: Allow all org list for PMU? Current State -- YES
@@ -115,10 +115,12 @@ class Query(graphene.ObjectType):
 
     # Access : PMU
     @auth_user_by_org(action="query")
-    def resolve_requested_organizations(self, info, role, **kwargs):
+    def resolve_requested_rejected_organizations(self, info, role, **kwargs):
         if role == "PMU":
             return Organization.objects.filter(
-                organizationcreaterequest__status=OrganizationCreationStatusType.REQUESTED.value
+                ~Q(
+                    organizationcreaterequest__status=OrganizationCreationStatusType.APPROVED.value
+                )
             ).order_by("-modified")
         else:
             raise GraphQLError("Access Denied")
