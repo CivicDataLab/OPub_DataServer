@@ -47,6 +47,7 @@ class APISourceInput(graphene.InputObjectType):
     auth_type = graphene.Enum.from_enum(AuthType)(required=True)
     auth_credentials = graphene.List(of_type=KeyValueType)
     auth_token = graphene.String()
+    auth_token_key = graphene.String(required=False)
 
 
 class CreateAPISource(Output, graphene.Mutation):
@@ -70,6 +71,7 @@ class CreateAPISource(Output, graphene.Mutation):
             auth_type=api_source_data.auth_type,
             auth_credentials=api_source_data.auth_credentials,
             auth_token=api_source_data.auth_token,
+            auth_token_key=api_source_data.auth_token_key,
             organization=organization
         )
         api_source_instance.save()
