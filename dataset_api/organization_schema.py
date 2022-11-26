@@ -170,7 +170,7 @@ class CreateOrganization(Output, graphene.Mutation):
     def mutate(root, info, username, organization_data: OrganizationInput = None):
         try:
             OrganizationCreateRequest.objects.get(
-                Q(organization_ptr_id__title=organization_data.title),
+                Q(organization_ptr_id__title__iexact=organization_data.title),
                 Q(status="APPROVED"),
             )
             return {
@@ -187,7 +187,7 @@ class CreateOrganization(Output, graphene.Mutation):
         except Organization.DoesNotExist:
             try:
                 OrganizationCreateRequest.objects.get(
-                    Q(organization_ptr_id__title=organization_data.title),
+                    Q(organization_ptr_id__title__iexact=organization_data.title),
                     Q(username=username),
                 )
                 return {
