@@ -427,8 +427,11 @@ def update_data(request):
         data_resource = DatasetAccessModelResource.objects.get(id=dam_resource_id)
         dam_request_instance = DatasetAccessModelRequest.objects.get(pk=data_request_id)
         username = token_payload.get("username")
-        default_parameters = data_resource.resource.apidetails.apiparameter_set.all()
+        apidetails = data_resource.resource.apidetails
         parameters = {}
+        default_parameters = []
+        if apidetails:
+            default_parameters = apidetails.apiparameter_set.all()
         for param in default_parameters:
             if param.key in request.GET:
                 parameters[param.key] = request.GET.get(param.key)
