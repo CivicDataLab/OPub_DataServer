@@ -274,6 +274,7 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
         organization_data = ApproveRejectOrganizationApprovalInput(required=True)
 
     organization = graphene.Field(CreateOrganizationType)
+    rejected = graphene.List(graphene.String)  # For Auth via decorator.
 
     @staticmethod
     @validate_token
@@ -344,12 +345,24 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
                 organization_ptr_id__title=organization.title
             )
             if same_org_instance.exists():
+                rejected_list = []
                 for orgs in same_org_instance:
                     if not orgs.status == "APPROVED":
                         orgs.status = OrganizationCreationStatusType.REJECTED.value
                         orgs.remark = "Organization with given name already exists."
                         orgs.save()
+                        rejected_list.append(orgs.organization_ptr_id)
 
+                        # Activity log for REJECTED organization.
+                        activity.send(
+                            username,
+                            verb=orgs.status,
+                            target=orgs,
+                            target_group=orgs,
+                            ip=get_client_ip(info),
+                        )
+
+            # Activity log for APPROVED organization.
             activity.send(
                 username,
                 verb=organization_data.status,
@@ -358,7 +371,8 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
                 ip=get_client_ip(info),
             )
             return ApproveRejectOrganizationApproval(
-                organization=organization_create_request_instance
+                organization=organization_create_request_instance,
+                rejected=rejected_list,
             )
 
 
