@@ -246,7 +246,7 @@ class FormatExporter:
     @classmethod
     def convert_df_to_csv(cls, df, return_type="data"):
         if return_type == "file":
-            df.to_csv("file.csv")
+            df.to_csv("file.csv", index=False)
             response = FileResponse(
                 open("file.csv", "rb"), content_type="application/x-download"
             )
@@ -257,7 +257,7 @@ class FormatExporter:
             os.remove("file.csv")
             return response
         elif return_type == "data":
-            response = HttpResponse(df.to_csv(), content_type="text/csv")
+            response = HttpResponse(df.to_csv(index=False), content_type="text/csv")
             return response
 
     @classmethod
@@ -336,9 +336,7 @@ def get_request_file(
         doc_data = pd.Series(source_data, name=_id)
         docs = docs.append(doc_data)
     
-    docs.drop(columns=docs.columns[0], 
-        axis=1, 
-        inplace=True)
+    docs.reset_index(drop=True, inplace=True)
     old_cols = list(docs.columns)
     new_cols = [col.replace(": ", "_") if ":" in col else "sample" if col == "" else col for col in old_cols]
     docs.columns = new_cols
