@@ -141,12 +141,15 @@ def fetchapi(resource_id):
         auth_loc = res_model.apidetails.api_source.auth_loc
         auth_type = res_model.apidetails.api_source.auth_type
         response_type = res_model.apidetails.response_type
+        request_type = res_model.apidetails.request_type
+        
         param = {}
         header = {}
         if auth_loc == "HEADER":
             if auth_type == "TOKEN":
                 auth_token = res_model.apidetails.api_source.auth_token
-                header = {"access_token": auth_token}
+                auth_token_key = res_model.apidetails.api_source.auth_token_key
+                header = {auth_token_key: auth_token}
             elif auth_type == "CREDENTIAL":
                 # [{key:username,value:dc, description:desc},{key:password,value:pass, description:desc}]
                 auth_credentials = res_model.apidetails.api_source.auth_credentials
@@ -158,7 +161,8 @@ def fetchapi(resource_id):
         if auth_loc == "PARAM":
             if auth_type == "TOKEN":
                 auth_token = res_model.apidetails.api_source.auth_token
-                param = {"access_token": auth_token}
+                auth_token_key = res_model.apidetails.api_source.auth_token_key             
+                param = {auth_token_key: auth_token}
             elif auth_type == "CREDENTIAL":
                 auth_credentials = res_model.apidetails.api_source.auth_credentials
                 uname_key = auth_credentials[0]["key"]
@@ -166,15 +170,25 @@ def fetchapi(resource_id):
                 pwd_key = auth_credentials[1]["key"]
                 pwd = auth_credentials[1]["value"]
                 param = {uname_key: uname, pwd_key: pwd}
-
-        try:
-            api_request = requests.get(
-                base_url + url_path, headers=header, params=param, verify=True
+                
+        if request_type == "GET":
+            try:
+                api_request = requests.get(
+                    base_url + url_path, headers=header, params=param, verify=True
+                )
+            except:
+                api_request = requests.get(
+                    base_url + url_path, headers=header, params=param, verify=False
+                )
+        elif request_type == "POST":
+            api_request = requests.post(
+                base_url + url_path, headers=header, params=param, body={}, verify=False
             )
-        except:
-            api_request = requests.get(
+        elif request_type == "PUT":
+            api_request = requests.put(
                 base_url + url_path, headers=header, params=param, verify=False
-            )
+            )                
+
         api_response = api_request.text
         if response_type == "JSON":
             context = {
