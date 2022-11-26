@@ -11,7 +11,7 @@ fs = FileSystemStorage(location=settings.PRIVATE_FILE_LOCATION, base_url=setting
 
 
 class DataRequest(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, max_length=36)
     status = models.CharField(max_length=20)
     resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
     file = models.FileField(
