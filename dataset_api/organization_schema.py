@@ -20,7 +20,7 @@ from .decorators import (
     auth_user_by_org,
     auth_request_org,
     modify_org_status,
-    get_user_org
+    get_user_org,
 )
 from .enums import OrganizationTypes, OrganizationCreationStatusType
 from .utils import get_client_ip
@@ -126,7 +126,9 @@ class Query(graphene.ObjectType):
     @get_user_org
     def resolve_organizations_by_user(self, info, org_ids, **kwargs):
         return Organization.objects.filter(
-            organizationcreaterequest__organization_ptr_id__in=org_ids).order_by("-modified")
+            organizationcreaterequest__organization_ptr_id__in=org_ids
+        ).order_by("-modified")
+
 
 class OrganizationInput(graphene.InputObjectType):
     id = graphene.ID()
@@ -163,10 +165,14 @@ class CreateOrganization(Output, graphene.Mutation):
     organization = graphene.Field(CreateOrganizationType)
 
     @staticmethod
+    @validate_token
     @create_user_org
-    def mutate(root, info, organization_data: OrganizationInput = None):
+    def mutate(root, info, username, organization_data: OrganizationInput = None):
         try:
-            Organization.objects.get(title=organization_data.title)
+            OrganizationCreateRequest.objects.get(
+                Q(organization_ptr_id__title=organization_data.title),
+                Q(status="APPROVED"),
+            )
             return {
                 "success": False,
                 "errors": {
@@ -179,22 +185,40 @@ class CreateOrganization(Output, graphene.Mutation):
                 },
             }
         except Organization.DoesNotExist:
-            organization_additional_info_instance = OrganizationCreateRequest(
-                title=organization_data.title,
-                description=organization_data.description,
-                logo=organization_data.logo,
-                contact_email=organization_data.contact,
-                homepage=organization_data.homepage,
-                organization_types=organization_data.organization_types,
-                upload_sample_data_file=organization_data.upload_sample_data_file,
-                data_description=organization_data.data_description,
-                sample_data_url=organization_data.sample_data_url,
-                status=OrganizationCreationStatusType.REQUESTED.value,
-            )
-            organization_additional_info_instance.save()
-            return CreateOrganization(
-                organization=organization_additional_info_instance
-            )
+            try:
+                OrganizationCreateRequest.objects.get(
+                    Q(organization_ptr_id__title=organization_data.title),
+                    Q(username=username),
+                )
+                return {
+                    "success": False,
+                    "errors": {
+                        "id": [
+                            {
+                                "message": "You have already requested for this Organization.",
+                                "code": "404",
+                            }
+                        ]
+                    },
+                }
+            except Organization.DoesNotExist:
+                organization_additional_info_instance = OrganizationCreateRequest(
+                    title=organization_data.title,
+                    description=organization_data.description,
+                    logo=organization_data.logo,
+                    contact_email=organization_data.contact,
+                    homepage=organization_data.homepage,
+                    organization_types=organization_data.organization_types,
+                    upload_sample_data_file=organization_data.upload_sample_data_file,
+                    data_description=organization_data.data_description,
+                    sample_data_url=organization_data.sample_data_url,
+                    status=OrganizationCreationStatusType.REQUESTED.value,
+                    username=username,
+                )
+                organization_additional_info_instance.save()
+                return CreateOrganization(
+                    organization=organization_additional_info_instance
+                )
 
 
 class UpdateOrganization(Output, graphene.Mutation):
@@ -258,7 +282,7 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     def mutate(
         root,
         info,
-        username="",
+        username,
         organization_data: ApproveRejectOrganizationApprovalInput = None,
     ):
         try:
@@ -279,35 +303,63 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
                     ]
                 },
             }
-        if organization_data.status == "REJECTED":
-            organization_create_request_instance.status = (
-                OrganizationCreationStatusType.REJECTED.value
-            )
-        else:
-            organization_create_request_instance.status = (
-                OrganizationCreationStatusType.APPROVED.value
-            )
+        try:
             organization = Organization.objects.get(pk=organization_data.id)
-            # Create catalog if org is APPROVED.
-            catalog_instance = Catalog(
-                title=organization.title,
-                description=organization.description,
-                organization=organization,
+            OrganizationCreateRequest.objects.get(
+                Q(organization_ptr_id__title=organization.title),
+                Q(status="APPROVED"),
             )
-            catalog_instance.save()
+            return {
+                "success": False,
+                "errors": {
+                    "id": [
+                        {
+                            "message": "Organization with given name already exists.",
+                            "code": "404",
+                        }
+                    ]
+                },
+            }
+        except Organization.DoesNotExist:
+            if organization_data.status == "REJECTED":
+                organization_create_request_instance.status = (
+                    OrganizationCreationStatusType.REJECTED.value
+                )
+            else:
+                organization_create_request_instance.status = (
+                    OrganizationCreationStatusType.APPROVED.value
+                )
+                # Create catalog if org is APPROVED.
+                catalog_instance = Catalog(
+                    title=organization.title,
+                    description=organization.description,
+                    organization=organization,
+                )
+                catalog_instance.save()
 
-        organization_create_request_instance.remark = organization_data.remark
-        organization_create_request_instance.save()
-        activity.send(
-            username,
-            verb=organization_data.status,
-            target=organization_create_request_instance,
-            target_group=organization_create_request_instance,
-            ip=get_client_ip(info),
-        )
-        return ApproveRejectOrganizationApproval(
-            organization=organization_create_request_instance
-        )
+            organization_create_request_instance.remark = organization_data.remark
+            organization_create_request_instance.save()
+
+            same_org_instance = OrganizationCreateRequest.objects.filter(
+                organization_ptr_id__title=organization.title
+            )
+            if same_org_instance.exists():
+                for orgs in same_org_instance:
+                    if not orgs.status == "APPROVED":
+                        orgs.status = OrganizationCreationStatusType.REJECTED.value
+                        orgs.remark = "Organization with given name already exists."
+                        orgs.save()
+
+            activity.send(
+                username,
+                verb=organization_data.status,
+                target=organization_create_request_instance,
+                target_group=organization_create_request_instance,
+                ip=get_client_ip(info),
+            )
+            return ApproveRejectOrganizationApproval(
+                organization=organization_create_request_instance
+            )
 
 
 class PatchOrganization(Output, graphene.Mutation):
