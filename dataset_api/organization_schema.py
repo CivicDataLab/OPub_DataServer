@@ -16,7 +16,6 @@ from .models import (
 )
 from .decorators import (
     validate_token,
-    validate_token_or_none,
     create_user_org,
     auth_user_by_org,
     auth_request_org,
@@ -166,7 +165,7 @@ class CreateOrganization(Output, graphene.Mutation):
     organization = graphene.Field(CreateOrganizationType)
 
     @staticmethod
-    @validate_token_or_none
+    @validate_token
     @create_user_org
     def mutate(root, info, username, organization_data: OrganizationInput = None):
         try:
@@ -277,7 +276,7 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     organization = graphene.Field(CreateOrganizationType)
 
     @staticmethod
-    @validate_token_or_none
+    @validate_token
     @auth_user_by_org(action="approve_organization")
     @modify_org_status
     def mutate(
