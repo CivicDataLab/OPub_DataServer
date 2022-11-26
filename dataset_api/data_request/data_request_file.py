@@ -100,7 +100,7 @@ def update_download_count(username, data_request: DataRequest):
         data=json.dumps(
             {
                 "username": username,
-                "data_request_id": data_request.id,
+                "data_request_id": str(data_request.id),
                 "dataset_access_model_request_id": data_request.dataset_access_model_request.id,
                 "dataset_access_model_id": data_request.dataset_access_model_request.access_model.id,
                 "dataset_id": dataset.id,
@@ -319,7 +319,7 @@ def get_request_file(
         size=10000,
         paginate_from=0,
 ):
-    data_request = DataRequest.objects.get(pk=data_request_id, user=username)
+    data_request = DataRequest.objects.get(pk=data_request_id)
     if target_format and target_format not in ["CSV", "XML", "JSON"]:
         return HttpResponse("invalid format", content_type="text/plain")
     index = str(data_request.id)
@@ -365,7 +365,7 @@ def get_resource(request):
     username = token_payload.get("username")
     if token_payload:
         data_request_id = token_payload.get("data_request")
-        data_request = DataRequest.objects.get(pk=data_request_id, user=username)
+        data_request = DataRequest.objects.get(pk=data_request_id)
         dam = data_request.dataset_access_model_request.access_model.data_access_model
         if data_request.status != "FETCHED":
             return HttpResponse(
@@ -374,6 +374,7 @@ def get_resource(request):
             )
         if dam.type == "OPEN":
             # Get the quota count.
+            print("Checking Limits!!")
             get_quota_count = core.get_usage(
                 request,
                 group="quota",
@@ -435,7 +436,7 @@ def refresh_token(request):
     if token_payload:
         data_request_id = token_payload.get("data_request")
         username = token_payload.get("username")
-        data_request_instance = DataRequest.objects.get(pk=data_request_id, user=username)
+        data_request_instance = DataRequest.objects.get(pk=data_request_id)
         access_token = create_access_jwt_token(data_request_instance, username)
         return HttpResponse(access_token, content_type="text/plain")
     return HttpResponse(
