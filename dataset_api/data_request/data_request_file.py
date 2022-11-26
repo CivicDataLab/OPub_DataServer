@@ -36,7 +36,7 @@ es_client = Elasticsearch(settings.ELASTICSEARCH)
 def download(request, data_request_id, username=None):
     target_format = request.GET.get("format", None)
 
-    data_request_instance = DataRequest.objects.get(pk=data_request_id)
+    data_request_instance = DataRequest.objects.get(pk=data_request_id, user=username)
     dam = (
         data_request_instance.dataset_access_model_request.access_model.data_access_model
     )
@@ -139,7 +139,7 @@ class FormatConverter:
                 open("file.json", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
+                    ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -161,7 +161,7 @@ class FormatConverter:
                 open("file.xml", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".xml"
+                    ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".xml"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -210,7 +210,7 @@ class FormatConverter:
                 open("file.csv", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".json"
+                    ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".json"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -230,7 +230,7 @@ class FormatConverter:
                 open("file.xml", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".xml"
+                    ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".xml"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -312,14 +312,14 @@ class FormatExporter:
 
 
 def get_request_file(
-    username,
-    data_request_id,
-    target_format,
-    return_type="file",
-    size=10000,
-    paginate_from=0,
+        username,
+        data_request_id,
+        target_format,
+        return_type="file",
+        size=10000,
+        paginate_from=0,
 ):
-    data_request = DataRequest.objects.get(pk=data_request_id)
+    data_request = DataRequest.objects.get(pk=data_request_id, user=username)
     if target_format and target_format not in ["CSV", "XML", "JSON"]:
         return HttpResponse("invalid format", content_type="text/plain")
     index = str(data_request.id)
@@ -335,7 +335,7 @@ def get_request_file(
         _id = doc["_id"]
         doc_data = pd.Series(source_data, name=_id)
         docs = docs.append(doc_data)
-    
+
     docs.reset_index(drop=True, inplace=True)
     old_cols = list(docs.columns)
     new_cols = [col.replace(": ", "_") if ":" in col else "sample" if col == "" else col for col in old_cols]
@@ -362,9 +362,10 @@ def get_resource(request):
         return HttpResponse("Authentication failed", content_type="text/plain")
     except IndexError:
         return HttpResponse("Token prefix missing", content_type="text/plain")
+    username = token_payload.get("username")
     if token_payload:
         data_request_id = token_payload.get("data_request")
-        data_request = DataRequest.objects.get(pk=data_request_id)
+        data_request = DataRequest.objects.get(pk=data_request_id, user=username)
         dam = data_request.dataset_access_model_request.access_model.data_access_model
         if data_request.status != "FETCHED":
             return HttpResponse(
@@ -434,7 +435,7 @@ def refresh_token(request):
     if token_payload:
         data_request_id = token_payload.get("data_request")
         username = token_payload.get("username")
-        data_request_instance = DataRequest.objects.get(pk=data_request_id)
+        data_request_instance = DataRequest.objects.get(pk=data_request_id, user=username)
         access_token = create_access_jwt_token(data_request_instance, username)
         return HttpResponse(access_token, content_type="text/plain")
     return HttpResponse(
