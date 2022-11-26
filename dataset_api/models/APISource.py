@@ -14,4 +14,5 @@ class APISource(models.Model):
     auth_type = models.CharField(max_length=50)
     auth_credentials = models.JSONField(blank=True, null=True)
     auth_token = models.CharField(blank=True, null=True, max_length=200)
+    auth_token_key = models.CharField(blank=True, null=True, max_length=200)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
