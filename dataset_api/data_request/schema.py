@@ -120,7 +120,7 @@ class DataRequestType(DjangoObjectType):
 
     def resolve_parameters(self: DataRequest, info):
         parameters = {}
-        for parameter in self.datarequestparameter_set.all():
+        for parameter in self.datarequestparameters.all():
             parameters[parameter.api_parameter.key] = parameter.value
         return parameters
 
