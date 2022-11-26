@@ -144,7 +144,7 @@ class Query(graphene.ObjectType):
 
     @validate_token
     def resolve_data_request_user(self, info, username, **kwargs):
-        return DataRequest.objects.get(user=username)
+        return DataRequest.objects.filter(user=username)
 
 
 class DataRequestParameterInput(graphene.InputObjectType):

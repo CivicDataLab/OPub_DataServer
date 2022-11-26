@@ -186,6 +186,12 @@ class ResponseType(graphene.Enum):
     CSV = "CSV"
 
 
+class RequestType(graphene.Enum):
+    POST = "POST"
+    GET = "GET" 
+    PUT = "PUT"
+
+
 class APIParameterInputType(graphene.InputObjectType):
     id = graphene.ID(required=False)
     key = graphene.String(required=True)
@@ -199,6 +205,7 @@ class ApiInputType(graphene.InputObjectType):
     auth_required = graphene.Boolean(required=True)
     url_path = graphene.String(required=True)
     response_type = ResponseType()
+    request_type  = RequestType()
     parameters: Iterable = graphene.List(of_type=APIParameterInputType, required=False)
 
 
@@ -362,6 +369,7 @@ def _create_update_api_details(resource_instance, attribute):
     api_detail_object.auth_required = attribute.auth_required
     api_detail_object.url_path = attribute.url_path
     api_detail_object.response_type = attribute.response_type
+    api_detail_object.request_type = attribute.request_type
     api_detail_object.save()
     _create_update_api_parameter(api_detail_object, attribute.parameters)
 

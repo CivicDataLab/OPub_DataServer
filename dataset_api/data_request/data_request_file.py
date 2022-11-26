@@ -10,12 +10,16 @@ from elasticsearch import Elasticsearch
 from pandas import DataFrame
 from ratelimit import core
 
-from dataset_api.data_request.token_handler import create_access_jwt_token, create_data_jwt_token
+from dataset_api.data_request.token_handler import (
+    create_access_jwt_token,
+    create_data_jwt_token,
+)
 from dataset_api.decorators import validate_token_or_none
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.search import index_data
 from dataset_api.utils import idp_make_cache_key
 from .decorators import dam_request_validity
+
 # Overwriting ratelimit's cache key function.
 from .schema import initiate_dam_request
 from ..models import DatasetAccessModelResource, DatasetAccessModelRequest
@@ -32,7 +36,7 @@ es_client = Elasticsearch(settings.ELASTICSEARCH)
 def download(request, data_request_id, username=None):
     target_format = request.GET.get("format", None)
 
-    data_request_instance = DataRequest.objects.get(pk=data_request_id)
+    data_request_instance = DataRequest.objects.get(pk=data_request_id, user=username)
     dam = (
         data_request_instance.dataset_access_model_request.access_model.data_access_model
     )
@@ -315,7 +319,7 @@ def get_request_file(
         size=10000,
         paginate_from=0,
 ):
-    data_request = DataRequest.objects.get(pk=data_request_id)
+    data_request = DataRequest.objects.get(pk=data_request_id, user=username)
     if target_format and target_format not in ["CSV", "XML", "JSON"]:
         return HttpResponse("invalid format", content_type="text/plain")
     index = str(data_request.id)
@@ -331,7 +335,7 @@ def get_request_file(
         _id = doc["_id"]
         doc_data = pd.Series(source_data, name=_id)
         docs = docs.append(doc_data)
-    
+
     docs.reset_index(drop=True, inplace=True)
     old_cols = list(docs.columns)
     new_cols = [col.replace(": ", "_") if ":" in col else "sample" if col == "" else col for col in old_cols]
@@ -358,19 +362,64 @@ def get_resource(request):
         return HttpResponse("Authentication failed", content_type="text/plain")
     except IndexError:
         return HttpResponse("Token prefix missing", content_type="text/plain")
+    username = token_payload.get("username")
     if token_payload:
         data_request_id = token_payload.get("data_request")
-        data_request = DataRequest.objects.get(pk=data_request_id)
+        data_request = DataRequest.objects.get(pk=data_request_id, user=username)
+        dam = data_request.dataset_access_model_request.access_model.data_access_model
         if data_request.status != "FETCHED":
-            return HttpResponse("Request in progress. Please try again in some time", content_type="text/plain")
-        return get_request_file(
-            token_payload.get("username"),
-            data_request_id,
-            format,
-            "data",
-            size,
-            paginate_from,
-        )
+            return HttpResponse(
+                "Request in progress. Please try again in some time",
+                content_type="text/plain",
+            )
+        if dam.type == "OPEN":
+            # Get the quota count.
+            get_quota_count = core.get_usage(
+                request,
+                group="quota",
+                key="dataset_api.ratelimits.user_key",
+                rate="dataset_api.ratelimits.quota_per_user",
+                increment=False,
+            )
+            # If count < limit -- don't increment the counter.
+            if get_quota_count["count"] < get_quota_count["limit"]:
+                # Check for rate.
+                get_rate_count = core.get_usage(
+                    request,
+                    group="rate",
+                    key="dataset_api.ratelimits.user_key",
+                    rate="dataset_api.ratelimits.rate_per_user",
+                    increment=False,
+                )
+                # Increment rate and quota count.
+                if get_rate_count["count"] < get_rate_count["limit"]:
+                    get_file = get_request_file(
+                        token_payload.get("username"),
+                        data_request_id,
+                        format,
+                        "data",
+                        size,
+                        paginate_from,
+                    )
+                    get_rate_count = core.get_usage(
+                        request,
+                        group="rate",
+                        key="dataset_api.ratelimits.user_key",
+                        rate="dataset_api.ratelimits.rate_per_user",
+                        increment=True,
+                    )
+                    get_quota_count = core.get_usage(
+                        request,
+                        group="quota",
+                        key="dataset_api.ratelimits.user_key",
+                        rate="dataset_api.ratelimits.quota_per_user",
+                        increment=True,
+                    )
+                    return get_file
+                else:
+                    return HttpResponseForbidden(content="Rate Limit Exceeded.")
+            else:
+                return HttpResponseForbidden(content="Quota Limit Exceeded.")
 
     return HttpResponse(json.dumps(token_payload), content_type="application/json")
 
@@ -386,7 +435,7 @@ def refresh_token(request):
     if token_payload:
         data_request_id = token_payload.get("data_request")
         username = token_payload.get("username")
-        data_request_instance = DataRequest.objects.get(pk=data_request_id)
+        data_request_instance = DataRequest.objects.get(pk=data_request_id, user=username)
         access_token = create_access_jwt_token(data_request_instance, username)
         return HttpResponse(access_token, content_type="text/plain")
     return HttpResponse(
@@ -406,9 +455,13 @@ def refresh_data_token(request):
         data_resource_id = token_payload.get("dam_resource")
         data_request_id = token_payload.get("dam_request")
         username = token_payload.get("username")
-        data_resource_instance = DatasetAccessModelResource.objects.get(pk=data_resource_id)
+        data_resource_instance = DatasetAccessModelResource.objects.get(
+            pk=data_resource_id
+        )
         dam_request_instance = DatasetAccessModelRequest.objects.get(pk=data_request_id)
-        access_token = create_data_jwt_token(data_resource_instance, dam_request_instance, username)
+        access_token = create_data_jwt_token(
+            data_resource_instance, dam_request_instance, username
+        )
         return HttpResponse(access_token, content_type="text/plain")
     return HttpResponse(
         "Something went wrong request again!!", content_type="text/plain"
@@ -440,10 +493,19 @@ def update_data(request):
             else:
                 parameters[param.key] = param.default
 
-        data_request = initiate_dam_request(dam_request_instance, data_resource.resource, username, parameters)
+        data_request = initiate_dam_request(
+            dam_request_instance, data_resource.resource, username, parameters
+        )
         access_token = create_access_jwt_token(data_request, username)
-        return HttpResponse(json.dumps({"access_token": access_token, "message": "Get resource with provided token"}),
-                            content_type="application/json")
+        return HttpResponse(
+            json.dumps(
+                {
+                    "access_token": access_token,
+                    "message": "Get resource with provided token",
+                }
+            ),
+            content_type="application/json",
+        )
     return HttpResponse(
         "Something went wrong request again!!", content_type="text/plain"
     )

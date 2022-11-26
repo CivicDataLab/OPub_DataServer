@@ -1,20 +1,47 @@
+import jwt
+
+from django.conf import settings
+from django.http import HttpResponse
+
 from .models import DataRequest
 from dataset_api.enums import SubscriptionUnits
 
 
 def user_key(group, request):
-    request_id = request.path.split("/")[3]
+    token = request.GET.get("token")
+    if token:
+        try:
+            token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            return HttpResponse("Authentication failed", content_type="text/plain")
+        except IndexError:
+            return HttpResponse("Token prefix missing", content_type="text/plain")
+        if token_payload:
+            request_id = token_payload.get("data_request")
+    else:
+        request_id = request.path.split("/")[3]
+
     data_request_instance = DataRequest.objects.get(pk=request_id)
     user = data_request_instance.user
     dam_request = data_request_instance.dataset_access_model_request
-    # TODO: Handle for OPEN data access models.
-    # if dam.type == "OPEN":
-    #     user = "Unlimited"
+
     return user + "||" + str(dam_request.id)
 
 
 def rate_per_user(group, request):
-    request_id = request.path.split("/")[3]
+    token = request.GET.get("token")
+    if token:
+        try:
+            token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            return HttpResponse("Authentication failed", content_type="text/plain")
+        except IndexError:
+            return HttpResponse("Token prefix missing", content_type="text/plain")
+        if token_payload:
+            request_id = token_payload.get("data_request")
+    else:
+        request_id = request.path.split("/")[3]
+
     data_request_instance = DataRequest.objects.get(pk=request_id)
     dam = (
         data_request_instance.dataset_access_model_request.access_model.data_access_model
@@ -22,7 +49,6 @@ def rate_per_user(group, request):
     rate_limit = dam.rate_limit
     rate_limit_unit = dam.rate_limit_unit
 
-    # TODO: Handle for OPEN data access models.
     if dam.type == "OPEN":
         # user = "Unlimited"
         return None  # No rate limit -- UNLIMITED usage.
@@ -46,7 +72,19 @@ def rate_per_user(group, request):
 
 
 def quota_per_user(group, request):
-    request_id = request.path.split("/")[3]
+    token = request.GET.get("token")
+    if token:
+        try:
+            token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            return HttpResponse("Authentication failed", content_type="text/plain")
+        except IndexError:
+            return HttpResponse("Token prefix missing", content_type="text/plain")
+        if token_payload:
+            request_id = token_payload.get("data_request")
+    else:
+        request_id = request.path.split("/")[3]
+
     data_request_instance = DataRequest.objects.get(pk=request_id)
     dam = (
         data_request_instance.dataset_access_model_request.access_model.data_access_model
