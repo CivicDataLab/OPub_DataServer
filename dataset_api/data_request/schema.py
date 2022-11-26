@@ -172,7 +172,7 @@ class DataRequestUpdateInput(graphene.InputObjectType):
 
 
 def initiate_dam_request(
-    dam_request, resource, username, parameters=None, default=False
+        dam_request, resource, username, parameters=None, default=False
 ):
     if parameters is None:
         parameters = {}
@@ -338,7 +338,7 @@ def cell_size_equalize2(row, cols="", fill_mode="internal", fill_value=""):
                 for j, e in enumerate(vals)
             ]
         else:
-            vals = [e[0 : min(lengths)] for e in vals]
+            vals = [e[0: min(lengths)] for e in vals]
         row = pd.Series(vals, index=row.index.tolist())
     return row
 
@@ -385,7 +385,8 @@ def update_data_request_index(data_request: DataRequest):
 
                     df = pd.json_normalize(
                         df, record_path=col_path.split("."), meta=meta
-                    )
+                    ).to_dict(orient="records")
+                df = pd.DataFrame(df)
                 df.fillna("", inplace=True)
                 json_df = df.to_dict(orient="records")
                 res = helpers.bulk(es_client, generator(json_df, index=index_name))
