@@ -208,6 +208,8 @@ def modify_org_status(func):
         response_json_rejected = request_to_server(body, "modify_org_status")
         if response_json_approve["Success"]:
             return value
+        else:
+            raise GraphQLError(response_json_approve["error_description"])
 
     return inner
 
