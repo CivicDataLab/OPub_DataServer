@@ -139,7 +139,7 @@ class FormatConverter:
                 open("file.json", "rb"), content_type="application/x-download"
             )
             file_name = (
-                    ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
+                ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -161,7 +161,7 @@ class FormatConverter:
                 open("file.xml", "rb"), content_type="application/x-download"
             )
             file_name = (
-                    ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".xml"
+                ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".xml"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -210,7 +210,7 @@ class FormatConverter:
                 open("file.csv", "rb"), content_type="application/x-download"
             )
             file_name = (
-                    ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".json"
+                ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".json"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -230,7 +230,7 @@ class FormatConverter:
                 open("file.xml", "rb"), content_type="application/x-download"
             )
             file_name = (
-                    ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".xml"
+                ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".xml"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -312,12 +312,12 @@ class FormatExporter:
 
 
 def get_request_file(
-        username,
-        data_request_id,
-        target_format,
-        return_type="file",
-        size=10000,
-        paginate_from=0,
+    username,
+    data_request_id,
+    target_format,
+    return_type="file",
+    size=10000,
+    paginate_from=0,
 ):
     data_request = DataRequest.objects.get(pk=data_request_id)
     if target_format and target_format not in ["CSV", "XML", "JSON"]:
@@ -338,7 +338,10 @@ def get_request_file(
 
     docs.reset_index(drop=True, inplace=True)
     old_cols = list(docs.columns)
-    new_cols = [col.replace(": ", "_") if ":" in col else "sample" if col == "" else col for col in old_cols]
+    new_cols = [
+        col.replace(": ", "_") if ":" in col else "sample" if col == "" else col
+        for col in old_cols
+    ]
     docs.columns = new_cols
     docs[new_cols] = docs[new_cols].astype(str)
     response = getattr(
@@ -421,6 +424,15 @@ def get_resource(request):
                     return HttpResponseForbidden(content="Rate Limit Exceeded.")
             else:
                 return HttpResponseForbidden(content="Quota Limit Exceeded.")
+        else:
+            get_request_file(
+                token_payload.get("username"),
+                data_request_id,
+                format,
+                "data",
+                size,
+                paginate_from,
+            )
 
     return HttpResponse(json.dumps(token_payload), content_type="application/json")
 
