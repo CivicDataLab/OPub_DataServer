@@ -204,7 +204,7 @@ def initiate_dam_request(
         payload = json.dumps(
             {
                 "api_source_id": resource.id,
-                "request_id": data_request_instance.id,
+                "request_id": str(data_request_instance.id),
                 "request_columns": [x for x in fields],
                 "request_rows": "",
             }
