@@ -335,6 +335,14 @@ def get_request_file(
         _id = doc["_id"]
         doc_data = pd.Series(source_data, name=_id)
         docs = docs.append(doc_data)
+    
+    docs.drop(columns=docs.columns[0], 
+        axis=1, 
+        inplace=True)
+    old_cols = list(docs.columns)
+    new_cols = [col.replace(": ", "_") if ":" in col else "sample" if col == "" else col for col in old_cols]
+    docs.columns = new_cols
+    docs[new_cols] = docs[new_cols].astype(str)
     response = getattr(
         FormatExporter,
         f"convert_df_to_{target_format.lower()}",
@@ -484,8 +492,11 @@ def update_data(request):
         data_resource = DatasetAccessModelResource.objects.get(id=dam_resource_id)
         dam_request_instance = DatasetAccessModelRequest.objects.get(pk=data_request_id)
         username = token_payload.get("username")
-        default_parameters = data_resource.resource.apidetails.apiparameter_set.all()
+        apidetails = data_resource.resource.apidetails
         parameters = {}
+        default_parameters = []
+        if apidetails:
+            default_parameters = apidetails.apiparameter_set.all()
         for param in default_parameters:
             if param.key in request.GET:
                 parameters[param.key] = request.GET.get(param.key)

@@ -390,7 +390,6 @@ def _create_update_file_details(resource_instance, attribute):
             if file_format.lower() == "xml":
                 data = pd.read_xml(attribute.file)
         except Exception as e:
-            resource_instance.delete()
             raise GraphQLError(str(e))
 
         if file_format:
