@@ -331,6 +331,10 @@ def get_request_file(
         _id = doc["_id"]
         doc_data = pd.Series(source_data, name=_id)
         docs = docs.append(doc_data)
+    
+    docs.drop(columns=docs.columns[0], 
+        axis=1, 
+        inplace=True)
     old_cols = list(docs.columns)
     new_cols = [col.replace(": ", "_") if ":" in col else "sample" if col == "" else col for col in old_cols]
     docs.columns = new_cols
