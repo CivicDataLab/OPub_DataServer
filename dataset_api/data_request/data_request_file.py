@@ -36,7 +36,7 @@ es_client = Elasticsearch(settings.ELASTICSEARCH)
 def download(request, data_request_id, username=None):
     target_format = request.GET.get("format", None)
 
-    data_request_instance = DataRequest.objects.get(pk=data_request_id, user=username)
+    data_request_instance = DataRequest.objects.get(pk=str(data_request_id))
     dam = (
         data_request_instance.dataset_access_model_request.access_model.data_access_model
     )
@@ -372,7 +372,7 @@ def get_resource(request):
                 "Request in progress. Please try again in some time",
                 content_type="text/plain",
             )
-        if dam.type == "OPEN":
+        if dam.type != "OPEN":
             # Get the quota count.
             print("Checking Limits!!")
             get_quota_count = core.get_usage(
