@@ -14,5 +14,5 @@ class OrganizationCreateRequest(Organization):
     status = models.CharField(
         max_length=20, choices=OrganizationRequestStatusType.choices, blank=False
     )
-    username = models.CharField(default="", blank=False, null=False, max_length=15)
+    username = models.CharField(default="", blank=False, null=False, max_length=200)
     remark = models.CharField(max_length=500, blank=True, null=True)
