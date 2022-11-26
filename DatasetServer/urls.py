@@ -28,7 +28,7 @@ from dataset_api.api_resource import api_fetch
 urlpatterns = [
                   path("admin/", admin.site.urls),
                   # re_path(r'^download/(?P<resource_id>\d+)/', resource_file.download),
-                  path("download/request/<int:data_request_id>/", data_request_file.download),
+                  path("download/request/<uuid:data_request_id>/", data_request_file.download),
                   path("getresource/", data_request_file.get_resource),
                   path("update_data/", data_request_file.update_data),
                   path("refresh_data_token/", data_request_file.refresh_data_token),
