@@ -368,21 +368,12 @@ def get_resource(request):
         data_request_id = token_payload.get("data_request")
         data_request = DataRequest.objects.get(pk=data_request_id)
         dam = data_request.dataset_access_model_request.access_model.data_access_model
-        if dam.type == "OPEN":
-            if data_request.status != "FETCHED":
-                return HttpResponse(
-                    "Request in progress. Please try again in some time",
-                    content_type="text/plain",
-                )
-            return get_request_file(
-                token_payload.get("username"),
-                data_request_id,
-                format,
-                "data",
-                size,
-                paginate_from,
+        if data_request.status != "FETCHED":
+            return HttpResponse(
+                "Request in progress. Please try again in some time",
+                content_type="text/plain",
             )
-        else:
+        if dam.type == "OPEN":
             # Get the quota count.
             get_quota_count = core.get_usage(
                 request,
