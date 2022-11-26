@@ -352,9 +352,9 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
                         # Activity log for REJECTED organization.
                         activity.send(
                             username,
-                            verb=organization_data.status,
-                            target=organization_create_request_instance,
-                            target_group=organization_create_request_instance,
+                            verb=orgs.status,
+                            target=orgs,
+                            target_group=orgs,
                             ip=get_client_ip(info),
                         )
 
