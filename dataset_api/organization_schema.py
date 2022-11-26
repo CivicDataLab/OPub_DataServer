@@ -349,7 +349,16 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
                         orgs.status = OrganizationCreationStatusType.REJECTED.value
                         orgs.remark = "Organization with given name already exists."
                         orgs.save()
+                        # Activity log for REJECTED organization.
+                        activity.send(
+                            username,
+                            verb=organization_data.status,
+                            target=organization_create_request_instance,
+                            target_group=organization_create_request_instance,
+                            ip=get_client_ip(info),
+                        )
 
+            # Activity log for APPROVED organization.
             activity.send(
                 username,
                 verb=organization_data.status,
