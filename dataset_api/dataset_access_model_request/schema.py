@@ -54,74 +54,48 @@ class DataAccessModelRequestType(DjangoObjectType):
 
     @validate_token_or_none
     def resolve_remaining_quota(self: DatasetAccessModelRequest, info, username=""):
-        dam_id = self.access_model.data_access_model_id
+        dam_request_id = self.id
         quota_limit = self.access_model.data_access_model.subscription_quota
         quota_limit_unit = self.access_model.data_access_model.subscription_quota_unit
         if not username:
-            username = self.user
+            if self.user:
+                username = self.user
+            else:
+                username = ""
 
         if quota_limit_unit == SubscriptionUnits.DAILY:
             used_quota = r.get(
                 ":1:rl||"
                 + username
                 + "||"
-                + str(dam_id)
+                + str(dam_request_id)
                 + "||"
                 + quota_limit_unit.lower()[0]
                 + "||quota"
             )
-
-            if used_quota:
-                if quota_limit > int(used_quota.decode()):
-                    return quota_limit - int(used_quota.decode())
-                else:
-                    return 0
-            else:
-                return quota_limit
         elif quota_limit_unit == SubscriptionUnits.WEEKLY:
             used_quota = r.get(
-                ":1:rl||" + username + "||" + str(dam_id) + "||" + "7d||quota"
+                ":1:rl||" + username + "||" + str(dam_request_id) + "||" + "7d||quota"
             )
-            if used_quota:
-                if quota_limit > int(used_quota.decode()):
-                    return quota_limit - int(used_quota.decode())
-                else:
-                    return 0
-            else:
-                return quota_limit
         elif quota_limit_unit == SubscriptionUnits.MONTHLY:
             used_quota = r.get(
-                ":1:rl||" + username + "||" + str(dam_id) + "||" + "30d||quota"
+                ":1:rl||" + username + "||" + str(dam_request_id) + "||" + "30d||quota"
             )
-            if used_quota:
-                if quota_limit > int(used_quota.decode()):
-                    return quota_limit - int(used_quota.decode())
-                else:
-                    return 0
-            else:
-                return quota_limit
         elif quota_limit_unit == SubscriptionUnits.QUARTERLY:
             used_quota = r.get(
-                ":1:rl||" + username + "||" + str(dam_id) + "||" + "92d||quota"
+                ":1:rl||" + username + "||" + str(dam_request_id) + "||" + "92d||quota"
             )
-            if used_quota:
-                if quota_limit > int(used_quota.decode()):
-                    return quota_limit - int(used_quota.decode())
-                else:
-                    return 0
-            else:
-                return quota_limit
         else:
             used_quota = r.get(
-                ":1:rl||" + username + "||" + str(dam_id) + "||" + "365d||quota"
+                ":1:rl||" + username + "||" + str(dam_request_id) + "||" + "365d||quota"
             )
-            if used_quota:
-                if quota_limit > int(used_quota.decode()):
-                    return quota_limit - int(used_quota.decode())
-                else:
-                    return 0
+        if used_quota:
+            if quota_limit > int(used_quota.decode()):
+                return quota_limit - int(used_quota.decode())
             else:
-                return quota_limit
+                return 0
+        else:
+            return quota_limit
 
 
 class DataAccessModelRequestStatusType(graphene.Enum):

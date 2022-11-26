@@ -46,6 +46,24 @@ def get_keys(json_obj, keys_list):
 def idp_make_cache_key(group, window, rate, value, methods):
     # Same values from all arguments - {dataset_api.data_request.data_request_file.download 1668506571 12/7d Archit||1 (None,)}
     rate = rate.split("/")[1]
-    print(rate, value)
     prefix = getattr(settings, "RATELIMIT_CACHE_PREFIX", "rl||")
     return prefix + value + "||" + rate + "||" + group
+
+
+def remove_a_key(d, remove_key):
+    for key in list(d.keys()):
+        if key not in remove_key:
+            del d[key]
+        else:
+            skip_col(d[key], remove_key)
+
+
+def skip_col(d, remove_key):
+    if isinstance(d, dict):
+        remove_a_key(d, remove_key)
+    if isinstance(d, list):
+        for each in d:
+            if isinstance(each, dict):
+                remove_a_key(each, remove_key)
+
+    return d
