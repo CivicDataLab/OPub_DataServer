@@ -133,7 +133,7 @@ class DatasetRequestStatusType(graphene.Enum):
 
 class Query(graphene.ObjectType):
     all_data_requests = graphene.List(DataRequestType)
-    data_request = graphene.Field(DataRequestType, data_request_id=graphene.Int())
+    data_request = graphene.Field(DataRequestType, data_request_id=graphene.UUID())
     data_request_user = graphene.Field(DataRequestType)
 
     def resolve_all_data_requests(self, info, **kwargs):
@@ -166,7 +166,7 @@ class OpenDataRequestInput(graphene.InputObjectType):
 
 
 class DataRequestUpdateInput(graphene.InputObjectType):
-    id = graphene.ID(required=True)
+    id = graphene.UUID(required=True)
     status = DatasetRequestStatusType()
     file = Upload(required=False)
 
@@ -309,38 +309,6 @@ class OpenDataRequestMutation(graphene.Mutation, Output):
 def generator(dict_df, index):
     for _, line in enumerate(dict_df):
         yield {"_index": index, "_type": "_doc", "_source": line}
-
-
-def cell_size_equalize2(row, cols="", fill_mode="internal", fill_value=""):
-    jcols = [j for j, v in enumerate(row.index) if v in cols]
-    if len(jcols) < 1:
-        jcols = range(len(row.index))
-    lengths = []
-    for x in row.values:
-        if type(x) == list:
-            lengths.append(len(x))
-        else:
-            lengths.append(1)
-    if not lengths[:-1] == lengths[1:]:
-        vals = [v if isinstance(v, list) else [v] for v in row.values]
-        if fill_mode == "external":
-            vals = [
-                [e] + [fill_value] * (max(lengths) - 1)
-                if (not j in jcols) and (isinstance(row.values[j], list))
-                else e + [fill_value] * (max(lengths) - len(e))
-                for j, e in enumerate(vals)
-            ]
-        elif fill_mode == "internal":
-            vals = [
-                [e] + [e] * (max(lengths) - 1)
-                if (not j in jcols) and (isinstance(row.values[j], list))
-                else e + [e[-1]] * (max(lengths) - len(e))
-                for j, e in enumerate(vals)
-            ]
-        else:
-            vals = [e[0: min(lengths)] for e in vals]
-        row = pd.Series(vals, index=row.index.tolist())
-    return row
 
 
 def update_data_request_index(data_request: DataRequest):
