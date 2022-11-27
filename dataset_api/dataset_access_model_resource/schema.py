@@ -38,9 +38,22 @@ class DatasetAccessModelType(DjangoObjectType):
 
     def resolve_usage(self: DatasetAccessModel, info):
         try:
-            dam_requests = self.datasetaccessmodelrequest_set.all()
-            print(dam_requests, [x.datarequest_set.filter(status="FETCHED").count() for x in dam_requests])
-            return sum([x.datarequest_set.filter(status="FETCHED").count() for x in dam_requests])
+            dam_requests = DatasetAccessModelRequest.objects.filter(
+                access_model_id=self.id
+            )
+            # dam_requests = self.datasetaccessmodelrequest_set.all()
+            print(
+                [
+                    x.datarequest_set.filter(status="FETCHED").count()
+                    for x in dam_requests
+                ]
+            )
+            return sum(
+                [
+                    x.datarequest_set.filter(status="FETCHED").count()
+                    for x in dam_requests
+                ]
+            )
         except (DatasetAccessModelRequest.DoesNotExist, DataRequest.DoesNotExist) as e:
             return 0
 
@@ -83,8 +96,13 @@ class CreateAccessModelResource(Output, graphene.Mutation):
             )
             dataset_access_model.save()
 
-            if not access_model_resource_data.resource_map or len(access_model_resource_data.resource_map) == 0:
-                raise GraphQLError("Please select at least one distribution and corresponding fields")
+            if (
+                not access_model_resource_data.resource_map
+                or len(access_model_resource_data.resource_map) == 0
+            ):
+                raise GraphQLError(
+                    "Please select at least one distribution and corresponding fields"
+                )
 
             for resources in access_model_resource_data.resource_map:
                 try:
@@ -131,8 +149,13 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
             dataset_access_model_instance = DatasetAccessModel.objects.get(
                 pk=access_model_resource_data.id
             )
-            if not access_model_resource_data.resource_map or len(access_model_resource_data.resource_map) == 0:
-                raise GraphQLError("Please select at least one distribution and corresponding fields")
+            if (
+                not access_model_resource_data.resource_map
+                or len(access_model_resource_data.resource_map) == 0
+            ):
+                raise GraphQLError(
+                    "Please select at least one distribution and corresponding fields"
+                )
             for resources in access_model_resource_data.resource_map:
                 try:
                     resource = Resource.objects.get(id=resources.resource_id)
@@ -162,7 +185,9 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                                 ]
                             },
                         }
-            return UpdateAccessModelResource(access_model_resource=dataset_access_model_instance)
+            return UpdateAccessModelResource(
+                access_model_resource=dataset_access_model_instance
+            )
         except DatasetAccessModel.DoesNotExist as e:
             return {
                 "success": False,
