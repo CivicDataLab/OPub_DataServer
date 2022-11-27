@@ -124,7 +124,7 @@ class Query(graphene.ObjectType):
     data_access_model_request_org = graphene.List(
         DataAccessModelRequestType, org_id=graphene.Int()
     )
-    spec = graphene.JSONString(resource_id=graphene.ID())
+    spec = graphene.JSONString(resource_id=graphene.ID(), dataset_access_model_request_id=graphene.ID())
 
     # Access : PMU
     @auth_user_by_org(action="query")
@@ -164,9 +164,9 @@ class Query(graphene.ObjectType):
             raise GraphQLError("Access Denied")
 
     @validate_token_or_none
-    def resolve_spec(self, info, username, data_access_model_request_id, resource_id):
+    def resolve_spec(self, info, username, dataset_access_model_request_id, resource_id):
         spec = DATAREQUEST_SWAGGER_SPEC.copy()
-        dam_request = DatasetAccessModelRequest.objects.get(pk=data_access_model_request_id)
+        dam_request = DatasetAccessModelRequest.objects.get(pk=dataset_access_model_request_id)
         resource_instance = Resource.objects.get(pk=resource_id)
         dam_resource = DatasetAccessModelResource.objects.get(
             Q(resource_id=resource_id),
