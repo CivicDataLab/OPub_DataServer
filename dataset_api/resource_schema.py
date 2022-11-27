@@ -209,7 +209,7 @@ class ApiInputType(graphene.InputObjectType):
     request_type = RequestType()
     parameters: Iterable = graphene.List(of_type=APIParameterInputType, required=False)
     supported_formats: Iterable = graphene.List(of_type=graphene.String, required=False)
-    format_loc = graphene.Enum.from_enum(FormatLocation)(required=True)
+    format_loc = graphene.Enum.from_enum(FormatLocation)(required=False)
     format_key = graphene.String(required=False)
     default_format = graphene.String(required=False)
 
