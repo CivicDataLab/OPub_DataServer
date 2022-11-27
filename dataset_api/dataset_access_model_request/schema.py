@@ -19,12 +19,7 @@ from dataset_api.decorators import (
 from .decorators import auth_query_dam_request
 from dataset_api.enums import SubscriptionUnits, ValidationUnits
 from ..constants import DATAREQUEST_SWAGGER_SPEC
-from ..data_request.token_handler import (
-    generate_refresh_token,
-    create_data_refresh_token,
-    create_data_jwt_token,
-    create_access_jwt_token,
-)
+from ..data_request.token_handler import create_data_refresh_token, create_data_jwt_token
 from ..models import DatasetAccessModelResource, Resource
 from ..utils import get_client_ip, log_activity
 
@@ -172,29 +167,29 @@ class Query(graphene.ObjectType):
             raise GraphQLError("Access Denied")
 
     @validate_token_or_none
-    def resolve_data_spec(
-        self, info, username, dataset_access_model_request_id, resource_id
-    ):
-        spec = DATAREQUEST_SWAGGER_SPEC.copy()
-        dam_request = DatasetAccessModelRequest.objects.get(
-            pk=dataset_access_model_request_id
-        )
+    def resolve_data_spec(self, info, username, resource_id, dataset_access_model_resource_id,
+                          dataset_access_model_request_id=""):
         resource_instance = Resource.objects.get(pk=resource_id)
-        dam_resource = DatasetAccessModelResource.objects.get(
-            Q(resource_id=resource_id),
-            Q(dataset_access_model=dam_request.access_model),
-        )
+        dam_resource = DatasetAccessModelResource.objects.get(pk=dataset_access_model_resource_id)
+        dataset_access_model = dam_resource.dataset_access_model
+        is_open = dataset_access_model.data_access_model.type == "OPEN"
+        spec = DATAREQUEST_SWAGGER_SPEC.copy()
+        if dataset_access_model_request_id != "":
+            dam_request = DatasetAccessModelRequest.objects.get(pk=dataset_access_model_request_id)
+        elif is_open:
+            dam_request = create_dataset_access_model_request(
+                dataset_access_model,
+                "",
+                "OTHERS",
+                username,
+                user_email=username,
+                status="APPROVED",
+            )
+        else:
+            raise GraphQLError("Invalid access id")
         data_token = create_data_refresh_token(dam_resource, dam_request, username)
-        spec["paths"]["/refreshtoken"]["get"]["parameters"][0][
-            "example"
-        ] = generate_refresh_token(dam_request, dam_resource, username)
-        spec["paths"]["/refresh_data_token"]["get"]["parameters"][0][
-            "example"
-        ] = data_token
+        spec["paths"]["/refresh_data_token"]["get"]["parameters"][0]["example"] = data_token
         data_token = create_data_jwt_token(dam_resource, dam_request, username)
-        spec["paths"]["/getresource"]["get"]["parameters"][0][
-            "example"
-        ] = create_access_jwt_token(dam_request, dam_resource, username)
         spec["paths"]["/get_dist_data"]["get"]["parameters"][0]["example"] = data_token
         parameters = []
         if resource_instance and resource_instance.dataset.dataset_type == "API":

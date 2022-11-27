@@ -30,32 +30,6 @@ DATAREQUEST_SWAGGER_SPEC = {
         }
     ],
     "paths": {
-        "/refreshtoken": {
-            "get": {
-                "description": "Returns updated access token",
-                "tags": [
-                    "Token"
-                ],
-                "operationId": "refreshToken",
-                "parameters": [
-                    {
-                        "name": "token",
-                        "in": "query",
-                        "required": "true",
-                        "description": "Access Token",
-                        "schema": {
-                            "type": "string"
-                        },
-                        "example": "refreshToken"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
         "/refresh_data_token": {
             "get": {
                 "description": "Returns updated data token",
