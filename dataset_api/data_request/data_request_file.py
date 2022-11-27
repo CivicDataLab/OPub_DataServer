@@ -557,7 +557,7 @@ def get_resource_file(request, data_request, token, apidetails):
                 # Check for rate.
                 get_rate_count = core.get_usage(
                     request,
-                    group="rate",
+                    group="rate||" + str(data_request_id),
                     key="dataset_api.ratelimits.user_key",
                     rate="dataset_api.ratelimits.rate_per_user",
                     increment=False,
@@ -574,14 +574,14 @@ def get_resource_file(request, data_request, token, apidetails):
                     )
                     get_rate_count = core.get_usage(
                         request,
-                        group="rate",
+                        group="rate||" + str(data_request_id),
                         key="dataset_api.ratelimits.user_key",
                         rate="dataset_api.ratelimits.rate_per_user",
                         increment=True,
                     )
                     get_quota_count = core.get_usage(
                         request,
-                        group="quota",
+                        group="quota||" + str(data_request_id),
                         key="dataset_api.ratelimits.user_key",
                         rate="dataset_api.ratelimits.quota_per_user",
                         increment=True,
