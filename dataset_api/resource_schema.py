@@ -12,7 +12,7 @@ from graphql_auth.bases import Output
 from graphql import GraphQLError
 import json
 
-from .enums import DataType
+from .enums import DataType, ParameterTypes
 from .models import (
     APISource,
     Resource,
@@ -153,9 +153,7 @@ class Query(graphene.ObjectType):
                         with open(resource.filedetails.file.path) as jsonFile:
                             # return list(set(get_keys(jsonFile.read(), [])))
                             builder = genson.SchemaBuilder()
-                            jsondata = json.loads(
-                                jsonFile.read()
-                            )  # json.loads(resource.filedetails.file)
+                            jsondata = json.loads(jsonFile.read())  # json.loads(resource.filedetails.file)
                             builder.add_object(jsondata)
                             schema_dict = builder.to_schema()
                             schema_dict = schema_dict.get("properties", {})
@@ -200,7 +198,7 @@ class APIParameterInputType(graphene.InputObjectType):
     key = graphene.String(required=True)
     format = graphene.String(required=False)
     default = graphene.String(required=True)
-    description = graphene.String(required=True)
+    description = graphene.String(required=False)
     type = graphene.String(required=True)
 
 
@@ -211,8 +209,9 @@ class ApiInputType(graphene.InputObjectType):
     response_type = ResponseType()
     request_type = RequestType()
     parameters: Iterable = graphene.List(of_type=APIParameterInputType, required=False)
-    formats: Iterable = graphene.List(of_type=APIParameterInputType, required=False)
-    format_loc = graphene.String(required=False)
+    formats: Iterable = graphene.List(of_type=graphene.String, required=False)
+    format_loc = graphene.Enum.from_enum(ParameterTypes)(required=True)
+    format_key = graphene.String(required=False)
     default_format = graphene.String(required=False)
 
 
@@ -391,6 +390,7 @@ def _create_update_api_details(resource_instance, attribute):
     api_detail_object.response_type = attribute.response_type
     api_detail_object.request_type = attribute.request_type
     api_detail_object.format_loc = attribute.format_loc
+    api_detail_object.format_key = attribute.format_key
     api_detail_object.default_format = attribute.default_format
     api_detail_object.supported_formats = attribute.formats
     api_detail_object.save()

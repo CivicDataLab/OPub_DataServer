@@ -17,4 +17,5 @@ class APIDetails(models.Model):
     request_type = models.CharField(max_length=20, unique=False)
     supported_formats = ArrayField(models.CharField(max_length=25, blank=False), blank=True, null=True)
     default_format = models.CharField(max_length=500, default="")
+    format_key = models.CharField(max_length=200, default="")
     format_loc = models.CharField(choices=FormatLocation.choices, max_length=50, default="")
