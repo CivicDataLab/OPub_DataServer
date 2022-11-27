@@ -18,8 +18,7 @@ from dataset_api.decorators import (
 from .decorators import auth_query_dam_request
 from dataset_api.enums import SubscriptionUnits, ValidationUnits
 from ..constants import DATAREQUEST_SWAGGER_SPEC
-from ..data_request.token_handler import generate_refresh_token, create_data_refresh_token, create_data_jwt_token, \
-    create_access_jwt_token
+from ..data_request.token_handler import create_data_refresh_token, create_data_jwt_token
 from ..models import DatasetAccessModelResource, Resource
 
 r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
@@ -187,14 +186,8 @@ class Query(graphene.ObjectType):
         else:
             raise GraphQLError("Invalid access id")
         data_token = create_data_refresh_token(dam_resource, dam_request, username)
-        spec["paths"]["/refreshtoken"]["get"]["parameters"][0]["example"] = generate_refresh_token(dam_request,
-                                                                                                   dam_resource,
-                                                                                                   username)
         spec["paths"]["/refresh_data_token"]["get"]["parameters"][0]["example"] = data_token
         data_token = create_data_jwt_token(dam_resource, dam_request, username)
-        spec["paths"]["/getresource"]["get"]["parameters"][0][
-            "example"
-        ] = create_access_jwt_token(dam_request, dam_resource, username)
         spec["paths"]["/get_dist_data"]["get"]["parameters"][0]["example"] = data_token
         parameters = []
         if resource_instance and resource_instance.dataset.dataset_type == "API":
