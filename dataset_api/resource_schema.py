@@ -285,8 +285,15 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
             schema_instance = _create_resource_schema_instance(
                 resource_instance, schema
             )
-
     for schema in resource_data.schema:
+        key_map = {}
+        if isinstance(schema, list):
+            key_map[schema.array_field] = schema.parent
+    
+    print(key_map)
+    
+    for schema in resource_data.schema:
+        print(schema)
         schema_instance = ResourceSchema.objects.get(
             resource_id=resource_instance.id, key=schema.key
         )
@@ -296,10 +303,19 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
             )
             schema_instance.parent = parent_instance
         if schema.array_field and schema.array_field != "":
-            array_field_instance = ResourceSchema.objects.get(
-                resource=resource_instance.id, key=schema.array_field
-            )
-            schema_instance.array_field = array_field_instance
+            if schema.parent and schema.parent != "":
+                array_field_instance = ResourceSchema.objects.get(
+                    resource=resource_instance.id, key=schema.array_field, parent=schema.parent
+                )
+                schema_instance.array_field = array_field_instance
+            else:
+                print("in else")
+                parent = key_map.get(schema.array_field)
+                print(parent)
+                array_field_instance = ResourceSchema.objects.get(
+                    resource=resource_instance.id, key=schema.array_field, parent = parent
+                )
+                schema_instance.array_field = array_field_instance
         schema_instance.save()
 
 
