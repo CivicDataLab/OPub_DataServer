@@ -17,6 +17,10 @@ from dataset_api.decorators import (
 )
 from .decorators import auth_query_dam_request
 from dataset_api.enums import SubscriptionUnits, ValidationUnits
+from ..constants import DATAREQUEST_SWAGGER_SPEC
+from ..data_request.token_handler import generate_refresh_token, create_data_refresh_token, create_data_jwt_token, \
+    create_access_jwt_token
+from ..models import DatasetAccessModelResource, Resource
 
 r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
 
@@ -120,6 +124,7 @@ class Query(graphene.ObjectType):
     data_access_model_request_org = graphene.List(
         DataAccessModelRequestType, org_id=graphene.Int()
     )
+    spec = graphene.JSONString(resource_id=graphene.ID())
 
     # Access : PMU
     @auth_user_by_org(action="query")
@@ -132,7 +137,7 @@ class Query(graphene.ObjectType):
     # Access : PMU/DPA of that org.
     @auth_query_dam_request(action="query||request_id")
     def resolve_data_access_model_request(
-        self, info, data_access_model_request_id, role
+            self, info, data_access_model_request_id, role
     ):
         if role == "PMU" or role == "DPA":
             return DatasetAccessModelRequest.objects.get(
@@ -158,6 +163,42 @@ class Query(graphene.ObjectType):
         else:
             raise GraphQLError("Access Denied")
 
+    @validate_token_or_none
+    def resolve_spec(self, info, username, data_access_model_request_id, resource_id):
+        spec = DATAREQUEST_SWAGGER_SPEC.copy()
+        dam_request = DatasetAccessModelRequest.objects.get(pk=data_access_model_request_id)
+        resource_instance = Resource.objects.get(pk=resource_id)
+        dam_resource = DatasetAccessModelResource.objects.get(
+            Q(resource_id=resource_id),
+            Q(dataset_access_model=dam_request.access_model),
+        )
+        spec["paths"]["/refreshtoken"]["get"]["parameters"][0]["example"] = generate_refresh_token(dam_request,
+                                                                                                   dam_resource,
+                                                                                                   username)
+        spec["paths"]["/refresh_data_token"]["get"]["parameters"][0]["example"] = create_data_refresh_token(
+            dam_resource, dam_request, username)
+        data_token = create_data_jwt_token(dam_resource, dam_request, username)
+        spec["paths"]["/getresource"]["get"]["parameters"][0][
+            "example"
+        ] = create_access_jwt_token(dam_request, dam_resource, username)
+        spec["paths"]["/update_data"]["get"]["parameters"][0]["example"] = data_token
+        parameters = []
+        if resource_instance and resource_instance.dataset.dataset_type == "API":
+            parameters = resource_instance.apidetails.apiparameter_set.all()
+        for parameter in parameters:
+            param_input = {
+                "name": parameter.key,
+                "in": "query",
+                "required": "true",
+                "description": parameter.description,
+                "schema": {"type": parameter.format},
+                "example": parameter.default,
+            }
+            spec["paths"]["/update_data"]["get"]["parameters"].append(param_input)
+        # spec["info"]["title"] = self.resource.title
+        # spec["info"]["description"] = self.resource.description
+        return spec
+
 
 class DataAccessModelRequestInput(graphene.InputObjectType):
     id = graphene.ID()
@@ -175,13 +216,13 @@ class DataAccessModelRequestUpdateInput(graphene.InputObjectType):
 
 
 def create_dataset_access_model_request(
-    access_model,
-    description,
-    purpose,
-    username,
-    status="REQUESTED",
-    user_email=None,
-    id=None,
+        access_model,
+        description,
+        purpose,
+        username,
+        status="REQUESTED",
+        user_email=None,
+        id=None,
 ):
     if not id:
         data_access_model_request_instance = DatasetAccessModelRequest(
@@ -210,10 +251,10 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
     @staticmethod
     @validate_token_or_none
     def mutate(
-        root,
-        info,
-        data_access_model_request: DataAccessModelRequestInput = None,
-        username=None,
+            root,
+            info,
+            data_access_model_request: DataAccessModelRequestInput = None,
+            username=None,
     ):
         id = None
         if data_access_model_request.id:
@@ -246,7 +287,7 @@ class ApproveRejectDataAccessModelRequest(graphene.Mutation, Output):
 
     @staticmethod
     def mutate(
-        root, info, data_access_model_request: DataAccessModelRequestUpdateInput = None
+            root, info, data_access_model_request: DataAccessModelRequestUpdateInput = None
     ):
         try:
             data_access_model_request_instance = DatasetAccessModelRequest.objects.get(

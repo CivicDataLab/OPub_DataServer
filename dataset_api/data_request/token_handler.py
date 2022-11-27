@@ -10,14 +10,14 @@ from dataset_api.models import (
 )
 
 
-def create_access_jwt_token(data_request: DataRequest, username):
+def create_access_jwt_token(dataset_access_model_request: DatasetAccessModelRequest,
+                            dam_resource: DatasetAccessModelResource, username):
     access_token_payload = {
         "username": username,
-        "data_request": str(data_request.id),
-        "dam": data_request.dataset_access_model_request.access_model.id,
-        "resource_id": data_request.resource.id,
+        "dam_request": str(dataset_access_model_request.id),
+        "dam_resource": dam_resource.id,
         "exp": datetime.datetime.utcnow()
-        + datetime.timedelta(days=0, minutes=settings.ACCESS_TOKEN_EXPIRY_MINS),
+               + datetime.timedelta(days=0, minutes=settings.ACCESS_TOKEN_EXPIRY_MINS),
         "iat": datetime.datetime.utcnow(),
     }
     access_token = jwt.encode(
@@ -26,12 +26,13 @@ def create_access_jwt_token(data_request: DataRequest, username):
     return access_token
 
 
-def generate_refresh_token(data_request: DataRequest, username):
+def generate_refresh_token(dataset_access_model_request: DatasetAccessModelRequest,
+                           dam_resource: DatasetAccessModelResource, username):
     refresh_token_payload = {
         "username": username,
-        "dam": data_request.dataset_access_model_request.access_model.id,
-        "data_request": str(data_request.id),
-        "resource_id": data_request.resource.id,
+        "dam": dataset_access_model_request.access_model.id,
+        "dam_request": str(dataset_access_model_request.id),
+        "dam_resource": dam_resource.id,
         "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7, minutes=0),
         "iat": datetime.datetime.utcnow(),
     }
@@ -43,9 +44,9 @@ def generate_refresh_token(data_request: DataRequest, username):
 
 
 def create_data_jwt_token(
-    dam_resource: DatasetAccessModelResource,
-    dam_request: DatasetAccessModelRequest,
-    username,
+        dam_resource: DatasetAccessModelResource,
+        dam_request: DatasetAccessModelRequest,
+        username,
 ):
     access_token_payload = {
         "username": username,
@@ -54,7 +55,7 @@ def create_data_jwt_token(
         "dam": dam_resource.dataset_access_model.id,
         "resource_id": dam_resource.resource.id,
         "exp": datetime.datetime.utcnow()
-        + datetime.timedelta(days=0, minutes=settings.ACCESS_TOKEN_EXPIRY_MINS),
+               + datetime.timedelta(days=0, minutes=settings.ACCESS_TOKEN_EXPIRY_MINS),
         "iat": datetime.datetime.utcnow(),
     }
     access_token = jwt.encode(
@@ -64,9 +65,9 @@ def create_data_jwt_token(
 
 
 def create_data_refresh_token(
-    dam_resource: DatasetAccessModelResource,
-    dam_request: DatasetAccessModelRequest,
-    username,
+        dam_resource: DatasetAccessModelResource,
+        dam_request: DatasetAccessModelRequest,
+        username,
 ):
     refresh_token_payload = {
         "username": username,
