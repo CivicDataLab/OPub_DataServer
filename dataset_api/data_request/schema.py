@@ -235,9 +235,9 @@ def initiate_dam_request(
             output_file = open(data_request_instance.file.path, "w")
             file = json.dump(file, output_file, indent=4)
             output_file.close()
-        update_data_request_index(data_request_instance)
-        data_request_instance.status = "FETCHED"
-        data_request_instance.save()
+            data_request_instance.status = "FETCHED"
+            data_request_instance.save()
+            update_data_request_index(data_request_instance)
     return data_request_instance.id
 
 
@@ -373,7 +373,7 @@ class DataRequestUpdateMutation(graphene.Mutation, Output):
 
     @staticmethod
     def mutate(root, info, data_request: DataRequestUpdateInput = None):
-        print ('------b1', data_request.id)
+        print('------b1', data_request.id)
         data_request_instance = DataRequest.objects.get(id=data_request.id)
         if data_request_instance:
             data_request_instance.status = data_request.status
