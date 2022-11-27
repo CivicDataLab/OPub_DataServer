@@ -15,19 +15,22 @@ import json
 
 
 def parse_schema(schema_dict, parent, schema):
-
+    global count
     for key in schema_dict:
         if key == "required":
             continue
-        print(key)
+        print (key)
         if key == "items":
+            print(count)
+            count = count + 1
+            print(count)
             schema.append(
                 {
-                    "key": parent,
+                    "key": parent + str(count) if parent == "items"  else parent,
                     "format": "array",
                     "description": "",
                     "parent": "",
-                    "array_field": "items",
+                    "array_field": "items" + str(count),
                 }
             )
             parse_schema(schema_dict["items"], key, schema)
@@ -38,7 +41,7 @@ def parse_schema(schema_dict, parent, schema):
         if key == "properties":
             schema.append(
                 {
-                    "key": parent,
+                    "key": parent + str(count) if parent == "items"  else parent,
                     "format": "json",
                     "description": "",
                     "parent": "",
@@ -56,7 +59,7 @@ def parse_schema(schema_dict, parent, schema):
                     "key": key,
                     "format": "string",
                     "description": "",
-                    "parent": parent,
+                    "parent": parent + str(count) if parent == "items"  else parent,
                     "array_field": "",
                 }
             )
@@ -99,6 +102,9 @@ def schema(request, resource_id):
         schema_dict = builder.to_schema()
         schema_dict = schema_dict.get("properties", {})
         schema = []
+        global count
+        count = 0
+        print ('------asadasf', schema_dict)
         parse_schema(schema_dict, "", schema)
         context = {
             "Success": True,

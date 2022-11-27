@@ -285,12 +285,12 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
             schema_instance = _create_resource_schema_instance(
                 resource_instance, schema
             )
+    key_map={}
     for schema in resource_data.schema:
-        key_map = {}
-        if isinstance(schema, list):
-            key_map[schema.array_field] = schema.parent
+        print ('---a000',schema)
+        key_map[schema.array_field] = schema.parent
     
-    print(key_map)
+    print('-------a', key_map)
     
     for schema in resource_data.schema:
         print(schema)
@@ -298,24 +298,31 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
             resource_id=resource_instance.id, key=schema.key
         )
         if schema.parent and schema.parent != "":
-            parent_instance = ResourceSchema.objects.get(
+            try:
+                parent_instance = ResourceSchema.objects.get(
                 resource_id=resource_instance.id, key=schema.parent
             )
-            schema_instance.parent = parent_instance
+                schema_instance.parent = parent_instance
+            except ResourceSchema.DoesNotExist:
+                pass
         if schema.array_field and schema.array_field != "":
-            if schema.parent and schema.parent != "":
+            #if schema.parent and schema.parent != "":
+            try:
                 array_field_instance = ResourceSchema.objects.get(
-                    resource=resource_instance.id, key=schema.array_field, parent=schema.parent
+                    resource=resource_instance.id, key=schema.array_field, 
                 )
                 schema_instance.array_field = array_field_instance
-            else:
+            except ResourceSchema.DoesNotExist:
+                pass
+
+            '''else:
                 print("in else")
                 parent = key_map.get(schema.array_field)
                 print(parent)
                 array_field_instance = ResourceSchema.objects.get(
-                    resource=resource_instance.id, key=schema.array_field, parent = parent
+                    resource=resource_instance.id, key=schema.array_field,
                 )
-                schema_instance.array_field = array_field_instance
+                schema_instance.array_field = array_field_instance'''
         schema_instance.save()
 
 
