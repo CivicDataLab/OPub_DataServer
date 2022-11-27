@@ -37,7 +37,7 @@ from dataset_api.models import (
 )
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
-from dataset_api.utils import skip_col
+from dataset_api.utils import skip_col, get_client_ip, log_activity
 
 
 class DataRequestType(DjangoObjectType):
@@ -244,6 +244,12 @@ class DataRequestMutation(graphene.Mutation, Output):
             dam_request, resource, username, parameters, default=True
         )
         data_request_instance = DataRequest.objects.get(pk=data_request_id)
+        log_activity(
+            target_obj=data_request_instance,
+            ip=get_client_ip(info),
+            username=username,
+            verb="Created",
+        )
         return DataRequestMutation(data_request=data_request_instance)
 
 
@@ -270,6 +276,12 @@ class OpenDataRequestMutation(graphene.Mutation, Output):
         )
         data_request_instance = initiate_dam_request(
             dam_request, resource, username, None
+        )
+        log_activity(
+            target_obj=data_request_instance,
+            ip=get_client_ip(info),
+            username=username,
+            verb="Created",
         )
         return OpenDataRequestMutation(data_request=data_request_instance)
 
@@ -340,13 +352,20 @@ class DataRequestUpdateMutation(graphene.Mutation, Output):
     data_request = graphene.Field(DataRequestType)
 
     @staticmethod
-    def mutate(root, info, data_request: DataRequestUpdateInput = None):
+    @validate_token_or_none
+    def mutate(root, info, username, data_request: DataRequestUpdateInput = None):
         print('------b1', data_request.id)
         data_request_instance = DataRequest.objects.get(id=data_request.id)
         if data_request_instance:
             data_request_instance.status = data_request.status
             data_request_instance.file = data_request.file
         data_request_instance.save()
+        log_activity(
+            target_obj=data_request_instance,
+            ip=get_client_ip(info),
+            username=username,
+            verb="Updated",
+        )
         update_data_request_index(data_request_instance)
         return DataRequestUpdateMutation(data_request=data_request_instance)
 
