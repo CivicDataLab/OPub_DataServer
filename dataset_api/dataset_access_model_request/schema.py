@@ -64,7 +64,7 @@ class DataAccessModelRequestType(DjangoObjectType):
     @validate_token_or_none
     def resolve_is_valid(self: DatasetAccessModelRequest, info, username=""):
         validity = get_data_access_model_request_validity(self)
-        return utc.localize(datetime.datetime.now()) <= utc.localize(validity)
+        return utc.localize(datetime.datetime.now().replace(tzinfo=utc)) <= utc.localize(validity.replace(tzinfo=utc))
 
     @validate_token_or_none
     def resolve_remaining_quota(self: DatasetAccessModelRequest, info, username=""):
