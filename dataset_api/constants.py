@@ -82,13 +82,13 @@ DATAREQUEST_SWAGGER_SPEC = {
                 }
             }
         },
-        "/update_data": {
+        "/get_dist_data": {
             "get": {
-                "description": "Updates the data from source",
+                "description": "Fetches data from provider",
                 "tags": [
                     "Distribution"
                 ],
-                "operationId": "updateData",
+                "operationId": "getDistributionData",
                 "parameters": [
                     {
                         "name": "token",

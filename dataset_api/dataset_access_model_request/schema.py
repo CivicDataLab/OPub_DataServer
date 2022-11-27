@@ -181,7 +181,7 @@ class Query(graphene.ObjectType):
         spec["paths"]["/getresource"]["get"]["parameters"][0][
             "example"
         ] = create_access_jwt_token(dam_request, dam_resource, username)
-        spec["paths"]["/update_data"]["get"]["parameters"][0]["example"] = data_token
+        spec["paths"]["/get_dist_data"]["get"]["parameters"][0]["example"] = data_token
         parameters = []
         if resource_instance and resource_instance.dataset.dataset_type == "API":
             parameters = resource_instance.apidetails.apiparameter_set.all()
@@ -194,7 +194,7 @@ class Query(graphene.ObjectType):
                 "schema": {"type": parameter.format},
                 "example": parameter.default,
             }
-            spec["paths"]["/update_data"]["get"]["parameters"].append(param_input)
+            spec["paths"]["/get_dist_data"]["get"]["parameters"].append(param_input)
         spec["info"]["title"] = resource_instance.title
         spec["info"]["description"] = resource_instance.description
         return spec
