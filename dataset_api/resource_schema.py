@@ -19,7 +19,8 @@ from .models import (
     Dataset,
     ResourceSchema,
     APIDetails,
-    FileDetails, APIParameter,
+    FileDetails,
+    APIParameter,
 )
 from .decorators import (
     auth_user_action_resource,
@@ -152,7 +153,9 @@ class Query(graphene.ObjectType):
                         with open(resource.filedetails.file.path) as jsonFile:
                             # return list(set(get_keys(jsonFile.read(), [])))
                             builder = genson.SchemaBuilder()
-                            jsondata = json.loads(jsonFile.read())  #json.loads(resource.filedetails.file)
+                            jsondata = json.loads(
+                                jsonFile.read()
+                            )  # json.loads(resource.filedetails.file)
                             builder.add_object(jsondata)
                             schema_dict = builder.to_schema()
                             schema_dict = schema_dict.get("properties", {})
@@ -188,7 +191,7 @@ class ResponseType(graphene.Enum):
 
 class RequestType(graphene.Enum):
     POST = "POST"
-    GET = "GET" 
+    GET = "GET"
     PUT = "PUT"
 
 
@@ -205,7 +208,7 @@ class ApiInputType(graphene.InputObjectType):
     auth_required = graphene.Boolean(required=True)
     url_path = graphene.String(required=True)
     response_type = ResponseType()
-    request_type  = RequestType()
+    request_type = RequestType()
     parameters: Iterable = graphene.List(of_type=APIParameterInputType, required=False)
 
 
@@ -240,9 +243,9 @@ class DeleteResourceInput(graphene.InputObjectType):
 
 def _remove_masked_fields(resource_instance: Resource):
     if (
-            resource_instance.masked_fields
-            and len(resource_instance.filedetails.file.path)
-            and "csv" in resource_instance.filedetails.format.lower()
+        resource_instance.masked_fields
+        and len(resource_instance.filedetails.file.path)
+        and "csv" in resource_instance.filedetails.format.lower()
     ):
         df = pd.read_csv(resource_instance.filedetails.file.path)
         df = df.drop(columns=resource_instance.masked_fields)
@@ -271,7 +274,7 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
             if schema.id:
                 schema_instance = ResourceSchema.objects.get(id=int(schema.id))
                 schema_instance.key = schema.key
-                schema_instance.display_name = get_display_name(schema),
+                schema_instance.display_name = (get_display_name(schema),)
                 schema_instance.format = schema.format
                 schema_instance.description = schema.description
                 schema_instance.resource = resource_instance
@@ -285,44 +288,29 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
             schema_instance = _create_resource_schema_instance(
                 resource_instance, schema
             )
-    key_map={}
+
     for schema in resource_data.schema:
-        print ('---a000',schema)
-        key_map[schema.array_field] = schema.parent
-    
-    print('-------a', key_map)
-    
-    for schema in resource_data.schema:
-        print(schema)
         schema_instance = ResourceSchema.objects.get(
             resource_id=resource_instance.id, key=schema.key
         )
         if schema.parent and schema.parent != "":
             try:
                 parent_instance = ResourceSchema.objects.get(
-                resource_id=resource_instance.id, key=schema.parent
-            )
+                    resource_id=resource_instance.id, key=schema.parent
+                )
                 schema_instance.parent = parent_instance
             except ResourceSchema.DoesNotExist:
                 pass
         if schema.array_field and schema.array_field != "":
-            #if schema.parent and schema.parent != "":
             try:
                 array_field_instance = ResourceSchema.objects.get(
-                    resource=resource_instance.id, key=schema.array_field, 
+                    resource=resource_instance.id,
+                    key=schema.array_field,
                 )
                 schema_instance.array_field = array_field_instance
             except ResourceSchema.DoesNotExist:
                 pass
 
-            '''else:
-                print("in else")
-                parent = key_map.get(schema.array_field)
-                print(parent)
-                array_field_instance = ResourceSchema.objects.get(
-                    resource=resource_instance.id, key=schema.array_field,
-                )
-                schema_instance.array_field = array_field_instance'''
         schema_instance.save()
 
 
@@ -369,12 +357,20 @@ def _create_update_api_parameter(api_detail_instance, parameters):
                 parameter_instance.save()
             else:
                 # Add new schema
-                parameter_instance = APIParameter(default=parameter.default, key=parameter.key, format=parameter.format,
-                                                  api_details=api_detail_instance)
+                parameter_instance = APIParameter(
+                    default=parameter.default,
+                    key=parameter.key,
+                    format=parameter.format,
+                    api_details=api_detail_instance,
+                )
                 parameter_instance.save()
         except ResourceSchema.DoesNotExist as e:
-            parameter_instance = APIParameter(default=parameter.default, key=parameter.key, format=parameter.format,
-                                              api_details=api_detail_instance)
+            parameter_instance = APIParameter(
+                default=parameter.default,
+                key=parameter.key,
+                format=parameter.format,
+                api_details=api_detail_instance,
+            )
             parameter_instance.save()
 
         parameter_instance.save()
@@ -443,10 +439,10 @@ class CreateResource(graphene.Mutation, Output):
     @validate_token
     @auth_user_action_resource(action="create_resource")
     def mutate(
-            root,
-            info,
-            username,
-            resource_data: ResourceInput = None,
+        root,
+        info,
+        username,
+        resource_data: ResourceInput = None,
     ):
         """
 
