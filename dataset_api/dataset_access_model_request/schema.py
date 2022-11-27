@@ -195,8 +195,8 @@ class Query(graphene.ObjectType):
                 "example": parameter.default,
             }
             spec["paths"]["/update_data"]["get"]["parameters"].append(param_input)
-        # spec["info"]["title"] = self.resource.title
-        # spec["info"]["description"] = self.resource.description
+        spec["info"]["title"] = resource_instance.title
+        spec["info"]["description"] = resource_instance.description
         return spec
 
 
