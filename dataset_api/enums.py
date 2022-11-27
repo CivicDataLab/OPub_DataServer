@@ -72,3 +72,13 @@ class DataAccessModelStatus(models.TextChoices):
 class SubscriptionAction(models.TextChoices):
     SUBSCRIBE = "SUBSCRIBE"
     UNSUBSCRIBE = "UNSUBSCRIBE"
+
+
+class ParameterTypes(models.TextChoices):
+    EXPOSED = "EXPOSED"
+    PAGINATION = "PAGINATION"
+
+
+class FormatLocation(models.TextChoices):
+    HEADER = "HEADER"
+    PARAM = "PARAM"
