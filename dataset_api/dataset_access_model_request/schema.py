@@ -2,6 +2,7 @@ import datetime
 import redis
 
 import graphene
+from django.utils import timezone
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from django.db.models import Q
@@ -64,7 +65,7 @@ class DataAccessModelRequestType(DjangoObjectType):
     @validate_token_or_none
     def resolve_is_valid(self: DatasetAccessModelRequest, info, username=""):
         validity = get_data_access_model_request_validity(self)
-        return utc.localize(datetime.datetime.now().replace(tzinfo=utc)) <= utc.localize(validity.replace(tzinfo=utc))
+        return timezone.now() <= validity
 
     @validate_token_or_none
     def resolve_remaining_quota(self: DatasetAccessModelRequest, info, username=""):
