@@ -32,7 +32,8 @@ class Query(graphene.ObjectType):
                                               queryset=DataRequest.objects.filter(default=True, id__in=anonymous_users))
             prefetch_dam_requests = Prefetch("datasetaccessmodelrequest_set",
                                              queryset=DatasetAccessModelRequest.objects.filter(
-                                                 datarequest__id__in=anonymous_users).prefetch_related(
+                                                 datarequest__id__in=anonymous_users).order_by(
+                                                 "-modified").prefetch_related(
                                                  prefetch_data_requests))
 
         return DatasetAccessModel.objects.filter(dataset=dataset).order_by("-modified").prefetch_related(
