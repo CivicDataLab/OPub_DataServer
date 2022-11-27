@@ -249,17 +249,14 @@ class FormatConverter:
             all_coll = [a[0] for a in final_result]
             all_coll = [a for i, a in enumerate(all_coll) if a not in all_coll[:i]]
             for a in list_cols:
-                if a in all_coll:
-                    all_coll.remove(a)
+                all_coll = [each for each in all_coll if not ".".join(each).startswith(".".join(a))]
             df = data
             for col_path in list_cols:
-                meta = all_coll.copy()
-                meta = [each for each in meta if not ".".join(each).startswith(".".join(col_path))]
-                print(meta)
+                print(all_coll)
                 print(col_path)
                 df = pd.json_normalize(
                     df, record_path=col_path,
-                    meta=meta
+                    meta=all_coll
                 ).to_dict(orient="records")
             final_json = pd.DataFrame(df)
         return final_json
