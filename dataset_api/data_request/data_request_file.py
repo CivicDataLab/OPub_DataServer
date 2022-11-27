@@ -542,12 +542,12 @@ def get_resource_file(request, data_request, token, apidetails):
                 "Request in progress. Please try again in some time",
                 content_type="text/plain",
             )
-        if dam.type == "OPEN":
+        if dam.type != "OPEN":
             # Get the quota count.
             print("Checking Limits!!")
             get_quota_count = core.get_usage(
                 request,
-                group="quota",
+                group="quota||" + str(data_request_id),
                 key="dataset_api.ratelimits.user_key",
                 rate="dataset_api.ratelimits.quota_per_user",
                 increment=False,

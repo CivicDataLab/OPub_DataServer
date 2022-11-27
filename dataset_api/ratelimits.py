@@ -28,7 +28,7 @@ def user_key(group, request):
     data_request_instance = DataRequest.objects.get(pk=request_id)
     user = data_request_instance.user
     dam_request = data_request_instance.dataset_access_model_request
-
+    print ('aaaaaa---', (user + "||" + str(dam_request.id)))
     return user + "||" + str(dam_request.id)
 
 
@@ -81,7 +81,9 @@ def rate_per_user(group, request):
 
 def quota_per_user(group, request):
     token = request.GET.get("token")
+    print ('---------456', group)
     group = group.split("||")
+    print ('--------------234', group)
     if len(group) > 1:
         request_id = group[1]
     else:
@@ -96,7 +98,7 @@ def quota_per_user(group, request):
                 request_id = token_payload.get("data_request")
         else:
             request_id = request.path.split("/")[3]
-
+    print('-----------123',request_id)
     data_request_instance = DataRequest.objects.get(pk=request_id)
     dam = (
         data_request_instance.dataset_access_model_request.access_model.data_access_model
