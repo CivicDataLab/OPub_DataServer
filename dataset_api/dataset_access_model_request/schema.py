@@ -166,8 +166,8 @@ class Query(graphene.ObjectType):
             raise GraphQLError("Access Denied")
 
     @validate_token_or_none
-    def resolve_data_spec(self, info, username, dataset_access_model_request_id, resource_id,
-                          dataset_access_model_resource_id):
+    def resolve_data_spec(self, info, username, resource_id, dataset_access_model_resource_id,
+                          dataset_access_model_request_id=""):
         resource_instance = Resource.objects.get(pk=resource_id)
         dam_resource = DatasetAccessModelResource.objects.get(pk=dataset_access_model_resource_id)
         dataset_access_model = dam_resource.dataset_access_model
