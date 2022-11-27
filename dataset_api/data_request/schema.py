@@ -273,9 +273,10 @@ class DataRequestMutation(graphene.Mutation, Output):
                     ]
                 },
             }
-        data_request_instance = initiate_dam_request(
+        data_request_id = initiate_dam_request(
             dam_request, resource, username, parameters, default=True
         )
+        data_request_instance = DataRequest.objects.get(pk=data_request_id)
         return DataRequestMutation(data_request=data_request_instance)
 
 
