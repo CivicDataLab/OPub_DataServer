@@ -9,17 +9,21 @@ from dataset_api.enums import SubscriptionUnits
 
 def user_key(group, request):
     token = request.GET.get("token")
-    if token:
-        try:
-            token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        except jwt.ExpiredSignatureError:
-            return HttpResponse("Authentication failed", content_type="text/plain")
-        except IndexError:
-            return HttpResponse("Token prefix missing", content_type="text/plain")
-        if token_payload:
-            request_id = token_payload.get("data_request")
+    group = group.split("||")
+    if len(group) > 1:
+        request_id = group[1]
     else:
-        request_id = request.path.split("/")[3]
+        if token:
+            try:
+                token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            except jwt.ExpiredSignatureError:
+                return HttpResponse("Authentication failed", content_type="text/plain")
+            except IndexError:
+                return HttpResponse("Token prefix missing", content_type="text/plain")
+            if token_payload:
+                request_id = token_payload.get("data_request")
+        else:
+            request_id = request.path.split("/")[3]
 
     data_request_instance = DataRequest.objects.get(pk=request_id)
     user = data_request_instance.user
@@ -30,17 +34,21 @@ def user_key(group, request):
 
 def rate_per_user(group, request):
     token = request.GET.get("token")
-    if token:
-        try:
-            token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        except jwt.ExpiredSignatureError:
-            return HttpResponse("Authentication failed", content_type="text/plain")
-        except IndexError:
-            return HttpResponse("Token prefix missing", content_type="text/plain")
-        if token_payload:
-            request_id = token_payload.get("data_request")
+    group = group.split("||")
+    if len(group) > 1:
+        request_id = group[1]
     else:
-        request_id = request.path.split("/")[3]
+        if token:
+            try:
+                token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            except jwt.ExpiredSignatureError:
+                return HttpResponse("Authentication failed", content_type="text/plain")
+            except IndexError:
+                return HttpResponse("Token prefix missing", content_type="text/plain")
+            if token_payload:
+                request_id = token_payload.get("data_request")
+        else:
+            request_id = request.path.split("/")[3]
 
     data_request_instance = DataRequest.objects.get(pk=request_id)
     dam = (
@@ -73,17 +81,21 @@ def rate_per_user(group, request):
 
 def quota_per_user(group, request):
     token = request.GET.get("token")
-    if token:
-        try:
-            token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        except jwt.ExpiredSignatureError:
-            return HttpResponse("Authentication failed", content_type="text/plain")
-        except IndexError:
-            return HttpResponse("Token prefix missing", content_type="text/plain")
-        if token_payload:
-            request_id = token_payload.get("data_request")
+    group = group.split("||")
+    if len(group) > 1:
+        request_id = group[1]
     else:
-        request_id = request.path.split("/")[3]
+        if token:
+            try:
+                token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            except jwt.ExpiredSignatureError:
+                return HttpResponse("Authentication failed", content_type="text/plain")
+            except IndexError:
+                return HttpResponse("Token prefix missing", content_type="text/plain")
+            if token_payload:
+                request_id = token_payload.get("data_request")
+        else:
+            request_id = request.path.split("/")[3]
 
     data_request_instance = DataRequest.objects.get(pk=request_id)
     dam = (
