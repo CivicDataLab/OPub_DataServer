@@ -254,10 +254,13 @@ class FormatConverter:
             for col_path in list_cols:
                 print(all_coll)
                 print(col_path)
-                df = pd.json_normalize(
-                    df, record_path=col_path,
-                    meta=all_coll
-                ).to_dict(orient="records")
+                try:
+                    df = pd.json_normalize(
+                        df, record_path=col_path,
+                        meta=all_coll
+                    ).to_dict(orient="records")
+                except KeyError as e:
+                    pass
             final_json = pd.DataFrame(df)
         return final_json
 
