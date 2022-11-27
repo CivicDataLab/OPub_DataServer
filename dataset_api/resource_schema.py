@@ -1,18 +1,27 @@
+import json
 import mimetypes
 import os
 from typing import Iterable
 
+import genson
 import graphene
 import pandas as pd
 from django.core.files.base import ContentFile
 from graphene import List
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
-from graphql_auth.bases import Output
 from graphql import GraphQLError
-import json
+from graphql_auth.bases import Output
 
-from .enums import DataType, ParameterTypes
+from .api_resource import api_fetch
+from .constants import FORMAT_MAPPING
+from .decorators import (
+    auth_user_action_resource,
+    validate_token,
+    auth_user_by_org,
+    auth_query_resource,
+)
+from .enums import DataType, ParameterTypes, FormatLocation
 from .models import (
     APISource,
     Resource,
@@ -22,17 +31,7 @@ from .models import (
     FileDetails,
     APIParameter,
 )
-from .decorators import (
-    auth_user_action_resource,
-    validate_token,
-    auth_user_by_org,
-    auth_query_resource,
-)
-from .constants import FORMAT_MAPPING
-from .utils import log_activity, get_client_ip, get_keys
-
-from .api_resource import api_fetch
-import genson
+from .utils import log_activity, get_client_ip
 
 
 class ResourceSchemaInputType(graphene.InputObjectType):
@@ -199,7 +198,7 @@ class APIParameterInputType(graphene.InputObjectType):
     format = graphene.String(required=False)
     default = graphene.String(required=True)
     description = graphene.String(required=False)
-    type = graphene.String(required=True)
+    type = graphene.Enum.from_enum(ParameterTypes)(required=False)
 
 
 class ApiInputType(graphene.InputObjectType):
@@ -210,7 +209,7 @@ class ApiInputType(graphene.InputObjectType):
     request_type = RequestType()
     parameters: Iterable = graphene.List(of_type=APIParameterInputType, required=False)
     formats: Iterable = graphene.List(of_type=graphene.String, required=False)
-    format_loc = graphene.Enum.from_enum(ParameterTypes)(required=True)
+    format_loc = graphene.Enum.from_enum(FormatLocation)(required=True)
     format_key = graphene.String(required=False)
     default_format = graphene.String(required=False)
 
