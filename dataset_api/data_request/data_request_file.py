@@ -205,9 +205,10 @@ class FormatConverter:
 
     @classmethod
     def convert_json_to_csv(cls, json_file_path, src_mime_type, return_type="data"):
-        json_file = pd.DataFrame(pd.read_json(json_file_path, orient="index"))
+        final_json = cls.process_json_data(json_file_path)
+
         if return_type == "file":
-            json_file.to_csv("file.csv")
+            final_json.to_csv("file.csv")
             response = FileResponse(
                 open("file.csv", "rb"), content_type="application/x-download"
             )
@@ -220,14 +221,54 @@ class FormatConverter:
             os.remove("file.csv")
             return response
         elif return_type == "data":
-            response = HttpResponse(json_file.to_csv(), content_type="application/csv")
+            response = HttpResponse(final_json.to_csv(), content_type="application/csv")
             return response
 
     @classmethod
+    def process_json_data(cls, json_file_path):
+        with open(json_file_path, "r") as fp:
+            data = json.load(fp)
+
+            def get_paths(d, current=[], list_items=[]):
+                if isinstance(d, str):
+                    return
+                for a, b in d.items():
+                    yield current + [a], list_items
+                    if isinstance(b, dict):
+                        yield from get_paths(b, current + [a], list_items)
+                    elif isinstance(b, list):
+                        list_items = list_items + [current + [a]]
+                        for i in b:
+                            yield from get_paths(i, current + [a], list_items)
+
+            temp = data
+            if isinstance(data, list):
+                temp = data[0]
+            final_result = list(get_paths(data[0]))
+            list_cols = final_result[-1][1]
+            all_coll = [a[0] for a in final_result]
+            all_coll = [a for i, a in enumerate(all_coll) if a not in all_coll[:i]]
+            for a in list_cols:
+                if a in all_coll:
+                    all_coll.remove(a)
+            df = data
+            for col_path in list_cols:
+                meta = all_coll.copy()
+                meta = [each for each in meta if not ".".join(each).startswith(".".join(col_path))]
+                print(meta)
+                print(col_path)
+                df = pd.json_normalize(
+                    df, record_path=col_path,
+                    meta=meta
+                ).to_dict(orient="records")
+            final_json = pd.DataFrame(df)
+        return final_json
+
+    @classmethod
     def convert_json_to_xml(cls, json_file_path, src_mime_type, return_type="data"):
-        json_file = pd.DataFrame(pd.read_json(json_file_path, orient="index"))
+        final_json = cls.process_json_data(json_file_path)
         if return_type == "file":
-            json_file.to_xml("file.xml")
+            final_json.to_xml("file.xml")
             response = FileResponse(
                 open("file.xml", "rb"), content_type="application/x-download"
             )
@@ -240,7 +281,7 @@ class FormatConverter:
             os.remove("file.xml")
             return response
         elif return_type == "data":
-            response = HttpResponse(json_file.to_xml(), content_type="application/xml")
+            response = HttpResponse(final_json.to_xml(), content_type="application/xml")
             return response
 
 
