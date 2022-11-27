@@ -221,7 +221,7 @@ class FormatConverter:
             os.remove("file.csv")
             return response
         elif return_type == "data":
-            response = HttpResponse(final_json.to_csv(), content_type="application/csv")
+            response = HttpResponse(final_json.to_csv(), content_type="text/csv")
             return response
 
     @classmethod
@@ -659,7 +659,7 @@ def get_resource_file(request, data_request, token, apidetails, username):
         size = 10000
     paginate_from = request.GET.get("from", 0)
 
-    if data_request and apidetails:
+    if data_request:
 
         data_request_id = data_request.id
         data_request.refresh_from_db()
@@ -752,7 +752,10 @@ def get_dist_data(request):
         dam_resource = DatasetAccessModelResource.objects.get(id=dam_resource_id)
         dam_request = DatasetAccessModelRequest.objects.get(pk=dam_request_id)
 
-        apidetails = dam_resource.resource.apidetails
+        try:
+            apidetails = dam_resource.resource.apidetails
+        except:
+            apidetails = None
 
         parameters = {}
         default_parameters = []
