@@ -60,12 +60,17 @@ class DataAccessModelRequestType(DjangoObjectType):
 
     @validate_token_or_none
     def resolve_validity(self: DatasetAccessModelRequest, info, username=""):
-        return get_data_access_model_request_validity(self).strftime("%d-%m-%Y")
+        validity = get_data_access_model_request_validity(self)
+        if validity:
+            return validity.strftime("%d-%m-%Y")
+        return None
 
     @validate_token_or_none
     def resolve_is_valid(self: DatasetAccessModelRequest, info, username=""):
         validity = get_data_access_model_request_validity(self)
-        return timezone.now() <= validity
+        if validity:
+            return timezone.now() <= validity
+        return None
 
     @validate_token_or_none
     def resolve_remaining_quota(self: DatasetAccessModelRequest, info, username=""):
