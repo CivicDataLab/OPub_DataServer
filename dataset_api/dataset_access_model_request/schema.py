@@ -124,8 +124,9 @@ class Query(graphene.ObjectType):
     data_access_model_request_org = graphene.List(
         DataAccessModelRequestType, org_id=graphene.Int()
     )
-    data_spec = graphene.JSONString(resource_id=graphene.ID(), dataset_access_model_request_id=graphene.ID(),
-                                    dataset_access_model_resource_id=graphene.ID())
+    data_spec = graphene.JSONString(resource_id=graphene.Argument(graphene.ID, required=True),
+                                    dataset_access_model_request_id=graphene.Argument(graphene.ID, required=False),
+                                    dataset_access_model_resource_id=graphene.Argument(graphene.ID, required=True))
 
     # Access : PMU
     @auth_user_by_org(action="query")
