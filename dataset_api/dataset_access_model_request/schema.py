@@ -124,7 +124,7 @@ class Query(graphene.ObjectType):
     data_access_model_request_org = graphene.List(
         DataAccessModelRequestType, org_id=graphene.Int()
     )
-    spec = graphene.JSONString(resource_id=graphene.ID(), dataset_access_model_request_id=graphene.ID())
+    data_spec = graphene.JSONString(resource_id=graphene.ID(), dataset_access_model_request_id=graphene.ID())
 
     # Access : PMU
     @auth_user_by_org(action="query")
@@ -164,7 +164,7 @@ class Query(graphene.ObjectType):
             raise GraphQLError("Access Denied")
 
     @validate_token_or_none
-    def resolve_spec(self, info, username, dataset_access_model_request_id, resource_id):
+    def resolve_data_spec(self, info, username, dataset_access_model_request_id, resource_id):
         spec = DATAREQUEST_SWAGGER_SPEC.copy()
         dam_request = DatasetAccessModelRequest.objects.get(pk=dataset_access_model_request_id)
         resource_instance = Resource.objects.get(pk=resource_id)
@@ -172,11 +172,11 @@ class Query(graphene.ObjectType):
             Q(resource_id=resource_id),
             Q(dataset_access_model=dam_request.access_model),
         )
+        data_token = create_data_refresh_token(dam_resource, dam_request, username)
         spec["paths"]["/refreshtoken"]["get"]["parameters"][0]["example"] = generate_refresh_token(dam_request,
                                                                                                    dam_resource,
                                                                                                    username)
-        spec["paths"]["/refresh_data_token"]["get"]["parameters"][0]["example"] = create_data_refresh_token(
-            dam_resource, dam_request, username)
+        spec["paths"]["/refresh_data_token"]["get"]["parameters"][0]["example"] = data_token
         data_token = create_data_jwt_token(dam_resource, dam_request, username)
         spec["paths"]["/getresource"]["get"]["parameters"][0][
             "example"
@@ -197,7 +197,7 @@ class Query(graphene.ObjectType):
             spec["paths"]["/get_dist_data"]["get"]["parameters"].append(param_input)
         spec["info"]["title"] = resource_instance.title
         spec["info"]["description"] = resource_instance.description
-        return spec
+        return {"data_token": data_token, spec: spec}
 
 
 class DataAccessModelRequestInput(graphene.InputObjectType):
