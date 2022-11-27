@@ -638,6 +638,24 @@ class DeleteResource(graphene.Mutation, Output):
         resource_schema = ResourceSchema.objects.filter(resource=resource_instance)
         if resource_schema.exists():
             resource_schema.delete()
+        try:
+            resource_api_details = APIDetails.objects.get(resource_id=resource_instance.id)
+            try:
+                resource_api_parameters = APIParameter.objects.filter(api_details=resource_api_details)
+                for each in resource_api_parameters:
+                    each.delete()
+            except:
+                pass
+            if resource_api_details:
+                resource_api_details.delete()
+        except:
+            pass
+        try:
+            resource_file_details = FileDetails.objects.get(resource_id=resource_instance.id)
+            if resource_file_details:
+                resource_file_details.delete()
+        except:
+            pass
         resource_instance.delete()
         return DeleteResource(success=True)
 
