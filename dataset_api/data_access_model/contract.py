@@ -1,14 +1,14 @@
 import datetime
 import os
-from typing import List, Iterable
+from typing import Iterable
 
 import pdfkit
 from django.core.files.base import ContentFile
 
-from dataset_api.models import DatasetAccessModel, Agreement, ResourceSchema, Dataset
+from dataset_api.models import DatasetAccessModel, Agreement, Dataset
 from dataset_api.models.DataAccessModel import DataAccessModel
-from dataset_api.models.LicenseAddition import LicenseAddition
 from dataset_api.models.License import License
+from dataset_api.models.LicenseAddition import LicenseAddition
 
 pdf_options = {
     'page-size': 'A4',
@@ -65,12 +65,11 @@ def get_agreement_resource_details(dataset_access_model: DatasetAccessModel):
         text = text + f"""
           <li>
             {resource.resource.title}, last updated on {resource.resource.modified}: """
-        if resource.fields and len(resource.fields) == 0:
+        if resource.fields.exists():
             text = text + """All data columns/fields"""
         else:
             for field in resource.fields:
-                field_object = ResourceSchema.objects.get(id=field)
-                text = text + f""" [{field_object.key} ({field})]"""
+                text = text + f""" [{field.key} ({field.id})]"""
         text = text + """</li>"""
     text = text + """</ol>"""
     return text
