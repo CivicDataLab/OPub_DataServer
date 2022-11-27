@@ -1,4 +1,5 @@
 import json
+import mimetypes
 import os
 
 import jwt
@@ -22,6 +23,7 @@ from .decorators import dam_request_validity
 
 # Overwriting ratelimit's cache key function.
 from .schema import initiate_dam_request
+from ..constants import FORMAT_MAPPING
 from ..models import DatasetAccessModelResource, DatasetAccessModelRequest
 
 # from graphql import GraphQLError
@@ -139,7 +141,7 @@ class FormatConverter:
                 open("file.json", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
+                    ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".json"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -161,7 +163,7 @@ class FormatConverter:
                 open("file.xml", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".xml"
+                    ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".xml"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -210,7 +212,7 @@ class FormatConverter:
                 open("file.csv", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".json"
+                    ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".json"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -230,7 +232,7 @@ class FormatConverter:
                 open("file.xml", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".xml"
+                    ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".xml"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -312,44 +314,30 @@ class FormatExporter:
 
 
 def get_request_file(
-    username,
-    data_request_id,
-    target_format,
-    return_type="file",
-    size=10000,
-    paginate_from=0,
+        username,
+        data_request_id,
+        target_format,
+        return_type="file",
+        size=10000,
+        paginate_from=0,
 ):
     data_request = DataRequest.objects.get(pk=data_request_id)
     if target_format and target_format not in ["CSV", "XML", "JSON"]:
         return HttpResponse("invalid format", content_type="text/plain")
-    index = str(data_request.id)
-    print ('-------a00', index, size, paginate_from)
-    result = es_client.search(
-        index=index,
-        size=size,
-        from_=paginate_from,
-    )
-    print ('----------------a2',result)
-    items = result["hits"]["hits"]
-    docs = pd.DataFrame()
-    for num, doc in enumerate(items):
-        source_data = doc["_source"]
-        _id = doc["_id"]
-        doc_data = pd.Series(source_data, name=_id)
-        docs = docs.append(doc_data)
-    print ('----------------a3', docs)
-    docs.reset_index(drop=True, inplace=True)
-    old_cols = list(docs.columns)
-    new_cols = [
-        col.replace(": ", "_") if ":" in col else "sample" if col == "" else col
-        for col in old_cols
-    ]
-    docs.columns = new_cols
-    docs[new_cols] = docs[new_cols].astype(str)
-    response = getattr(
-        FormatExporter,
-        f"convert_df_to_{target_format.lower()}",
-    )(docs, return_type)
+    file_path = data_request.file.path
+    if len(file_path):
+        mime_type = mimetypes.guess_type(file_path)[0]
+        if target_format:
+            src_format = FORMAT_MAPPING[mime_type]
+            response = getattr(
+                FormatConverter,
+                f"convert_{src_format.lower()}_to_{target_format.lower()}",
+            )(file_path, mime_type, return_type)
+        else:
+            response = HttpResponse(data_request.file, content_type=mime_type)
+            response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                os.path.basename(file_path)
+            )
     update_download_count(username, data_request)
     return response
 
@@ -481,8 +469,8 @@ def refresh_data_token(request):
     return HttpResponse(
         "Something went wrong request again!!", content_type="text/plain"
     )
-    
-    
+
+
 # def get_resource_file(request):
 def get_resource_file(request, data_request, token, apidetails):
     # token = request.GET.get("token")
@@ -491,10 +479,10 @@ def get_resource_file(request, data_request, token, apidetails):
     # if not size:
     #     size = 5
     # paginate_from = request.GET.get("from", 0)
-    format = apidetails.response_type 
-    print ('---------a0', format)
+    format = apidetails.response_type
+    print('---------a0', format)
     size = 10000
-    paginate_from = 0 
+    paginate_from = 0
     try:
         token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
@@ -504,7 +492,7 @@ def get_resource_file(request, data_request, token, apidetails):
     username = token_payload.get("username")
     if token_payload:
         # data_request_id = token_payload.get("data_request")
-        data_request_id = data_request.id 
+        data_request_id = data_request.id
         # data_request = DataRequest.objects.get(pk=data_request_id)
         data_request.refresh_from_db()
         dam = data_request.dataset_access_model_request.access_model.data_access_model
@@ -575,10 +563,6 @@ def get_resource_file(request, data_request, token, apidetails):
     return HttpResponse(json.dumps(token_payload), content_type="application/json")
 
 
-
-
-
-
 def update_data(request):
     token = request.GET.get("token")
     try:
@@ -609,7 +593,7 @@ def update_data(request):
         )
         data_request = DataRequest.objects.get(pk=data_request_id_1)
         access_token = create_access_jwt_token(data_request, username)
-        print ('------a1', data_request.id)
+        print('------a1', data_request.id)
         return get_resource_file(request, data_request, access_token, apidetails)
         # return HttpResponse(
         #     json.dumps(
