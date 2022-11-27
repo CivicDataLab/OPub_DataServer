@@ -188,7 +188,7 @@ class ResponseType(graphene.Enum):
 
 class RequestType(graphene.Enum):
     POST = "POST"
-    GET = "GET" 
+    GET = "GET"
     PUT = "PUT"
 
 
@@ -198,6 +198,7 @@ class APIParameterInputType(graphene.InputObjectType):
     format = graphene.String(required=False)
     default = graphene.String(required=True)
     description = graphene.String(required=True)
+    type = graphene.String(required=True)
 
 
 class ApiInputType(graphene.InputObjectType):
@@ -205,8 +206,11 @@ class ApiInputType(graphene.InputObjectType):
     auth_required = graphene.Boolean(required=True)
     url_path = graphene.String(required=True)
     response_type = ResponseType()
-    request_type  = RequestType()
+    request_type = RequestType()
     parameters: Iterable = graphene.List(of_type=APIParameterInputType, required=False)
+    formats: Iterable = graphene.List(of_type=APIParameterInputType, required=False)
+    format_loc = graphene.String(required=False)
+    default_format = graphene.String(required=False)
 
 
 class FileInputType(graphene.InputObjectType):
@@ -343,11 +347,12 @@ def _create_update_api_parameter(api_detail_instance, parameters):
                 parameter_instance.default = parameter.default
                 parameter_instance.api_details = api_detail_instance
                 parameter_instance.description = parameter.description
+                parameter_instance.type = parameter.type
                 parameter_instance.save()
             else:
                 # Add new schema
                 parameter_instance = APIParameter(default=parameter.default, key=parameter.key, format=parameter.format,
-                                                  api_details=api_detail_instance)
+                                                  api_details=api_detail_instance, type=parameter.type)
                 parameter_instance.save()
         except ResourceSchema.DoesNotExist as e:
             parameter_instance = APIParameter(default=parameter.default, key=parameter.key, format=parameter.format,
@@ -370,6 +375,9 @@ def _create_update_api_details(resource_instance, attribute):
     api_detail_object.url_path = attribute.url_path
     api_detail_object.response_type = attribute.response_type
     api_detail_object.request_type = attribute.request_type
+    api_detail_object.format_loc = attribute.format_loc
+    api_detail_object.default_format = attribute.default_format
+    api_detail_object.supported_formats = attribute.formats
     api_detail_object.save()
     _create_update_api_parameter(api_detail_object, attribute.parameters)
 
