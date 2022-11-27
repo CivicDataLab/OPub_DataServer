@@ -7,6 +7,7 @@ from graphql_auth.bases import Output
 from django.db.models import Q
 from graphql import GraphQLError
 from django.conf import settings
+from pytz import utc
 
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
 from dataset_api.models.DatasetAccessModel import DatasetAccessModel
@@ -63,7 +64,7 @@ class DataAccessModelRequestType(DjangoObjectType):
     @validate_token_or_none
     def resolve_is_valid(self: DatasetAccessModelRequest, info, username=""):
         validity = get_data_access_model_request_validity(self)
-        return datetime.datetime.now() <= validity
+        return utc.localize(datetime.datetime.now()) <= utc.localize(validity)
 
     @validate_token_or_none
     def resolve_remaining_quota(self: DatasetAccessModelRequest, info, username=""):
