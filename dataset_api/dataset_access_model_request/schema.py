@@ -24,9 +24,33 @@ from ..models import DatasetAccessModelResource, Resource
 r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
 
 
+def get_data_access_model_request_validity(data_access_model_request):
+    if data_access_model_request.status == "APPROVED":
+        validity = data_access_model_request.access_model.data_access_model.validation
+        validity_unit = data_access_model_request.access_model.data_access_model.validation_unit
+        approval_date = data_access_model_request.modified
+        validation_deadline = approval_date
+        if validity_unit == ValidationUnits.DAY:
+            validation_deadline = approval_date + datetime.timedelta(days=validity)
+        elif validity_unit == ValidationUnits.WEEK:
+            validation_deadline = approval_date + datetime.timedelta(weeks=validity)
+        elif validity_unit == ValidationUnits.MONTH:
+            validation_deadline = approval_date + datetime.timedelta(
+                days=(30 * validity)
+            )
+        elif validity_unit == ValidationUnits.YEAR:
+            validation_deadline = approval_date + datetime.timedelta(
+                days=(365 * validity)
+            )
+        return validation_deadline
+    else:
+        return None
+
+
 class DataAccessModelRequestType(DjangoObjectType):
     validity = graphene.String()
     remaining_quota = graphene.Int()
+    is_valid = graphene.Boolean()
 
     class Meta:
         model = DatasetAccessModelRequest
@@ -34,26 +58,12 @@ class DataAccessModelRequestType(DjangoObjectType):
 
     @validate_token_or_none
     def resolve_validity(self: DatasetAccessModelRequest, info, username=""):
-        if self.status == "APPROVED":
-            validity = self.access_model.data_access_model.validation
-            validity_unit = self.access_model.data_access_model.validation_unit
-            approval_date = self.modified
-            validation_deadline = approval_date
-            if validity_unit == ValidationUnits.DAY:
-                validation_deadline = approval_date + datetime.timedelta(days=validity)
-            elif validity_unit == ValidationUnits.WEEK:
-                validation_deadline = approval_date + datetime.timedelta(weeks=validity)
-            elif validity_unit == ValidationUnits.MONTH:
-                validation_deadline = approval_date + datetime.timedelta(
-                    days=(30 * validity)
-                )
-            elif validity_unit == ValidationUnits.YEAR:
-                validation_deadline = approval_date + datetime.timedelta(
-                    days=(365 * validity)
-                )
-            return validation_deadline.strftime("%d-%m-%Y")
-        else:
-            return None
+        return get_data_access_model_request_validity(self).strftime("%d-%m-%Y")
+
+    @validate_token_or_none
+    def resolve_is_valid(self: DatasetAccessModelRequest, info, username=""):
+        validity = get_data_access_model_request_validity(self)
+        return datetime.datetime.now() <= validity
 
     @validate_token_or_none
     def resolve_remaining_quota(self: DatasetAccessModelRequest, info, username=""):
