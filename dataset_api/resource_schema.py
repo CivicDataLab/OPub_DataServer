@@ -361,7 +361,8 @@ def _create_update_api_parameter(api_detail_instance, parameters):
             else:
                 # Add new schema
                 parameter_instance = APIParameter(default=parameter.default, key=parameter.key, format=parameter.format,
-                                                  api_details=api_detail_instance, type=parameter.type)
+                                                  api_details=api_detail_instance, type=parameter.type,
+                                                  description=parameter.description)
                 parameter_instance.save()
         except ResourceSchema.DoesNotExist as e:
             parameter_instance = APIParameter(
