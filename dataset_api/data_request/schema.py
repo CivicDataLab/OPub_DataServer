@@ -237,7 +237,7 @@ def initiate_dam_request(
             output_file.close()
         update_data_request_index(data_request_instance)
         data_request_instance.status = "FETCHED"
-    data_request_instance.save()
+        data_request_instance.save()
     return data_request_instance.id
 
 

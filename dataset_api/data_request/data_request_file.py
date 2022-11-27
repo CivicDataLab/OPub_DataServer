@@ -323,11 +323,13 @@ def get_request_file(
     if target_format and target_format not in ["CSV", "XML", "JSON"]:
         return HttpResponse("invalid format", content_type="text/plain")
     index = str(data_request.id)
+    print ('-------a00', index, size, paginate_from)
     result = es_client.search(
         index=index,
         size=size,
         from_=paginate_from,
     )
+    print ('----------------a2',result)
     items = result["hits"]["hits"]
     docs = pd.DataFrame()
     for num, doc in enumerate(items):
@@ -335,7 +337,7 @@ def get_request_file(
         _id = doc["_id"]
         doc_data = pd.Series(source_data, name=_id)
         docs = docs.append(doc_data)
-
+    print ('----------------a3', docs)
     docs.reset_index(drop=True, inplace=True)
     old_cols = list(docs.columns)
     new_cols = [
@@ -490,6 +492,7 @@ def get_resource_file(request, data_request, token, apidetails):
     #     size = 5
     # paginate_from = request.GET.get("from", 0)
     format = apidetails.response_type 
+    print ('---------a0', format)
     size = 10000
     paginate_from = 0 
     try:
@@ -503,13 +506,14 @@ def get_resource_file(request, data_request, token, apidetails):
         # data_request_id = token_payload.get("data_request")
         data_request_id = data_request.id 
         # data_request = DataRequest.objects.get(pk=data_request_id)
+        data_request.refresh_from_db()
         dam = data_request.dataset_access_model_request.access_model.data_access_model
         if data_request.status != "FETCHED":
             return HttpResponse(
                 "Request in progress. Please try again in some time",
                 content_type="text/plain",
             )
-        if dam.type != "OPEN":
+        if dam.type == "OPEN":
             # Get the quota count.
             print("Checking Limits!!")
             get_quota_count = core.get_usage(
