@@ -479,6 +479,100 @@ def refresh_data_token(request):
     return HttpResponse(
         "Something went wrong request again!!", content_type="text/plain"
     )
+    
+    
+# def get_resource_file(request):
+def get_resource_file(request, data_request, token, apidetails):
+    # token = request.GET.get("token")
+    # format = apidetails.response_type #request.GET.get("format")
+    # size = request.GET.get("size")
+    # if not size:
+    #     size = 5
+    # paginate_from = request.GET.get("from", 0)
+    format = apidetails.response_type 
+    size = 10000
+    paginate_from = 0 
+    try:
+        token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        return HttpResponse("Authentication failed", content_type="text/plain")
+    except IndexError:
+        return HttpResponse("Token prefix missing", content_type="text/plain")
+    username = token_payload.get("username")
+    if token_payload:
+        # data_request_id = token_payload.get("data_request")
+        data_request_id = data_request.id 
+        data_request = DataRequest.objects.get(pk=data_request_id)
+        dam = data_request.dataset_access_model_request.access_model.data_access_model
+        if data_request.status != "FETCHED":
+            return HttpResponse(
+                "Request in progress. Please try again in some time",
+                content_type="text/plain",
+            )
+        if dam.type != "OPEN":
+            # Get the quota count.
+            print("Checking Limits!!")
+            get_quota_count = core.get_usage(
+                request,
+                group="quota",
+                key="dataset_api.ratelimits.user_key",
+                rate="dataset_api.ratelimits.quota_per_user",
+                increment=False,
+            )
+            # If count < limit -- don't increment the counter.
+            if get_quota_count["count"] < get_quota_count["limit"]:
+                # Check for rate.
+                get_rate_count = core.get_usage(
+                    request,
+                    group="rate",
+                    key="dataset_api.ratelimits.user_key",
+                    rate="dataset_api.ratelimits.rate_per_user",
+                    increment=False,
+                )
+                # Increment rate and quota count.
+                if get_rate_count["count"] < get_rate_count["limit"]:
+                    get_file = get_request_file(
+                        token_payload.get("username"),
+                        data_request_id,
+                        format,
+                        "data",
+                        size,
+                        paginate_from,
+                    )
+                    get_rate_count = core.get_usage(
+                        request,
+                        group="rate",
+                        key="dataset_api.ratelimits.user_key",
+                        rate="dataset_api.ratelimits.rate_per_user",
+                        increment=True,
+                    )
+                    get_quota_count = core.get_usage(
+                        request,
+                        group="quota",
+                        key="dataset_api.ratelimits.user_key",
+                        rate="dataset_api.ratelimits.quota_per_user",
+                        increment=True,
+                    )
+                    return get_file
+                else:
+                    return HttpResponseForbidden(content="Rate Limit Exceeded.")
+            else:
+                return HttpResponseForbidden(content="Quota Limit Exceeded.")
+        else:
+            return get_request_file(
+                token_payload.get("username"),
+                data_request_id,
+                format,
+                "data",
+                size,
+                paginate_from,
+            )
+
+    return HttpResponse(json.dumps(token_payload), content_type="application/json")
+
+
+
+
 
 
 def update_data(request):
@@ -510,15 +604,16 @@ def update_data(request):
             dam_request_instance, data_resource.resource, username, parameters
         )
         access_token = create_access_jwt_token(data_request, username)
-        return HttpResponse(
-            json.dumps(
-                {
-                    "access_token": access_token,
-                    "message": "Get resource with provided token",
-                }
-            ),
-            content_type="application/json",
-        )
+        return get_resource_file(request, data_request, access_token, apidetails)
+        # return HttpResponse(
+        #     json.dumps(
+        #         { 
+        #             "access_token": access_token,
+        #             "message": "Get resource with provided token",
+        #         }
+        #     ),
+        #     content_type="application/json",
+        # )
     return HttpResponse(
         "Something went wrong request again!!", content_type="text/plain"
     )
