@@ -45,7 +45,6 @@ class DataRequestType(DjangoObjectType):
     refresh_token = graphene.String()
     data_token = graphene.String()
     data_refresh_token = graphene.String()
-    spec = graphene.JSONString()
     parameters = graphene.JSONString()
     remaining_quota = graphene.Int()
 
@@ -80,43 +79,6 @@ class DataRequestType(DjangoObjectType):
         return create_data_refresh_token(
             dam_resource, self.dataset_access_model_request, username
         )
-
-    @validate_token_or_none
-    def resolve_spec(self: DataRequest, info, username):
-        spec = DATAREQUEST_SWAGGER_SPEC.copy()
-        dam_request = self.dataset_access_model_request
-        dam_resource = DatasetAccessModelResource.objects.get(
-            Q(resource=self.resource),
-            Q(dataset_access_model=self.dataset_access_model_request.access_model),
-        )
-        spec["paths"]["/refreshtoken"]["get"]["parameters"][0][
-            "example"
-        ] = generate_refresh_token(self, username)
-        spec["paths"]["/refresh_data_token"]["get"]["parameters"][0][
-            "example"
-        ] = create_data_refresh_token(dam_resource, dam_request, username)
-        data_token = create_data_jwt_token(dam_resource, dam_request, username)
-        spec["paths"]["/getresource"]["get"]["parameters"][0][
-            "example"
-        ] = create_access_jwt_token(self, username)
-        spec["paths"]["/update_data"]["get"]["parameters"][0]["example"] = data_token
-        parameters = []
-        resource = self.resource
-        if resource and resource.dataset.dataset_type == "API":
-            parameters = resource.apidetails.apiparameter_set.all()
-        for parameter in parameters:
-            param_input = {
-                "name": parameter.key,
-                "in": "query",
-                "required": "true",
-                "description": parameter.description,
-                "schema": {"type": parameter.format},
-                "example": parameter.default,
-            }
-            spec["paths"]["/update_data"]["get"]["parameters"].append(param_input)
-        # spec["info"]["title"] = self.resource.title
-        # spec["info"]["description"] = self.resource.description
-        return spec
 
     def resolve_parameters(self: DataRequest, info):
         parameters = {}
