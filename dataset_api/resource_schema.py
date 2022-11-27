@@ -19,7 +19,8 @@ from .models import (
     Dataset,
     ResourceSchema,
     APIDetails,
-    FileDetails, APIParameter,
+    FileDetails,
+    APIParameter,
 )
 from .decorators import (
     auth_user_action_resource,
@@ -245,9 +246,9 @@ class DeleteResourceInput(graphene.InputObjectType):
 
 def _remove_masked_fields(resource_instance: Resource):
     if (
-            resource_instance.masked_fields
-            and len(resource_instance.filedetails.file.path)
-            and "csv" in resource_instance.filedetails.format.lower()
+        resource_instance.masked_fields
+        and len(resource_instance.filedetails.file.path)
+        and "csv" in resource_instance.filedetails.format.lower()
     ):
         df = pd.read_csv(resource_instance.filedetails.file.path)
         df = df.drop(columns=resource_instance.masked_fields)
@@ -276,7 +277,7 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
             if schema.id:
                 schema_instance = ResourceSchema.objects.get(id=int(schema.id))
                 schema_instance.key = schema.key
-                schema_instance.display_name = get_display_name(schema),
+                schema_instance.display_name = (get_display_name(schema),)
                 schema_instance.format = schema.format
                 schema_instance.description = schema.description
                 schema_instance.resource = resource_instance
@@ -296,15 +297,23 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
             resource_id=resource_instance.id, key=schema.key
         )
         if schema.parent and schema.parent != "":
-            parent_instance = ResourceSchema.objects.get(
-                resource_id=resource_instance.id, key=schema.parent
-            )
-            schema_instance.parent = parent_instance
+            try:
+                parent_instance = ResourceSchema.objects.get(
+                    resource_id=resource_instance.id, key=schema.parent
+                )
+                schema_instance.parent = parent_instance
+            except ResourceSchema.DoesNotExist:
+                pass
         if schema.array_field and schema.array_field != "":
-            array_field_instance = ResourceSchema.objects.get(
-                resource=resource_instance.id, key=schema.array_field
-            )
-            schema_instance.array_field = array_field_instance
+            try:
+                array_field_instance = ResourceSchema.objects.get(
+                    resource=resource_instance.id,
+                    key=schema.array_field,
+                )
+                schema_instance.array_field = array_field_instance
+            except ResourceSchema.DoesNotExist:
+                pass
+
         schema_instance.save()
 
 
@@ -356,8 +365,12 @@ def _create_update_api_parameter(api_detail_instance, parameters):
                                                   api_details=api_detail_instance, type=parameter.type)
                 parameter_instance.save()
         except ResourceSchema.DoesNotExist as e:
-            parameter_instance = APIParameter(default=parameter.default, key=parameter.key, format=parameter.format,
-                                              api_details=api_detail_instance)
+            parameter_instance = APIParameter(
+                default=parameter.default,
+                key=parameter.key,
+                format=parameter.format,
+                api_details=api_detail_instance,
+            )
             parameter_instance.save()
 
         parameter_instance.save()
@@ -430,10 +443,10 @@ class CreateResource(graphene.Mutation, Output):
     @validate_token
     @auth_user_action_resource(action="create_resource")
     def mutate(
-            root,
-            info,
-            username,
-            resource_data: ResourceInput = None,
+        root,
+        info,
+        username,
+        resource_data: ResourceInput = None,
     ):
         """
 
