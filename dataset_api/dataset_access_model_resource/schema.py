@@ -10,12 +10,27 @@ from dataset_api.models import Dataset, Resource, DatasetAccessModelRequest
 from dataset_api.models import DatasetAccessModel
 from dataset_api.models import DatasetAccessModelResource
 from .decorators import auth_action_dam_resource
+from ..enums import DataType
 
 
 class AccessModelResourceType(DjangoObjectType):
+    supported_formats = graphene.List(graphene.String)
+
     class Meta:
         model = DatasetAccessModelResource
         fields = "__all__"
+
+    def resolve_supported_formats(self: DatasetAccessModelResource, info):
+        resource = self.resource
+        if resource.dataset.dataset_type == DataType.FILE.value:
+            if resource.filedetails.format in ["CSV", "XML", "JSON"]:
+                return ["CSV", "XML", "JSON"]
+            else:
+                return resource.filedetails.format
+        elif resource.dataset.dataset_type == DataType.API.value:
+            if len(resource.apidetails.supported_formats):
+                return resource.apidetails.supported_formats
+        return []
 
 
 class DatasetAccessModelType(DjangoObjectType):
