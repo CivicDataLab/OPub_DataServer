@@ -12,7 +12,7 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql import GraphQLError
 from graphql_auth.bases import Output
-
+from django.db.models import Q 
 from .api_resource import api_fetch
 from .constants import FORMAT_MAPPING
 from .decorators import (
@@ -463,60 +463,71 @@ class CreateResource(graphene.Mutation, Output):
                     ]
                 },
             }
-        masked_fields = resource_data.masked_fields
-        resource_instance = Resource(
-            title=resource_data.title,
-            description=resource_data.description,
-            dataset=dataset,
-            status=resource_data.status,
-            masked_fields=masked_fields,
-            byte_size=resource_data.byte_size,
-            release_date=resource_data.release_date,
-            media_type=resource_data.media_type,
-            compression_format=resource_data.compression_format,
-            packaging_format=resource_data.packaging_format,
-            checksum=resource_data.checksum,
-        )
-        resource_instance.save()
-
-        # Create either api or file object.
-        if dataset.dataset_type == DataType.API.value:
-            try:
-                api_source_instance = APISource.objects.get(
-                    id=resource_data.api_details.api_source
-                )
-                _create_update_api_details(
-                    resource_instance=resource_instance,
-                    attribute=resource_data.api_details,
-                )
-            except APISource.DoesNotExist as e:
-                resource_instance.delete()
-                return {
-                    "success": False,
-                    "errors": {
-                        "id": [
-                            {
-                                "message": "API Source with given id not found",
-                                "code": "404",
-                            }
-                        ]
-                    },
-                }
-        elif dataset.dataset_type == DataType.FILE.value:
-            _create_update_file_details(
-                resource_instance=resource_instance,
-                attribute=resource_data.file_details,
+        try:
+            Resource.objects.get(Q(dataset=dataset), Q(title__iexact=resource_data.title))
+            return {
+                "success": False,
+                "errors": {
+                    "id": [
+                        {"message": "Resource with same name already exists", "code": "404"}
+                    ]
+                },
+            }
+        except Resource.DoesNotExist:
+            masked_fields = resource_data.masked_fields
+            resource_instance = Resource(
+                title=resource_data.title,
+                description=resource_data.description,
+                dataset=dataset,
+                status=resource_data.status,
+                masked_fields=masked_fields,
+                byte_size=resource_data.byte_size,
+                release_date=resource_data.release_date,
+                media_type=resource_data.media_type,
+                compression_format=resource_data.compression_format,
+                packaging_format=resource_data.packaging_format,
+                checksum=resource_data.checksum,
             )
+            resource_instance.save()
 
-        _remove_masked_fields(resource_instance)
-        _create_update_schema(resource_data, resource_instance)
-        log_activity(
-            target_obj=resource_instance,
-            ip=get_client_ip(info),
-            target_group=dataset.catalog.organization,
-            username=username,
-            verb="Created",
-        )
+            # Create either api or file object.
+            if dataset.dataset_type == DataType.API.value:
+                try:
+                    api_source_instance = APISource.objects.get(
+                        id=resource_data.api_details.api_source
+                    )
+                    _create_update_api_details(
+                        resource_instance=resource_instance,
+                        attribute=resource_data.api_details,
+                    )
+                except APISource.DoesNotExist as e:
+                    resource_instance.delete()
+                    return {
+                        "success": False,
+                        "errors": {
+                            "id": [
+                                {
+                                    "message": "API Source with given id not found",
+                                    "code": "404",
+                                }
+                            ]
+                        },
+                    }
+            elif dataset.dataset_type == DataType.FILE.value:
+                _create_update_file_details(
+                    resource_instance=resource_instance,
+                    attribute=resource_data.file_details,
+                )
+
+            _remove_masked_fields(resource_instance)
+            _create_update_schema(resource_data, resource_instance)
+            log_activity(
+                target_obj=resource_instance,
+                ip=get_client_ip(info),
+                target_group=dataset.catalog.organization,
+                username=username,
+                verb="Created",
+            )
 
         return CreateResource(success=True, resource=resource_instance)
 
