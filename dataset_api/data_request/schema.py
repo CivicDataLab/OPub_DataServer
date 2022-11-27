@@ -134,7 +134,7 @@ class DataRequestUpdateInput(graphene.InputObjectType):
 
 
 def initiate_dam_request(
-        dam_request, resource, username, parameters=None, default=False
+    dam_request, resource, username, parameters=None, default=False
 ):
     if parameters is None:
         parameters = {}
@@ -340,7 +340,7 @@ class DataRequestUpdateMutation(graphene.Mutation, Output):
 
     @staticmethod
     def mutate(root, info, data_request: DataRequestUpdateInput = None):
-        print('------b1', data_request.id)
+        print("------b1", data_request.id)
         data_request_instance = DataRequest.objects.get(id=data_request.id)
         if data_request_instance:
             data_request_instance.status = data_request.status

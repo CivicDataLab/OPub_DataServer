@@ -176,17 +176,27 @@ class FormatConverter:
 
     @classmethod
     def convert_csv_to_csv(cls, csv_file_path, src_mime_type, return_type="data"):
-        with open(csv_file_path, encoding="utf-8") as csvf:
-            if return_type == "file":
-                response = HttpResponse(csvf, content_type=src_mime_type)
-                response["Content-Disposition"] = 'attachment; filename="{}"'.format(
-                    os.path.basename(csv_file_path)
-                )
-            elif return_type == "data":
-                csv_file = pd.DataFrame(
-                    pd.read_csv(csv_file_path, sep=",", header=0, index_col=False)
-                )
-                response = HttpResponse(csv_file.to_string(), content_type="text/csv")
+        csv_file = pd.DataFrame(
+            pd.read_csv(csv_file_path, sep=",", header=0, index_col=False)
+        )
+        if return_type == "file":
+            csv_file.to_csv("file.csv")
+            response = FileResponse(
+                open("file.csv", "rb"), content_type="application/x-download"
+            )
+            file_name = (
+                ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".csv"
+            )
+            response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                file_name
+            )
+            os.remove("file.csv")
+            return response
+        elif return_type == "data":
+            csv_file = pd.DataFrame(
+                pd.read_csv(csv_file_path, sep=",", header=0, index_col=False)
+            )
+            response = HttpResponse(csv_file.to_string(), content_type="text/csv")
             return response
 
     @classmethod
