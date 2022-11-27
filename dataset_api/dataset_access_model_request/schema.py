@@ -197,7 +197,7 @@ class Query(graphene.ObjectType):
             spec["paths"]["/get_dist_data"]["get"]["parameters"].append(param_input)
         spec["info"]["title"] = resource_instance.title
         spec["info"]["description"] = resource_instance.description
-        return {"data_token": data_token, spec: spec}
+        return {"data_token": data_token, "spec": spec}
 
 
 class DataAccessModelRequestInput(graphene.InputObjectType):

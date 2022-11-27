@@ -188,10 +188,14 @@ def initiate_dam_request(
         dataset_access_model=dam_request.access_model_id, resource=resource.id
     )
     fields = []
-    for field in dam_resource.fields:
-        schema_field = ResourceSchema.objects.get(id=field)
-        fields.append(schema_field.key)
-
+    try:
+        for field in dam_resource.fields:
+            schema_field = ResourceSchema.objects.get(id=field)
+            fields.append(schema_field.key)
+    except:
+        pass
+    
+    print ('------------------aaa',resource.dataset.dataset_type)
     # TODO: fix magic strings
     if resource and resource.dataset.dataset_type == "API":
         for parameter in resource.apidetails.apiparameter_set.all():
@@ -213,6 +217,7 @@ def initiate_dam_request(
         response = requests.request("POST", url, headers=headers, data=payload)
         print(response.text)
     elif resource and resource.dataset.dataset_type == DataType.FILE.value:
+        print ('-----------------bbbbbaaa')
         data_request_instance.file = File(
             resource.filedetails.file,
             os.path.basename(resource.filedetails.file.path),
@@ -235,9 +240,9 @@ def initiate_dam_request(
             output_file = open(data_request_instance.file.path, "w")
             file = json.dump(file, output_file, indent=4)
             output_file.close()
-            data_request_instance.status = "FETCHED"
-            data_request_instance.save()
-            update_data_request_index(data_request_instance)
+        data_request_instance.status = "FETCHED"
+        data_request_instance.save()
+        update_data_request_index(data_request_instance)
     return data_request_instance.id
 
 
