@@ -213,7 +213,7 @@ class FormatConverter:
                 open("file.csv", "rb"), content_type="application/x-download"
             )
             file_name = (
-                    ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".json"
+                    ".".join(os.path.basename(json_file_path).split(".")[:-1]) + ".csv"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -252,8 +252,6 @@ class FormatConverter:
                 all_coll = [each for each in all_coll if not ".".join(each).startswith(".".join(a))]
             df = data
             for col_path in list_cols:
-                print(all_coll)
-                print(col_path)
                 try:
                     df = pd.json_normalize(
                         df, record_path=col_path,
