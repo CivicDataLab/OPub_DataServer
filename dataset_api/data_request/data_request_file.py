@@ -221,7 +221,7 @@ class FormatConverter:
             os.remove("file.csv")
             return response
         elif return_type == "data":
-            response = HttpResponse(final_json.to_csv(), content_type="application/csv")
+            response = HttpResponse(final_json.to_csv(), content_type="text/csv")
             return response
 
     @classmethod
