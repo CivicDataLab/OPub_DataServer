@@ -173,20 +173,19 @@ class Query(graphene.ObjectType):
         dataset_access_model = dam_resource.dataset_access_model
         is_open = dataset_access_model.data_access_model.type == "OPEN"
         spec = DATAREQUEST_SWAGGER_SPEC.copy()
-        try:
+        if dataset_access_model_request_id != "":
             dam_request = DatasetAccessModelRequest.objects.get(pk=dataset_access_model_request_id)
-        except DatasetAccessModelRequest.DoesNotExist:
-            if is_open:
-                dam_request = create_dataset_access_model_request(
-                    dataset_access_model,
-                    "",
-                    "OTHERS",
-                    username,
-                    user_email=username,
-                    status="APPROVED",
-                )
-            else:
-                raise GraphQLError("Invalid access id")
+        elif is_open:
+            dam_request = create_dataset_access_model_request(
+                dataset_access_model,
+                "",
+                "OTHERS",
+                username,
+                user_email=username,
+                status="APPROVED",
+            )
+        else:
+            raise GraphQLError("Invalid access id")
         data_token = create_data_refresh_token(dam_resource, dam_request, username)
         spec["paths"]["/refreshtoken"]["get"]["parameters"][0]["example"] = generate_refresh_token(dam_request,
                                                                                                    dam_resource,
