@@ -208,7 +208,7 @@ class ApiInputType(graphene.InputObjectType):
     response_type = ResponseType()
     request_type = RequestType()
     parameters: Iterable = graphene.List(of_type=APIParameterInputType, required=False)
-    formats: Iterable = graphene.List(of_type=graphene.String, required=False)
+    supported_formats: Iterable = graphene.List(of_type=graphene.String, required=False)
     format_loc = graphene.Enum.from_enum(FormatLocation)(required=True)
     format_key = graphene.String(required=False)
     default_format = graphene.String(required=False)
@@ -391,7 +391,7 @@ def _create_update_api_details(resource_instance, attribute):
     api_detail_object.format_loc = attribute.format_loc
     api_detail_object.format_key = attribute.format_key
     api_detail_object.default_format = attribute.default_format
-    api_detail_object.supported_formats = attribute.formats
+    api_detail_object.supported_formats = attribute.supported_formats
     api_detail_object.save()
     _create_update_api_parameter(api_detail_object, attribute.parameters)
 
