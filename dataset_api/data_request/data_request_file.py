@@ -244,7 +244,7 @@ class FormatConverter:
             temp = data
             if isinstance(data, list):
                 temp = data[0]
-            final_result = list(get_paths(data[0]))
+            final_result = list(get_paths(temp))
             list_cols = final_result[-1][1]
             all_coll = [a[0] for a in final_result]
             all_coll = [a for i, a in enumerate(all_coll) if a not in all_coll[:i]]
