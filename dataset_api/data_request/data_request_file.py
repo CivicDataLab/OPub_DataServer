@@ -502,7 +502,7 @@ def get_resource_file(request, data_request, token, apidetails):
     if token_payload:
         # data_request_id = token_payload.get("data_request")
         data_request_id = data_request.id 
-        data_request = DataRequest.objects.get(pk=data_request_id)
+        # data_request = DataRequest.objects.get(pk=data_request_id)
         dam = data_request.dataset_access_model_request.access_model.data_access_model
         if data_request.status != "FETCHED":
             return HttpResponse(
@@ -600,10 +600,12 @@ def update_data(request):
             else:
                 parameters[param.key] = param.default
 
-        data_request = initiate_dam_request(
+        data_request_id_1 = initiate_dam_request(
             dam_request_instance, data_resource.resource, username, parameters
         )
+        data_request = DataRequest.objects.get(pk=data_request_id_1)
         access_token = create_access_jwt_token(data_request, username)
+        print ('------a1', data_request.id)
         return get_resource_file(request, data_request, access_token, apidetails)
         # return HttpResponse(
         #     json.dumps(
