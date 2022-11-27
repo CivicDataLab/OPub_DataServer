@@ -704,7 +704,7 @@ def get_resource_file(request, data_request, token, apidetails, username):
                         username,
                         data_request_id,
                         format,
-                        "data",
+                        "file",
                         size,
                         paginate_from,
                     )
@@ -732,7 +732,7 @@ def get_resource_file(request, data_request, token, apidetails, username):
                 username,
                 data_request_id,
                 format,
-                "data",
+                "file",
                 size,
                 paginate_from,
             )
