@@ -425,7 +425,7 @@ def get_resource(request):
             else:
                 return HttpResponseForbidden(content="Quota Limit Exceeded.")
         else:
-            get_request_file(
+            return get_request_file(
                 token_payload.get("username"),
                 data_request_id,
                 format,
