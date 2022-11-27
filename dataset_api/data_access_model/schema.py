@@ -145,7 +145,10 @@ class CreateDataAccessModel(Output, graphene.Mutation):
     def mutate(root, info, username, data_access_model_data: DataAccessModelInput):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_instance = Organization.objects.get(id=org_id)
-        dam_license = License.objects.get(id=data_access_model_data.license)
+        try:
+            dam_license = License.objects.get(id=data_access_model_data.license)
+        except License.DoesNotExist:
+            return {"success": False,"errors": {"id": [{"message": "License not found", "code": "404"}]},}
         data_access_model_instance = DataAccessModel(
             title=data_access_model_data.title,
             type=data_access_model_data.type,

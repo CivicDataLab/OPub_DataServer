@@ -5,7 +5,7 @@ from graphene_django import DjangoObjectType
 from graphql import GraphQLError
 from graphql_auth.bases import Output
 
-from dataset_api.models import DataAccessModel, DataRequest
+from dataset_api.models import DataAccessModel, DataRequest, ResourceSchema
 from dataset_api.models import Dataset, Resource, DatasetAccessModelRequest
 from dataset_api.models import DatasetAccessModel
 from dataset_api.models import DatasetAccessModelResource
@@ -122,18 +122,27 @@ class CreateAccessModelResource(Output, graphene.Mutation):
             for resources in access_model_resource_data.resource_map:
                 try:
                     resource = Resource.objects.get(id=resources.resource_id)
+                    resource_schema = ResourceSchema.objects.filter(id__in=resources.fields).all()
                     access_model_resource_instance = DatasetAccessModelResource(
                         resource_id=resources.resource_id,
-                        fields=resources.fields,
                         dataset_access_model=dataset_access_model,
                     )
                     access_model_resource_instance.save()
+                    access_model_resource_instance.fields.set(resource_schema)
                 except Resource.DoesNotExist as e:
                     dataset_access_model.delete()
                     return {
                         "success": False,
                         "errors": {
                             "id": [{"message": "Resource id not found", "code": "404"}]
+                        },
+                    }
+                except ResourceSchema.DoesNotExist as e:
+                    dataset_access_model.delete()
+                    return {
+                        "success": False,
+                        "errors": {
+                            "id": [{"message": "Field with this id not found", "code": "404"}]
                         },
                     }
             return CreateAccessModelResource(access_model_resource=dataset_access_model)
