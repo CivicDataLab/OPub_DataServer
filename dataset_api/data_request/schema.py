@@ -189,9 +189,8 @@ def initiate_dam_request(
     )
     fields = []
     try:
-        for field in dam_resource.fields:
-            schema_field = ResourceSchema.objects.get(id=field)
-            fields.append(schema_field.key)
+        for field in dam_resource.fields.all():
+            fields.append(field.key)
     except:
         pass
     
