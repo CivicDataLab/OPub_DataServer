@@ -730,14 +730,34 @@ def get_resource_file(request, data_request, token, apidetails, username):
             else:
                 return HttpResponseForbidden(content="Quota Limit Exceeded.")
         else:
-            return get_request_file(
-                username,
-                data_request_id,
-                format,
-                "file",
-                size,
-                paginate_from,
-            )
+            # Rate check for OPEN DAM.
+            get_rate_count = core.get_usage(
+                    request,
+                    group="rate||" + str(data_request_id),
+                    key="dataset_api.ratelimits.user_key",
+                    rate="dataset_api.ratelimits.rate_per_user",
+                    increment=False,
+                )
+            # Increment rate.
+            if get_rate_count["count"] < get_rate_count["limit"]:
+                get_file = get_request_file(
+                        username,
+                        data_request_id,
+                        format,
+                        "file",
+                        size,
+                        paginate_from,
+                    )
+                get_rate_count = core.get_usage(
+                    request,
+                    group="rate||" + str(data_request_id),
+                    key="dataset_api.ratelimits.user_key",
+                    rate="dataset_api.ratelimits.rate_per_user",
+                    increment=True,
+                )
+                return get_file
+            else:
+                return HttpResponseForbidden(content="Rate Limit Exceeded.")
 
     return HttpResponse(json.dumps(token), content_type="application/json")
 
