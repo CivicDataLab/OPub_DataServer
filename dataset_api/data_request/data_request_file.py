@@ -185,7 +185,7 @@ class FormatConverter:
                 open("file.csv", "rb"), content_type="application/x-download"
             )
             file_name = (
-                ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".csv"
+                    ".".join(os.path.basename(csv_file_path).split(".")[:-1]) + ".csv"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 file_name
@@ -644,7 +644,8 @@ def get_request_file(
     file_path = data_request.file.path
     if len(file_path):
         mime_type = mimetypes.guess_type(file_path)[0]
-        if target_format and target_format in ["CSV", "XML", "JSON"]:
+        if data_request.resource.dataset.dataset_type == "FILE" and target_format and target_format in ["CSV", "XML",
+                                                                                                        "JSON"]:
             src_format = FORMAT_MAPPING[mime_type]
             response = getattr(
                 FormatConverter,
