@@ -134,7 +134,7 @@ class DataRequestUpdateInput(graphene.InputObjectType):
 
 
 def initiate_dam_request(
-    dam_request, resource, username, parameters=None, default=False
+        dam_request, resource, username, parameters=None, default=False, target_format=None
 ):
     if parameters is None:
         parameters = {}
@@ -155,8 +155,8 @@ def initiate_dam_request(
             fields.append(field.key)
     except:
         pass
-    
-    print ('------------------aaa',resource.dataset.dataset_type)
+
+    print('------------------aaa', resource.dataset.dataset_type)
     # TODO: fix magic strings
     if resource and resource.dataset.dataset_type == "API":
         for parameter in resource.apidetails.apiparameter_set.all():
@@ -166,19 +166,22 @@ def initiate_dam_request(
             )
             dr_parameter_instance.save()
         url = f"{settings.PIPELINE_URL}api_source_query"
+        if not target_format:
+            target_format = resource.apidetails.default_format
         payload = json.dumps(
             {
                 "api_source_id": resource.id,
                 "request_id": str(data_request_instance.id),
                 "request_columns": [x for x in fields],
                 "request_rows": "",
+                target_format: target_format
             }
         )
         headers = {}
         response = requests.request("POST", url, headers=headers, data=payload)
         print(response.text)
     elif resource and resource.dataset.dataset_type == DataType.FILE.value:
-        print ('-----------------bbbbbaaa')
+        print('-----------------bbbbbaaa')
         data_request_instance.file = File(
             resource.filedetails.file,
             os.path.basename(resource.filedetails.file.path),
