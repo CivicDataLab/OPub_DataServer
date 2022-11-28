@@ -70,20 +70,20 @@ def parse_schema(schema_dict, parent, schema):
 def preview(request, resource_id):
 
     resp = fetchapi(resource_id)
-    print("---*************************************************************", resp)
+    print('----------dat fetched', resp)
     if resp["Success"] == False:
         return JsonResponse(resp, safe=False)
 
     print(resp["response_type"])
 
-    if resp["response_type"] == "json":
+    if resp["response_type"].lower() == "json":
         context = {
             "Success": True,
             "data": resp["data"],
             "response_type": resp["response_type"],
         }
         return JsonResponse(context, safe=False)
-    if resp["response_type"] == "csv":
+    if resp["response_type"].lower() == "csv":
         context = {
             "Success": True,
             "data": resp["data"].to_dict("records"),
@@ -101,10 +101,11 @@ def preview(request, resource_id):
 def schema(request, resource_id):
 
     resp = fetchapi(resource_id)
+    print('----------dat fetched', resp)
     if resp["Success"] == False:
         return JsonResponse(resp, safe=False)
 
-    if resp["response_type"] == "json":
+    if resp["response_type"].lower() == "json":
         builder = genson.SchemaBuilder()
         jsondata = json.loads(resp["data"])
         builder.add_object(jsondata)
@@ -121,7 +122,7 @@ def schema(request, resource_id):
             "response_type": resp["response_type"],
         }
         return JsonResponse(context, safe=False)
-    if resp["response_type"] == "csv":
+    if resp["response_type"].lower() == "csv":
         df = resp["data"]
         schema_list = pd.io.json.build_table_schema(df, version=False)
         schema_list = schema_list.get("fields", [])
