@@ -231,7 +231,7 @@ class Query(graphene.ObjectType):
                     "example": resource_instance.apidetails.default_format,
                 }
                 spec["paths"]["/get_dist_data"]["get"]["parameters"].append(param_input)
-        elif resource_instance and resource_instance.dataset.dataset_type == "API":
+        elif resource_instance and resource_instance.dataset.dataset_type == "FILE":
             if resource_instance.filedetails.format in ["CSV", "XML", "JSON"]:
                 param_input = {
                     "name": "format",
