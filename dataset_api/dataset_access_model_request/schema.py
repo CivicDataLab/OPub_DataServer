@@ -211,16 +211,37 @@ class Query(graphene.ObjectType):
         parameters = []
         if resource_instance and resource_instance.dataset.dataset_type == "API":
             parameters = resource_instance.apidetails.apiparameter_set.all()
-        for parameter in parameters:
-            param_input = {
-                "name": parameter.key,
-                "in": "query",
-                "required": "true",
-                "description": parameter.description,
-                "schema": {"type": parameter.format},
-                "example": parameter.default,
-            }
-            spec["paths"]["/get_dist_data"]["get"]["parameters"].append(param_input)
+            for parameter in parameters:
+                param_input = {
+                    "name": parameter.key,
+                    "in": "query",
+                    "required": "true",
+                    "description": parameter.description,
+                    "schema": {"type": parameter.format},
+                    "example": parameter.default,
+                }
+                spec["paths"]["/get_dist_data"]["get"]["parameters"].append(param_input)
+            if resource_instance.apidetails.format_key and resource_instance.apidetails.format_key != "":
+                param_input = {
+                    "name": "format",
+                    "in": "query",
+                    "required": "true",
+                    "description": "Return format of data",
+                    "schema": {"type": "string", "enum": resource_instance.apidetails.supported_formats},
+                    "example": resource_instance.apidetails.default_format,
+                }
+                spec["paths"]["/get_dist_data"]["get"]["parameters"].append(param_input)
+        elif resource_instance and resource_instance.dataset.dataset_type == "API":
+            if resource_instance.filedetails.format in ["CSV", "XML", "JSON"]:
+                param_input = {
+                    "name": "format",
+                    "in": "query",
+                    "required": "true",
+                    "description": "Return format of data",
+                    "schema": {"type": "string", "enum": ["CSV", "XML", "JSON"]},
+                    "example": resource_instance.filedetails.format,
+                }
+                spec["paths"]["/get_dist_data"]["get"]["parameters"].append(param_input)
         spec["info"]["title"] = resource_instance.title
         spec["info"]["description"] = resource_instance.description
         return {"data_token": data_token, "spec": spec}
