@@ -70,17 +70,18 @@ def parse_schema(schema_dict, parent, schema):
 def preview(request, resource_id):
 
     resp = fetchapi(resource_id)
+    print ('---', resp)
     if resp["Success"] == False:
         return JsonResponse(resp, safe=False)
 
-    if resp["response_type"] == "JSON":
+    if resp["response_type"] == "json":
         context = {
             "Success": True,
             "data": resp["data"],
             "response_type": resp["response_type"],
         }
         return JsonResponse(context, safe=False)
-    if resp["response_type"] == "CSV":
+    if resp["response_type"] == "csv":
         context = {
             "Success": True,
             "data": resp["data"].head().to_dict("records"),
@@ -95,7 +96,7 @@ def schema(request, resource_id):
     if resp["Success"] == False:
         return JsonResponse(resp, safe=False)
 
-    if resp["response_type"] == "JSON":
+    if resp["response_type"] == "json":
         builder = genson.SchemaBuilder()
         jsondata = json.loads(resp["data"])
         builder.add_object(jsondata)
@@ -112,7 +113,7 @@ def schema(request, resource_id):
             "response_type": resp["response_type"],
         }
         return JsonResponse(context, safe=False)
-    if resp["response_type"] == "CSV":
+    if resp["response_type"] == "csv":
         df = resp["data"]
         schema_list = pd.io.json.build_table_schema(df, version=False)
         schema_list = schema_list.get("fields", [])
@@ -133,6 +134,7 @@ def schema(request, resource_id):
             "schema": schema,
             "response_type": resp["response_type"],
         }
+        print ('----a', context)
         return JsonResponse(context, safe=False)
 
 
@@ -188,7 +190,14 @@ def fetchapi(resource_id):
             if format_loc == "PARAM":
                 param.update({format_key: target_format})
 
-        param.update(json.loads(api_params))
+        print ('-----apiparams',api_params)
+        for each in api_params:
+            print ('---each',each)
+            param.update({each.key: each.default})
+        
+        base_url = base_url.strip()
+        url_path = url_path.strip()
+        print ('----fetch', header, param, base_url, url_path)
         if request_type == "GET":
             try:
                 api_request = requests.get(
@@ -211,18 +220,27 @@ def fetchapi(resource_id):
         response_type = (
             target_format if target_format and target_format != "" else response_type
         )
-        if response_type == "JSON":
+        if response_type == "json":
             context = {
                 "Success": True,
                 "data": api_response,
                 "response_type": response_type,
             }
             return context
-        if response_type == "CSV":
+        if response_type == "csv":
             csv_data = StringIO(api_response)
             data = pd.read_csv(csv_data, sep=",")
             context = {"Success": True, "data": data, "response_type": response_type}
             return context
+        print (response_type, '----', api_response)
+        context = {
+                "Success": True,
+                "data": api_response,
+                "response_type": response_type,
+            }
+        return context
+
     except Exception as e:
+        raise e
         context = {"Success": False, "error": str(e)}
         return context
