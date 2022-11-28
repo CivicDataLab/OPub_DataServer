@@ -19,14 +19,14 @@ def parse_schema(schema_dict, parent, schema):
     for key in schema_dict:
         if key == "required":
             continue
-        print (key)
+        print(key)
         if key == "items":
             print(count)
             count = count + 1
             print(count)
             schema.append(
                 {
-                    "key": parent + str(count) if parent == "items"  else parent,
+                    "key": parent + str(count) if parent == "items" else parent,
                     "format": "array",
                     "description": "",
                     "parent": "",
@@ -41,7 +41,7 @@ def parse_schema(schema_dict, parent, schema):
         if key == "properties":
             schema.append(
                 {
-                    "key": parent + str(count) if parent == "items"  else parent,
+                    "key": parent + str(count) if parent == "items" else parent,
                     "format": "json",
                     "description": "",
                     "parent": "",
@@ -59,7 +59,7 @@ def parse_schema(schema_dict, parent, schema):
                     "key": key,
                     "format": "string",
                     "description": "",
-                    "parent": parent + str(count) if parent == "items"  else parent,
+                    "parent": parent + str(count) if parent == "items" else parent,
                     "array_field": "",
                 }
             )
@@ -104,7 +104,7 @@ def schema(request, resource_id):
         schema = []
         global count
         count = 0
-        print ('------asadasf', schema_dict)
+        print("------asadasf", schema_dict)
         parse_schema(schema_dict, "", schema)
         context = {
             "Success": True,
@@ -117,16 +117,16 @@ def schema(request, resource_id):
         schema_list = pd.io.json.build_table_schema(df, version=False)
         schema_list = schema_list.get("fields", [])
         schema = []
-        print (schema_list)
+        print(schema_list)
         for each in schema_list:
             schema.append(
-                    {
-                        "key": each["name"],
-                        "format": each["type"],
-                        "description": "",
-                        "parent": "",
-                        "array_field": "",
-                    }
+                {
+                    "key": each["name"],
+                    "format": each["type"],
+                    "description": "",
+                    "parent": "",
+                    "array_field": "",
+                }
             )
         context = {
             "Success": True,
@@ -148,7 +148,8 @@ def fetchapi(resource_id):
         auth_type = res_model.apidetails.api_source.auth_type
         response_type = res_model.apidetails.response_type
         request_type = res_model.apidetails.request_type
-        
+        api_params = res_model.apidetails.apiparameter_set.all()
+
         param = {}
         header = {}
         if auth_loc == "HEADER":
@@ -167,7 +168,7 @@ def fetchapi(resource_id):
         if auth_loc == "PARAM":
             if auth_type == "TOKEN":
                 auth_token = res_model.apidetails.api_source.auth_token
-                auth_token_key = res_model.apidetails.api_source.auth_token_key             
+                auth_token_key = res_model.apidetails.api_source.auth_token_key
                 param = {auth_token_key: auth_token}
             elif auth_type == "CREDENTIAL":
                 auth_credentials = res_model.apidetails.api_source.auth_credentials
@@ -176,7 +177,8 @@ def fetchapi(resource_id):
                 pwd_key = auth_credentials[1]["key"]
                 pwd = auth_credentials[1]["value"]
                 param = {uname_key: uname, pwd_key: pwd}
-                
+
+        param.update(json.loads(api_params))
         if request_type == "GET":
             try:
                 api_request = requests.get(
@@ -193,7 +195,7 @@ def fetchapi(resource_id):
         elif request_type == "PUT":
             api_request = requests.put(
                 base_url + url_path, headers=header, params=param, verify=False
-            )                
+            )
 
         api_response = api_request.text
         if response_type == "JSON":
