@@ -2,6 +2,7 @@ import json
 import mimetypes
 import os
 from typing import Iterable
+import copy
 
 import genson
 import graphene
@@ -412,14 +413,15 @@ def _create_update_file_details(resource_instance, attribute):
             mime_type = mime_type["value"]
         file_format = FORMAT_MAPPING[mime_type.lower()]
         try:
+            file_obj = copy.deepcopy(attribute.file)
             if file_format.lower() == "csv":
-                data = pd.read_csv(attribute.file)
+                data = pd.read_csv(file_obj)
             if file_format.lower() == "xlsx":
-                data = pd.read_excel(attribute.file, 1)
+                data = pd.read_excel(file_obj, 1)
             if file_format.lower() == "json":
-                data = pd.read_json(attribute.file)
+                data = pd.read_json(file_obj)
             if file_format.lower() == "xml":
-                data = pd.read_xml(attribute.file)
+                data = pd.read_xml(file_obj)
         except Exception as e:
             raise GraphQLError(str(e))
 
