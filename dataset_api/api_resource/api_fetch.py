@@ -150,6 +150,10 @@ def fetchapi(resource_id):
         request_type = res_model.apidetails.request_type
         api_params = res_model.apidetails.apiparameter_set.all()
 
+        format_loc = res_model.apidetails.format_loc
+        format_key = res_model.apidetails.format_key
+        target_format = res_model.apidetails.default_format
+
         param = {}
         header = {}
         if auth_loc == "HEADER":
@@ -178,6 +182,12 @@ def fetchapi(resource_id):
                 pwd = auth_credentials[1]["value"]
                 param = {uname_key: uname, pwd_key: pwd}
 
+        if format_key and format_key != "":
+            if format_loc == "HEADER":
+                header.update({format_key: target_format})
+            if format_loc == "PARAM":
+                param.update({format_key: target_format})
+
         param.update(json.loads(api_params))
         if request_type == "GET":
             try:
@@ -198,6 +208,9 @@ def fetchapi(resource_id):
             )
 
         api_response = api_request.text
+        response_type = (
+            target_format if target_format and target_format != "" else response_type
+        )
         if response_type == "JSON":
             context = {
                 "Success": True,
