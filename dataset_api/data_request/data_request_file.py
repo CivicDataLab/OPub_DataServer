@@ -657,6 +657,7 @@ def get_request_file(
                 os.path.basename(file_path)
             )
         update_download_count(username, data_request)
+        data_request.file.delete()
         return response
     return HttpResponse("Something went wrong request again!!", content_type="text/plain")
 
