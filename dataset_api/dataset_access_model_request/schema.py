@@ -8,7 +8,6 @@ from graphql_auth.bases import Output
 from django.db.models import Q
 from graphql import GraphQLError
 from django.conf import settings
-from pytz import utc
 
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
 from dataset_api.models.DatasetAccessModel import DatasetAccessModel
@@ -22,6 +21,7 @@ from dataset_api.enums import SubscriptionUnits, ValidationUnits
 from ..constants import DATAREQUEST_SWAGGER_SPEC
 from ..data_request.token_handler import create_data_refresh_token, create_data_jwt_token
 from ..models import DatasetAccessModelResource, Resource
+from ..utils import get_client_ip
 
 r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
 
@@ -189,6 +189,8 @@ class Query(graphene.ObjectType):
         dataset_access_model = dam_resource.dataset_access_model
         is_open = dataset_access_model.data_access_model.type == "OPEN"
         spec = DATAREQUEST_SWAGGER_SPEC.copy()
+        if not username:
+            username = get_client_ip(info)
         if dataset_access_model_request_id != "":
             dam_request = DatasetAccessModelRequest.objects.get(pk=dataset_access_model_request_id)
         elif is_open:
