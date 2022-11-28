@@ -2,6 +2,7 @@ import datetime
 import redis
 
 import graphene
+from django.utils import timezone
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from django.db.models import Q
@@ -26,9 +27,33 @@ from ..utils import get_client_ip, log_activity
 r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
 
 
+def get_data_access_model_request_validity(data_access_model_request):
+    if data_access_model_request.status == "APPROVED":
+        validity = data_access_model_request.access_model.data_access_model.validation
+        validity_unit = data_access_model_request.access_model.data_access_model.validation_unit
+        approval_date = data_access_model_request.modified
+        validation_deadline = approval_date
+        if validity_unit == ValidationUnits.DAY:
+            validation_deadline = approval_date + datetime.timedelta(days=validity)
+        elif validity_unit == ValidationUnits.WEEK:
+            validation_deadline = approval_date + datetime.timedelta(weeks=validity)
+        elif validity_unit == ValidationUnits.MONTH:
+            validation_deadline = approval_date + datetime.timedelta(
+                days=(30 * validity)
+            )
+        elif validity_unit == ValidationUnits.YEAR:
+            validation_deadline = approval_date + datetime.timedelta(
+                days=(365 * validity)
+            )
+        return validation_deadline
+    else:
+        return None
+
+
 class DataAccessModelRequestType(DjangoObjectType):
     validity = graphene.String()
     remaining_quota = graphene.Int()
+    is_valid = graphene.Boolean()
 
     class Meta:
         model = DatasetAccessModelRequest
@@ -36,26 +61,17 @@ class DataAccessModelRequestType(DjangoObjectType):
 
     @validate_token_or_none
     def resolve_validity(self: DatasetAccessModelRequest, info, username=""):
-        if self.status == "APPROVED":
-            validity = self.access_model.data_access_model.validation
-            validity_unit = self.access_model.data_access_model.validation_unit
-            approval_date = self.modified
-            validation_deadline = approval_date
-            if validity_unit == ValidationUnits.DAY:
-                validation_deadline = approval_date + datetime.timedelta(days=validity)
-            elif validity_unit == ValidationUnits.WEEK:
-                validation_deadline = approval_date + datetime.timedelta(weeks=validity)
-            elif validity_unit == ValidationUnits.MONTH:
-                validation_deadline = approval_date + datetime.timedelta(
-                    days=(30 * validity)
-                )
-            elif validity_unit == ValidationUnits.YEAR:
-                validation_deadline = approval_date + datetime.timedelta(
-                    days=(365 * validity)
-                )
-            return validation_deadline.strftime("%d-%m-%Y")
-        else:
-            return None
+        validity = get_data_access_model_request_validity(self)
+        if validity:
+            return validity.strftime("%d-%m-%Y")
+        return None
+
+    @validate_token_or_none
+    def resolve_is_valid(self: DatasetAccessModelRequest, info, username=""):
+        validity = get_data_access_model_request_validity(self)
+        if validity:
+            return timezone.now() <= validity
+        return None
 
     @validate_token_or_none
     def resolve_remaining_quota(self: DatasetAccessModelRequest, info, username=""):
@@ -174,6 +190,8 @@ class Query(graphene.ObjectType):
         dataset_access_model = dam_resource.dataset_access_model
         is_open = dataset_access_model.data_access_model.type == "OPEN"
         spec = DATAREQUEST_SWAGGER_SPEC.copy()
+        if not username:
+            username = get_client_ip(info)
         if dataset_access_model_request_id != "":
             dam_request = DatasetAccessModelRequest.objects.get(pk=dataset_access_model_request_id)
         elif is_open:
@@ -194,16 +212,37 @@ class Query(graphene.ObjectType):
         parameters = []
         if resource_instance and resource_instance.dataset.dataset_type == "API":
             parameters = resource_instance.apidetails.apiparameter_set.all()
-        for parameter in parameters:
-            param_input = {
-                "name": parameter.key,
-                "in": "query",
-                "required": "true",
-                "description": parameter.description,
-                "schema": {"type": parameter.format},
-                "example": parameter.default,
-            }
-            spec["paths"]["/get_dist_data"]["get"]["parameters"].append(param_input)
+            for parameter in parameters:
+                param_input = {
+                    "name": parameter.key,
+                    "in": "query",
+                    "required": "true",
+                    "description": parameter.description,
+                    "schema": {"type": parameter.format},
+                    "example": parameter.default,
+                }
+                spec["paths"]["/get_dist_data"]["get"]["parameters"].append(param_input)
+            if resource_instance.apidetails.format_key and resource_instance.apidetails.format_key != "":
+                param_input = {
+                    "name": "format",
+                    "in": "query",
+                    "required": "true",
+                    "description": "Return format of data",
+                    "schema": {"type": "string", "enum": resource_instance.apidetails.supported_formats},
+                    "example": resource_instance.apidetails.default_format,
+                }
+                spec["paths"]["/get_dist_data"]["get"]["parameters"].append(param_input)
+        elif resource_instance and resource_instance.dataset.dataset_type == "FILE":
+            if resource_instance.filedetails.format in ["CSV", "XML", "JSON"]:
+                param_input = {
+                    "name": "format",
+                    "in": "query",
+                    "required": "true",
+                    "description": "Return format of data",
+                    "schema": {"type": "string", "enum": ["CSV", "XML", "JSON"]},
+                    "example": resource_instance.filedetails.format,
+                }
+                spec["paths"]["/get_dist_data"]["get"]["parameters"].append(param_input)
         spec["info"]["title"] = resource_instance.title
         spec["info"]["description"] = resource_instance.description
         return {"data_token": data_token, "spec": spec}

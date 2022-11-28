@@ -175,52 +175,32 @@ class CreateOrganization(Output, graphene.Mutation):
                 Q(organization_ptr_id__title__iexact=organization_data.title),
                 Q(status="APPROVED"),
             )
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {
-                            "message": "Organization with given name already exists.",
-                            "code": "404",
-                        }
-                    ]
-                },
-            }
+            raise GraphQLError("Organization with given name already exists.")
         except Organization.DoesNotExist:
-            try:
-                OrganizationCreateRequest.objects.get(
-                    Q(organization_ptr_id__title__iexact=organization_data.title),
-                    Q(username=username),
-                )
-                return {
-                    "success": False,
-                    "errors": {
-                        "id": [
-                            {
-                                "message": "You have already requested for this Organization.",
-                                "code": "404",
-                            }
-                        ]
-                    },
-                }
-            except Organization.DoesNotExist:
-                organization_additional_info_instance = OrganizationCreateRequest(
-                    title=organization_data.title,
-                    description=organization_data.description,
-                    logo=organization_data.logo,
-                    contact_email=organization_data.contact,
-                    homepage=organization_data.homepage,
-                    organization_types=organization_data.organization_types,
-                    upload_sample_data_file=organization_data.upload_sample_data_file,
-                    data_description=organization_data.data_description,
-                    sample_data_url=organization_data.sample_data_url,
-                    status=OrganizationCreationStatusType.REQUESTED.value,
-                    username=username,
-                )
-                organization_additional_info_instance.save()
-                return CreateOrganization(
-                    organization=organization_additional_info_instance
-                )
+            # try:
+            #     OrganizationCreateRequest.objects.get(
+            #         Q(organization_ptr_id__title__iexact=organization_data.title),
+            #         Q(username=username),
+            #     )
+            #     raise GraphQLError("You have already requested for this Organization.")
+            # except Organization.DoesNotExist:
+            organization_additional_info_instance = OrganizationCreateRequest(
+                title=organization_data.title,
+                description=organization_data.description,
+                logo=organization_data.logo,
+                contact_email=organization_data.contact,
+                homepage=organization_data.homepage,
+                organization_types=organization_data.organization_types,
+                upload_sample_data_file=organization_data.upload_sample_data_file,
+                data_description=organization_data.data_description,
+                sample_data_url=organization_data.sample_data_url,
+                status=OrganizationCreationStatusType.REQUESTED.value,
+                username=username,
+            )
+            organization_additional_info_instance.save()
+            return CreateOrganization(
+                organization=organization_additional_info_instance
+            )
 
 
 class UpdateOrganization(Output, graphene.Mutation):
@@ -283,10 +263,10 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     @auth_user_by_org(action="approve_organization")
     @modify_org_status
     def mutate(
-        root,
-        info,
-        username,
-        organization_data: ApproveRejectOrganizationApprovalInput = None,
+            root,
+            info,
+            username,
+            organization_data: ApproveRejectOrganizationApprovalInput = None,
     ):
         try:
             organization_create_request_instance = (
@@ -295,34 +275,14 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
                 )
             )
         except OrganizationCreateRequest.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {
-                            "message": "Organization with given id not found",
-                            "code": "404",
-                        }
-                    ]
-                },
-            }
+            raise GraphQLError("Organization with given id not found")
         try:
             organization = Organization.objects.get(pk=organization_data.id)
             OrganizationCreateRequest.objects.get(
                 Q(organization_ptr_id__title=organization.title),
                 Q(status="APPROVED"),
             )
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {
-                            "message": "Organization with given name already exists.",
-                            "code": "404",
-                        }
-                    ]
-                },
-            }
+            raise GraphQLError("Organization with given name already exists.")
         except Organization.DoesNotExist:
             if organization_data.status == "REJECTED":
                 organization_create_request_instance.status = (

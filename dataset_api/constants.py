@@ -79,63 +79,65 @@ DATAREQUEST_SWAGGER_SPEC = {
                     }
                 }
             }
-        },
-        "/getresource": {
-            "get": {
-                "description": "Returns file with requested resource",
-                "tags": [
-                    "Distribution"
-                ],
-                "operationId": "getResource",
-                "parameters": [
-                    {
-                        "name": "token",
-                        "in": "query",
-                        "required": "true",
-                        "description": "Access Token",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "format",
-                        "in": "query",
-                        "required": "true",
-                        "description": "Format of return",
-                        "schema": {
-                            "type": "string",
-                            "enum": ["CSV", "XML", "JSON"]
-                        }
-                    },
-                    {
-                        "name": "size",
-                        "in": "query",
-                        "required": "true",
-                        "description": "number of records to return",
-                        "schema": {
-                            "type": "integer",
-                            "miniumum": 1
-                        },
-                        "example": 5
-                    },
-                    {
-                        "name": "from",
-                        "in": "query",
-                        "required": "true",
-                        "description": "start of records to return",
-                        "schema": {
-                            "type": "integer",
-                            "miniumum": 0
-                        },
-                        "example": 0
-                    },
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
+        }
+    }
+}
+
+GET_RESOURCE = {"/getresource": {
+    "get": {
+        "description": "Returns file with requested resource",
+        "tags": [
+            "Distribution"
+        ],
+        "operationId": "getResource",
+        "parameters": [
+            {
+                "name": "token",
+                "in": "query",
+                "required": "true",
+                "description": "Access Token",
+                "schema": {
+                    "type": "string"
                 }
+            },
+            {
+                "name": "format",
+                "in": "query",
+                "required": "true",
+                "description": "Format of return",
+                "schema": {
+                    "type": "string",
+                    "enum": ["CSV", "XML", "JSON"]
+                }
+            },
+            {
+                "name": "size",
+                "in": "query",
+                "required": "true",
+                "description": "number of records to return",
+                "schema": {
+                    "type": "integer",
+                    "miniumum": 1
+                },
+                "example": 5
+            },
+            {
+                "name": "from",
+                "in": "query",
+                "required": "true",
+                "description": "start of records to return",
+                "schema": {
+                    "type": "integer",
+                    "miniumum": 0
+                },
+                "example": 0
+            },
+        ],
+        "responses": {
+            "200": {
+                "description": "OK"
             }
         }
     }
+}
 }

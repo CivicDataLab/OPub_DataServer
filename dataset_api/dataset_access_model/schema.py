@@ -23,7 +23,8 @@ class Query(graphene.ObjectType):
             prefetch_agreements = Prefetch("agreements", queryset=Agreement.objects.filter(username=username))
             prefetch_dam_requests = Prefetch("datasetaccessmodelrequest_set",
                                              queryset=DatasetAccessModelRequest.objects.filter(
-                                                 user=username).prefetch_related(prefetch_data_requests))
+                                                 user=username).order_by("-modified").prefetch_related(
+                                                 prefetch_data_requests))
         else:
             prefetch_agreements = Prefetch("agreements",
                                            queryset=Agreement.objects.filter(
@@ -32,7 +33,8 @@ class Query(graphene.ObjectType):
                                               queryset=DataRequest.objects.filter(default=True, id__in=anonymous_users))
             prefetch_dam_requests = Prefetch("datasetaccessmodelrequest_set",
                                              queryset=DatasetAccessModelRequest.objects.filter(
-                                                 datarequest__id__in=anonymous_users).prefetch_related(
+                                                 datarequest__id__in=anonymous_users).order_by(
+                                                 "-modified").prefetch_related(
                                                  prefetch_data_requests))
 
         return DatasetAccessModel.objects.filter(dataset=dataset).order_by("-modified").prefetch_related(
