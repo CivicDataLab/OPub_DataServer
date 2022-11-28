@@ -70,9 +70,11 @@ def parse_schema(schema_dict, parent, schema):
 def preview(request, resource_id):
 
     resp = fetchapi(resource_id)
-    print ('---', resp)
+    print ('---*************************************************************', resp)
     if resp["Success"] == False:
         return JsonResponse(resp, safe=False)
+
+    print (resp['response_type'])
 
     if resp["response_type"] == "json":
         context = {
@@ -88,6 +90,13 @@ def preview(request, resource_id):
             "response_type": resp["response_type"],
         }
         return JsonResponse(context, safe=False)
+    context = {
+            "Success": True,
+            "data": resp["data"],
+            "response_type": resp["response_type"],
+        }
+    return JsonResponse(context, safe=False)
+
 
 
 def schema(request, resource_id):
@@ -136,6 +145,15 @@ def schema(request, resource_id):
         }
         print ('----a', context)
         return JsonResponse(context, safe=False)
+
+    context = {
+            "Success": False,
+            "error": "couldn't read schema",
+            "response_type": resp["response_type"],
+        }
+    return JsonResponse(context, safe=False)
+
+
 
 
 def fetchapi(resource_id):
@@ -220,6 +238,8 @@ def fetchapi(resource_id):
         response_type = (
             target_format if target_format and target_format != "" else response_type
         )
+
+        
         if response_type == "json":
             context = {
                 "Success": True,
@@ -232,6 +252,26 @@ def fetchapi(resource_id):
             data = pd.read_csv(csv_data, sep=",")
             context = {"Success": True, "data": data, "response_type": response_type}
             return context
+
+        if response_type not in ["json", "csv"]:
+            try:
+        	    context = {
+            		"Success": True,
+            		"data": api_request.json(),
+            		"response_type": "json",
+        		}
+		         return context
+            except:
+            	try:
+
+            		csv_data = StringIO(api_response)
+            		data = pd.read_csv(csv_data, sep=",")
+            		context = {"Success": True, "data": data, "response_type": "csv"}
+					return context
+				except:
+					context = {"Success": True, "data": api_response, "response_type": "text"}
+					return context
+
         print (response_type, '----', api_response)
         context = {
                 "Success": True,
