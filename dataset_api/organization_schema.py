@@ -175,7 +175,7 @@ class CreateOrganization(Output, graphene.Mutation):
                 Q(organization_ptr_id__title__iexact=organization_data.title),
                 Q(status="APPROVED"),
             )
-            return {
+            raise GraphQLError ({
                 "success": False,
                 "errors": {
                     "id": [
@@ -185,7 +185,7 @@ class CreateOrganization(Output, graphene.Mutation):
                         }
                     ]
                 },
-            }
+            })
         except Organization.DoesNotExist:
             try:
                 OrganizationCreateRequest.objects.get(
