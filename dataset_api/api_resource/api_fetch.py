@@ -212,7 +212,9 @@ def fetchapi(resource_id):
 
         base_url = base_url.strip()
         url_path = url_path.strip()
-        print("----fetch", header, param, base_url, url_path)
+        print(
+            "----fetch", header, param, base_url, url_path, response_type, target_format
+        )
         if request_type == "GET":
             try:
                 api_request = requests.get(
@@ -236,20 +238,20 @@ def fetchapi(resource_id):
             target_format if target_format and target_format != "" else response_type
         )
 
-        if response_type == "json":
+        if response_type.lower() == "json":
             context = {
                 "Success": True,
                 "data": api_response,
                 "response_type": response_type,
             }
             return context
-        if response_type == "csv":
+        if response_type.lower() == "csv":
             csv_data = StringIO(api_response)
             data = pd.read_csv(csv_data, sep=",")
             context = {"Success": True, "data": data, "response_type": response_type}
             return context
 
-        if response_type not in ["json", "csv"]:
+        if response_type.lower() not in ["json", "csv"]:
             try:
                 data_check = api_request.json()
                 context = {
