@@ -777,8 +777,7 @@ def get_dist_data(request):
                 parameters[param.key] = param.default
 
         data_request_id = initiate_dam_request(
-            dam_request, dam_resource.resource, username, parameters, request.GET.get("format")
-        )
+            dam_request, dam_resource.resource, username, parameters, True)
         data_request = DataRequest.objects.get(pk=data_request_id)
 
         # do we need this ?
