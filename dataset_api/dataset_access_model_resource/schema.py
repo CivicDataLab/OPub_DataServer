@@ -199,6 +199,7 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                             resource_id=resources.resource_id,
                             dataset_access_model=dataset_access_model_instance,
                         )
+                        access_model_resource_instance.save()
                         access_model_resource_instance.fields.set(resource_schema)
                         access_model_resource_instance.save()
                     except Resource.DoesNotExist as e:
