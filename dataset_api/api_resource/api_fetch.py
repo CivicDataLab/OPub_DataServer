@@ -251,9 +251,10 @@ def fetchapi(resource_id):
 
         if response_type not in ["json", "csv"]:
             try:
+                data_check = api_request.json()
                 context = {
                     "Success": True,
-                    "data": api_request.json(),
+                    "data": api_response,
                     "response_type": "json",
                 }
                 return context
