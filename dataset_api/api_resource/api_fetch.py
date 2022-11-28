@@ -86,7 +86,7 @@ def preview(request, resource_id):
     if resp["response_type"] == "csv":
         context = {
             "Success": True,
-            "data": resp["data"].head().to_dict("records"),
+            "data": resp["data"].to_dict("records"),
             "response_type": resp["response_type"],
         }
         return JsonResponse(context, safe=False)

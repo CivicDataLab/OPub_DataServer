@@ -174,7 +174,7 @@ def initiate_dam_request(
                 "request_id": str(data_request_instance.id),
                 "request_columns": [x for x in fields],
                 "request_rows": "",
-                target_format: target_format
+                "target_format": target_format 
             }
         )
         headers = {}
