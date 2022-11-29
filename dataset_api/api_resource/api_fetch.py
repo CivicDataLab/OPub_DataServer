@@ -13,7 +13,6 @@ from io import StringIO
 import genson
 import json
 import xmltodict
-import dicttoxml
 
 
 def parse_schema(schema_dict, parent, schema):
@@ -101,7 +100,8 @@ def preview(request, resource_id):
 
 
 def schema(request, resource_id):
-
+    global count
+    count=0
     resp = fetchapi(resource_id)
     print("----------dat fetched", resp)
     if resp["Success"] == False:
@@ -114,8 +114,8 @@ def schema(request, resource_id):
         schema_dict = builder.to_schema()
         schema_dict = schema_dict.get("properties", {})
         schema = []
-        global count
-        count = 0
+        #global count
+        #count = 0
         print("------asadasf", schema_dict)
         parse_schema(schema_dict, "", schema)
         context = {
@@ -156,8 +156,8 @@ def schema(request, resource_id):
         schema_dict = builder.to_schema()
         schema_dict = schema_dict.get("properties", {})
         schema = []
-        global count
-        count = 0
+        #global count
+        #count = 0
         print("------asadasf", schema_dict)
         parse_schema(schema_dict, "", schema)
         context = {
