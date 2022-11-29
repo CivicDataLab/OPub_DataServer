@@ -419,7 +419,7 @@ def _create_update_file_details(resource_instance, attribute):
             if file_format.lower() == "xlsx":
                 data = pd.read_excel(file_obj, 1)
             if file_format.lower() == "json":
-                data = pd.read_json(file_obj)
+                data = pd.read_json(file_obj, orient="records")
             if file_format.lower() == "xml":
                 data = pd.read_xml(file_obj)
         except Exception as e:
