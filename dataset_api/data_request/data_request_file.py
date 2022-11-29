@@ -125,7 +125,7 @@ class FormatConverter:
     @classmethod
     def convert_csv_to_json(cls, csv_file_path, src_mime_type, return_type="data"):
         csv_file = pd.DataFrame(
-            pd.read_csv(csv_file_path, sep=",", header=0, index_col=False)
+            pd.read_csv(csv_file_path, sep=",", header=0, index_col=False, )
         )
         if return_type == "file":
             csv_file.to_json(
@@ -180,7 +180,7 @@ class FormatConverter:
             pd.read_csv(csv_file_path, sep=",", header=0, index_col=False)
         )
         if return_type == "file":
-            csv_file.to_csv("file.csv")
+            csv_file.to_csv("file.csv", index=False)
             response = FileResponse(
                 open("file.csv", "rb"), content_type="application/x-download"
             )

@@ -14,7 +14,6 @@ FORMAT_MAPPING = {
     "xml": "XML",
     "application/geo+json": "JSON",
     "application/gml+xml": "XML",
-    "application/gzip": "GZIP",
     "application/xhtml+xml": "XML",
 }
 

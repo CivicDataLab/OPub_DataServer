@@ -1,3 +1,4 @@
+import copy
 import datetime
 import redis
 
@@ -188,7 +189,7 @@ class Query(graphene.ObjectType):
         dam_resource = DatasetAccessModelResource.objects.get(pk=dataset_access_model_resource_id)
         dataset_access_model = dam_resource.dataset_access_model
         is_open = dataset_access_model.data_access_model.type == "OPEN"
-        spec = DATAREQUEST_SWAGGER_SPEC.copy()
+        spec = copy.deepcopy(DATAREQUEST_SWAGGER_SPEC)
         if not username:
             username = get_client_ip(info)
         if dataset_access_model_request_id != "":
