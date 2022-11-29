@@ -239,7 +239,7 @@ def fetchapi(resource_id):
             target_format if target_format and target_format != "" else response_type
         )
 
-        if response_type.lower() == "json":
+        if response_type.lower() in ["json", "xml"]:
             context = {
                 "Success": True,
                 "data": api_response,
