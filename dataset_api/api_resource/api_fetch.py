@@ -12,6 +12,8 @@ import os
 from io import StringIO
 import genson
 import json
+import xmltodict
+import dicttoxml
 
 
 def parse_schema(schema_dict, parent, schema):
@@ -70,7 +72,7 @@ def parse_schema(schema_dict, parent, schema):
 def preview(request, resource_id):
 
     resp = fetchapi(resource_id)
-    print('----------dat fetched', resp)
+    print("----------dat fetched", resp)
     if resp["Success"] == False:
         return JsonResponse(resp, safe=False)
 
@@ -101,7 +103,7 @@ def preview(request, resource_id):
 def schema(request, resource_id):
 
     resp = fetchapi(resource_id)
-    print('----------dat fetched', resp)
+    print("----------dat fetched", resp)
     if resp["Success"] == False:
         return JsonResponse(resp, safe=False)
 
@@ -144,6 +146,25 @@ def schema(request, resource_id):
             "response_type": resp["response_type"],
         }
         print("----a", context)
+        return JsonResponse(context, safe=False)
+
+    if resp["response_type"].lower() == "xml":
+
+        builder = genson.SchemaBuilder()
+        jsondata = xmltodict.parse(resp["data"])
+        builder.add_object(jsondata)
+        schema_dict = builder.to_schema()
+        schema_dict = schema_dict.get("properties", {})
+        schema = []
+        global count
+        count = 0
+        print("------asadasf", schema_dict)
+        parse_schema(schema_dict, "", schema)
+        context = {
+            "Success": True,
+            "schema": schema,
+            "response_type": resp["response_type"],
+        }
         return JsonResponse(context, safe=False)
 
     context = {
