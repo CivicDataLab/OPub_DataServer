@@ -33,6 +33,61 @@ from .models import (
     APIParameter,
 )
 from .utils import log_activity, get_client_ip
+import xmltodict
+
+def parse_schema(schema_dict, parent, schema):
+    global count
+    for key in schema_dict:
+        if key == "required":
+            continue
+        print(key)
+        if key == "items":
+            print(count)
+            count = count + 1
+            print(count)
+            schema.append(
+                {
+                    "key": parent + str(count) if parent == "items" else parent,
+                    "format": "array",
+                    "description": "",
+                    "parent": "",
+                    "array_field": "items" + str(count),
+                }
+            )
+            parse_schema(schema_dict["items"], key, schema)
+            continue
+        if key == "type":
+            continue
+
+        if key == "properties":
+            schema.append(
+                {
+                    "key": parent + str(count) if parent == "items" else parent,
+                    "format": "json",
+                    "description": "",
+                    "parent": "",
+                    "array_field": "",
+                }
+            )
+            parse_schema(schema_dict["properties"], parent, schema)
+            continue
+        if "type" in schema_dict[key] and schema_dict[key]["type"] not in [
+            "array",
+            "object",
+        ]:
+            schema.append(
+                {
+                    "key": key,
+                    "format": "string",
+                    "description": "",
+                    "parent": parent + str(count) if parent == "items" else parent,
+                    "array_field": "",
+                }
+            )
+        else:
+            parse_schema(schema_dict[key], key, schema)
+
+
 
 
 class ResourceSchemaInputType(graphene.InputObjectType):
@@ -146,19 +201,39 @@ class Query(graphene.ObjectType):
             resource = Resource.objects.get(pk=resource_id)
             if resource.dataset.dataset_type == DataType.FILE.value:
                 if resource.filedetails.file and len(resource.filedetails.file.path):
+                    global count
+                    count = 0
                     if "csv" in resource.filedetails.format.lower():
                         file = pd.read_csv(resource.filedetails.file.path)
                         return file.columns.tolist()
                     if resource.filedetails.format.lower() == "json":
                         with open(resource.filedetails.file.path) as jsonFile:
                             # return list(set(get_keys(jsonFile.read(), [])))
+                           # global count
+                           # count = 0
                             builder = genson.SchemaBuilder()
                             jsondata = json.loads(jsonFile.read())  # json.loads(resource.filedetails.file)
                             builder.add_object(jsondata)
                             schema_dict = builder.to_schema()
                             schema_dict = schema_dict.get("properties", {})
                             schema = []
-                            api_fetch.parse_schema(schema_dict, "", schema)
+                            parse_schema(schema_dict, "", schema)
+                            return schema
+                    if resource.filedetails.format.lower() == "xml":
+                        with open(resource.filedetails.file.path) as xmlFile:
+                            #global count
+                            #count = 0
+                            # return list(set(get_keys(jsonFile.read(), [])))
+                            builder = genson.SchemaBuilder()
+                            jsondata = xmltodict.parse(xmlFile.read())
+                            # jsondata = json.loads(
+                            #     jsonFile.read()
+                            # )   json.loads(resource.filedetails.file)
+                            builder.add_object(jsondata)
+                            schema_dict = builder.to_schema()
+                            schema_dict = schema_dict.get("properties", {})
+                            schema = []
+                            parse_schema(schema_dict, "", schema)
                             return schema
             return []
         else:
@@ -419,7 +494,11 @@ def _create_update_file_details(resource_instance, attribute):
             if file_format.lower() == "xlsx":
                 data = pd.read_excel(file_obj, 1)
             if file_format.lower() == "json":
-                data = pd.read_json(file_obj, orient="records")
+                if isinstance(file_obj, str):
+                    with open(file_obj, 'r') as data_file:
+                        data = json.load(data_file)
+                else:
+                    data = json.load(file_obj)
             if file_format.lower() == "xml":
                 data = pd.read_xml(file_obj)
         except Exception as e:

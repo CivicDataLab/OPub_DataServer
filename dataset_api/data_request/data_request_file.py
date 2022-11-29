@@ -218,7 +218,7 @@ class FormatConverter:
         final_json = cls.process_json_data(json_file_path)
 
         if return_type == "file":
-            final_json.to_csv("file.csv")
+            final_json.to_csv("file.csv", index=False)
             response = FileResponse(
                 open("file.csv", "rb"), content_type="application/x-download"
             )

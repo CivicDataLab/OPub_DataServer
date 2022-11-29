@@ -57,26 +57,26 @@ def rate_per_user(group, request):
     rate_limit = dam.rate_limit
     rate_limit_unit = dam.rate_limit_unit
 
-    if dam.type == "OPEN":
+    #if dam.type == "OPEN":
         # user = "Unlimited"
-        return None  # No rate limit -- UNLIMITED usage.
+     #   return None  # No rate limit -- UNLIMITED usage.
+    #else:
+    if rate_limit_unit == "SECOND":
+        return str(rate_limit) + "/" + rate_limit_unit.lower()[0]
+    elif rate_limit_unit == "MINUTE":
+        return str(rate_limit) + "/" + rate_limit_unit.lower()[0]
+    elif rate_limit_unit == "HOUR":
+        return str(rate_limit) + "/" + rate_limit_unit.lower()[0]
+    elif rate_limit_unit == "DAY":
+        return str(rate_limit) + "/" + rate_limit_unit.lower()[0]
+    elif rate_limit_unit == "WEEK":
+        return str(rate_limit) + "/7d"
+    elif rate_limit_unit == "MONTH":
+        return str(rate_limit) + "/30d"
+    elif rate_limit_unit == "QUARTER":
+        return str(rate_limit) + "/92d"
     else:
-        if rate_limit_unit == "SECOND":
-            return str(rate_limit) + "/" + rate_limit_unit.lower()[0]
-        elif rate_limit_unit == "MINUTE":
-            return str(rate_limit) + "/" + rate_limit_unit.lower()[0]
-        elif rate_limit_unit == "HOUR":
-            return str(rate_limit) + "/" + rate_limit_unit.lower()[0]
-        elif rate_limit_unit == "DAY":
-            return str(rate_limit) + "/" + rate_limit_unit.lower()[0]
-        elif rate_limit_unit == "WEEK":
-            return str(rate_limit) + "/7d"
-        elif rate_limit_unit == "MONTH":
-            return str(rate_limit) + "/30d"
-        elif rate_limit_unit == "QUARTER":
-            return str(rate_limit) + "/92d"
-        else:
-            return str(rate_limit) + "/365d"
+        return str(rate_limit) + "/365d"
 
 
 def quota_per_user(group, request):
