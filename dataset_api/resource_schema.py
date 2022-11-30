@@ -550,7 +550,7 @@ class CreateResource(graphene.Mutation, Output):
                 "success": False,
                 "errors": {
                     "id": [
-                        {"message": "Resource with same name already exists", "code": "404"}
+                        {"message": "Distribution with same name already exists", "code": "404"}
                     ]
                 },
             }
@@ -631,7 +631,7 @@ class UpdateResource(graphene.Mutation, Output):
                 "success": False,
                 "errors": {
                     "id": [
-                        {"message": "Resource with given id not found", "code": "404"}
+                        {"message": "Distribution with given id not found", "code": "404"}
                     ]
                 },
             }
@@ -717,7 +717,7 @@ class DeleteResource(graphene.Mutation, Output):
                 "success": False,
                 "errors": {
                     "id": [
-                        {"message": "Resource with given id not found", "code": "404"}
+                        {"message": "Distribution with given id not found", "code": "404"}
                     ]
                 },
             }
