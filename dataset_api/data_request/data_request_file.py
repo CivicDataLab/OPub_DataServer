@@ -25,6 +25,7 @@ from .decorators import dam_request_validity
 from .schema import initiate_dam_request
 from ..constants import FORMAT_MAPPING
 from ..models import DatasetAccessModelResource, DatasetAccessModelRequest
+import xmltodict
 
 # from graphql import GraphQLError
 
@@ -173,7 +174,71 @@ class FormatConverter:
         elif return_type == "data":
             response = HttpResponse(csv_file.to_xml(), content_type="application/xml")
             return response
+        
+    @classmethod
+    def convert_xml_to_json(cls, xml_file_path, src_mime_type, return_type="data"):
+        if return_type == "file":
+            with open('xml_file_path') as xmlFile:
+                data_dict = xmltodict.parse(xmlFile.read())
+                with open("file.json", "w") as jsonFile:
+                    json.dump(data_dict , jsonFile) 
+                data_dict.to_json("file.json")
+                
+                response = FileResponse(
+                    open("file.json", "rb"), content_type=src_mime_type
+                )
+                file_name = (
+                        ".".join(os.path.basename(xml_file_path).split(".")[:-1]) + ".json"
+                )
+                response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                    file_name
+                )
+                os.remove("file.json")
+                return response
+        elif return_type == "data":
+            with open('xml_file_path') as f:
+                contents = f.read()
+            response = HttpResponse(contents, content_type="application/json")
+            return response
+        
+    
+    @classmethod
+    def convert_xml_to_csv(cls, xml_file_path, src_mime_type, return_type="data"):
+        if return_type == "file":
+            df = pd.read_xml(xml_file_path)
+            df.to_csv("file.csv")
 
+            response = FileResponse(
+                open("file.csv", "rb"), content_type=src_mime_type
+            )
+            file_name = (
+                    ".".join(os.path.basename(xml_file_path).split(".")[:-1]) + ".csv"
+            )
+            response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                file_name
+            )
+            os.remove("file.csv")
+            return response
+        elif return_type == "data":
+            df = pd.read_xml(xml_file_path)
+            response = HttpResponse(df.to_string(), content_type="text/csv")
+            return response
+        
+    @classmethod
+    def convert_xml_to_xml(cls, xml_file_path, src_mime_type, return_type="data"):
+        if return_type == "file":
+            response = FileResponse(
+                open(xml_file_path, "rb"), content_type=src_mime_type
+            )
+            response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                os.path.basename(xml_file_path)
+            )
+        elif return_type == "data":
+            with open('xml_file_path') as f:
+                contents = f.read()
+            response = HttpResponse(contents, content_type="text/csv")
+        return response
+    
     @classmethod
     def convert_csv_to_csv(cls, csv_file_path, src_mime_type, return_type="data"):
         csv_file = pd.DataFrame(
