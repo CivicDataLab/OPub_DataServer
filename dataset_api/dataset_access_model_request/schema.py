@@ -45,6 +45,10 @@ def get_data_access_model_request_validity(data_access_model_request):
             validation_deadline = approval_date + datetime.timedelta(
                 days=(365 * validity)
             )
+        elif validity_unit == ValidationUnits.LIFETIME:
+            validation_deadline = approval_date + datetime.timedelta(
+                days=(365 * 100)
+            )
         return validation_deadline
     else:
         return None
