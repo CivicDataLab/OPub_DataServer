@@ -91,11 +91,11 @@ class Query(graphene.ObjectType):
             organization = Organization.objects.get(id=org_id)
             if status:
                 query = Dataset.objects.filter(
-                    catalog__organization=organization, status=status, username=username
+                    catalog__organization=organization, status=status
                 ).order_by("-modified")
             else:
                 query = Dataset.objects.filter(
-                    catalog__organization=organization, username=username
+                    catalog__organization=organization,
                 ).order_by("-modified")
             if skip:
                 query = query[skip:]
