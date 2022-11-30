@@ -178,7 +178,7 @@ class FormatConverter:
     @classmethod
     def convert_xml_to_json(cls, xml_file_path, src_mime_type, return_type="data"):
         if return_type == "file":
-            with open('xml_file_path') as xmlFile:
+            with open(xml_file_path) as xmlFile:
                 data_dict = xmltodict.parse(xmlFile.read())
                 with open("file.json", "w") as jsonFile:
                     json.dump(data_dict , jsonFile) 
