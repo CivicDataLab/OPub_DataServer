@@ -182,7 +182,6 @@ class FormatConverter:
                 data_dict = xmltodict.parse(xmlFile.read())
                 with open("file.json", "w") as jsonFile:
                     json.dump(data_dict , jsonFile) 
-                data_dict.to_json("file.json")
                 
                 response = FileResponse(
                     open("file.json", "rb"), content_type=src_mime_type
