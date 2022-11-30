@@ -82,9 +82,10 @@ class Query(graphene.ObjectType):
 
     # Access : PMU / DPA
     @auth_user_by_org(action="query")
+    @validate_token
     @get_user_datasets
     def resolve_org_datasets(
-            self, info, role, dataset_list, first=None, skip=None, status: DatasetStatus = None, **kwargs
+            self, info, role, dataset_list, first=None, skip=None, status: DatasetStatus = None, username="", **kwargs
     ):
         if role == "PMU" or role == "DPA":
             org_id = info.context.META.get("HTTP_ORGANIZATION")

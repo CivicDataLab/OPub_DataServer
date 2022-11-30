@@ -28,7 +28,7 @@ class AccessModelResourceType(DjangoObjectType):
             else:
                 return resource.filedetails.format
         elif resource.dataset.dataset_type == DataType.API.value:
-            if resource.apidetails.supported_formats and len(resource.apidetails.supported_formats):
+            if resource.apidetails.supported_formats:
                 return resource.apidetails.supported_formats
         return []
 
