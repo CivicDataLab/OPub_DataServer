@@ -4,9 +4,8 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('dataset_api', '0111_alter_apisource_auth_token_alter_datarequest_file_and_more'),
+        ('dataset_api', '0112_alter_dataaccessmodel_subscription_quota_and_more'),
     ]
 
     operations = [
