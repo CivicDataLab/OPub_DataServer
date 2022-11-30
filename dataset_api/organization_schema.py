@@ -304,7 +304,7 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
             organization_create_request_instance.save()
 
             same_org_instance = OrganizationCreateRequest.objects.filter(
-                organization_ptr_id__title=organization.title
+                organization_ptr_id__title__iexact=organization.title
             )
             if same_org_instance.exists():
                 rejected_list = []
