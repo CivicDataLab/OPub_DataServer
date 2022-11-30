@@ -122,7 +122,7 @@ def get_user_datasets(func):
             }
         )
         response_json = request_to_server(body, "get_user_datasets")
-        if not response_json["success"]:
+        if not response_json["Success"]:
             raise GraphQLError(response_json["error_description"])
         else:
             kwargs["dataset_list"] = response_json["datasets"]

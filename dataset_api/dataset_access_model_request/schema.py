@@ -77,8 +77,8 @@ class DataAccessModelRequestType(DjangoObjectType):
         quota_limit = self.access_model.data_access_model.subscription_quota
         
         if validity:
-            if timezone.now() <= validity:
-                return timezone.now() <= validity
+            if timezone.now() >= validity:
+                return False
             else:
                 if dam_quota_unit == SubscriptionUnits.LIMITEDDOWNLOAD:
                     used_quota = r.get(":1:rl||"+ username+ "||"+ str(self.id)+ "||"+ "365d||quota")
@@ -90,7 +90,7 @@ class DataAccessModelRequestType(DjangoObjectType):
                     else:
                         return None
                 else:
-                    return timezone.now() <= validity
+                    return True
         return None
 
     @validate_token_or_none
