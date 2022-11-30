@@ -159,7 +159,7 @@ class FormatConverter:
             pd.read_csv(csv_file_path, sep=",", header=0, index_col=False)
         )
         if return_type == "file":
-            csv_file.to_xml("file.xml")
+            csv_file.to_xml("file.xml", index=False)
             response = FileResponse(
                 open("file.xml", "rb"), content_type="application/x-download"
             )
