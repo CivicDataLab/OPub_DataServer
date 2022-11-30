@@ -82,19 +82,20 @@ class Query(graphene.ObjectType):
 
     # Access : PMU / DPA
     @auth_user_by_org(action="query")
+    @validate_token
     def resolve_org_datasets(
-            self, info, role, first=None, skip=None, status: DatasetStatus = None, **kwargs
+            self, info, role, first=None, skip=None, status: DatasetStatus = None, username="", **kwargs
     ):
         if role == "PMU" or role == "DPA":
             org_id = info.context.META.get("HTTP_ORGANIZATION")
             organization = Organization.objects.get(id=org_id)
             if status:
                 query = Dataset.objects.filter(
-                    catalog__organization=organization, status=status
+                    catalog__organization=organization, status=status, username=username
                 ).order_by("-modified")
             else:
                 query = Dataset.objects.filter(
-                    catalog__organization=organization
+                    catalog__organization=organization, username=username
                 ).order_by("-modified")
             if skip:
                 query = query[skip:]
