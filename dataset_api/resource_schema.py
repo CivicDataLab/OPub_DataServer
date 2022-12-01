@@ -35,57 +35,67 @@ from .models import (
 from .utils import log_activity, get_client_ip
 import xmltodict
 
-def parse_schema(schema_dict, parent, schema):
+
+def parse_schema(schema_dict, parent, schema, current_path):
     global count
+    count = 0
     for key in schema_dict:
         if key == "required":
             continue
         print(key)
+        items_else_parent = parent + str(count) if parent == "items" else parent
         if key == "items":
-            print(count)
             count = count + 1
-            print(count)
             schema.append(
                 {
-                    "key": parent + str(count) if parent == "items" else parent,
+                    "key": items_else_parent,
                     "format": "array",
                     "description": "",
                     "parent": "",
                     "array_field": "items" + str(count),
+                    "path": current_path,
+                    "parent_path": ".".join(current_path.split('.')[0:-1] )
                 }
             )
-            parse_schema(schema_dict["items"], key, schema)
+            parse_schema(schema_dict["items"], key, schema, current_path)
             continue
         if key == "type":
             continue
 
         if key == "properties":
+            path = current_path + ".items" if parent == "items" else current_path
             schema.append(
                 {
-                    "key": parent + str(count) if parent == "items" else parent,
+                    "key": items_else_parent,
                     "format": "json",
                     "description": "",
                     "parent": "",
                     "array_field": "",
+                    "path": path,
+                    "parent_path": ".".join(path.split('.')[0:-1] )
                 }
             )
-            parse_schema(schema_dict["properties"], parent, schema)
+            parse_schema(schema_dict["properties"], parent, schema, path)
             continue
         if "type" in schema_dict[key] and schema_dict[key]["type"] not in [
             "array",
             "object",
         ]:
+            else_parent = items_else_parent
             schema.append(
                 {
                     "key": key,
                     "format": "string",
                     "description": "",
-                    "parent": parent + str(count) if parent == "items" else parent,
+                    "parent": else_parent,
                     "array_field": "",
+                    "path": current_path + "." + key,
+                    "parent_path": current_path
                 }
             )
         else:
-            parse_schema(schema_dict[key], key, schema)
+            parse_schema(schema_dict[key], key, schema, current_path + "." + key)
+
 
 
 
@@ -217,7 +227,7 @@ class Query(graphene.ObjectType):
                             schema_dict = builder.to_schema()
                             schema_dict = schema_dict.get("properties", {})
                             schema = []
-                            parse_schema(schema_dict, "", schema)
+                            parse_schema(schema_dict, "", schema, "")
                             return schema
                     if resource.filedetails.format.lower() == "xml":
                         with open(resource.filedetails.file.path) as xmlFile:
@@ -233,7 +243,7 @@ class Query(graphene.ObjectType):
                             schema_dict = builder.to_schema()
                             schema_dict = schema_dict.get("properties", {})
                             schema = []
-                            parse_schema(schema_dict, "", schema)
+                            parse_schema(schema_dict, "", schema, "")
                             return schema
             return []
         else:
@@ -489,6 +499,7 @@ def _create_update_file_details(resource_instance, attribute):
         file_format = FORMAT_MAPPING[mime_type.lower()]
         try:
             file_obj = copy.deepcopy(attribute.file)
+            print(file_format)
             if file_format.lower() == "csv":
                 data = pd.read_csv(file_obj)
             if file_format.lower() == "xlsx":

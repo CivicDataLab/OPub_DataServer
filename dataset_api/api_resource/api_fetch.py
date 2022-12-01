@@ -32,7 +32,8 @@ def parse_schema(schema_dict, parent, schema, current_path):
                     "description": "",
                     "parent": "",
                     "array_field": "items" + str(count),
-                    "path": current_path
+                    "path": current_path,
+                    "parent_path": ".".join(current_path.split('.')[0:-1] ) 
                 }
             )
             parse_schema(schema_dict["items"], key, schema, current_path)
@@ -49,7 +50,8 @@ def parse_schema(schema_dict, parent, schema, current_path):
                     "description": "",
                     "parent": "",
                     "array_field": "",
-                    "path": path
+                    "path": path,
+                    "parent_path": ".".join(path.split('.')[0:-1] ) 
                 }
             )
             parse_schema(schema_dict["properties"], parent, schema, path)
@@ -66,7 +68,7 @@ def parse_schema(schema_dict, parent, schema, current_path):
                     "description": "",
                     "parent": else_parent,
                     "array_field": "",
-                    "path": current_path + "." + key
+                    "path": current_path
                 }
             )
         else:
@@ -122,7 +124,7 @@ def schema(request, resource_id):
         #global count
         #count = 0
         print("------asadasf", schema_dict)
-        parse_schema(schema_dict, "", schema)
+        parse_schema(schema_dict, "", schema, "")
         context = {
             "Success": True,
             "schema": schema,
@@ -164,7 +166,7 @@ def schema(request, resource_id):
         #global count
         #count = 0
         print("------asadasf", schema_dict)
-        parse_schema(schema_dict, "", schema)
+        parse_schema(schema_dict, "", schema, "")
         context = {
             "Success": True,
             "schema": schema,
