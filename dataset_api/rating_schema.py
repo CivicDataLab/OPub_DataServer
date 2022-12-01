@@ -1,11 +1,12 @@
 import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
+from graphql import GraphQLError
 
 from .decorators import validate_token
 from .enums import RatingStatus
 from .models import DatasetRatings, Dataset
-
+import datetime
 
 # from .search import update_rating
 
@@ -33,7 +34,7 @@ class Query(graphene.ObjectType):
 
 class DatasetRatingInput(graphene.InputObjectType):
     id = graphene.ID()
-    dataset = graphene.String(required=True)
+    dataset = graphene.ID(required=True)
     review = graphene.String(required=True)
     # overall = graphene.Float()
     data_quality = graphene.Float(required=True)
@@ -56,17 +57,22 @@ class CreateDatasetRating(Output, graphene.Mutation):
     @validate_token
     def mutate(root, info, rating_data: DatasetRatingInput, username=None, **kwargs):
         dataset = Dataset.objects.get(id=rating_data.dataset)
-        rating_instance = DatasetRatings(
-            review=rating_data.review,
-            # overall=rating_data.overall,
-            data_quality=rating_data.data_quality,
-            # data_standards=rating_data.data_standards,
-            # coverage=rating_data.coverage,
-            status=RatingStatus.CREATED.value,
-            dataset=dataset,
-            user=username,
-        )
-        rating_instance.save()
+        previous_rating_instance = DatasetRatings.objects.filter(user=username, dataset=dataset).order_by("-modified")
+        time_check = previous_rating_instance[0].modified + datetime.timedelta(minutes=1)
+        if datetime.datetime.now(datetime.timezone.utc) > time_check:
+            rating_instance = DatasetRatings(
+                review=rating_data.review,
+                # overall=rating_data.overall,
+                data_quality=rating_data.data_quality,
+                # data_standards=rating_data.data_standards,
+                # coverage=rating_data.coverage,
+                status=RatingStatus.CREATED.value,
+                dataset=dataset,
+                user=username,
+            )
+            rating_instance.save()
+        else:
+            raise GraphQLError("You have already rated this dataset. Try again after 1 day.")
         # Update rating in elasticsearch
         # update_rating(rating_instance)
         return CreateDatasetRating(dataset_rating=rating_instance)
