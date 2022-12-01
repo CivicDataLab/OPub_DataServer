@@ -310,6 +310,5 @@ def fetchapi(resource_id):
         return context
 
     except Exception as e:
-        raise e
         context = {"Success": False, "error": str(e)}
         return context
