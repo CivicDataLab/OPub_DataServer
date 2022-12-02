@@ -1,6 +1,7 @@
 import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
+from graphql.error import GraphQLError
 
 from .models import APISource, Organization
 from .enums import AuthLocation, AuthType
@@ -72,11 +73,41 @@ class CreateAPISource(Output, graphene.Mutation):
             auth_credentials=api_source_data.auth_credentials,
             auth_token=api_source_data.auth_token,
             auth_token_key=api_source_data.auth_token_key,
-            organization=organization
+            organization=organization,
         )
         api_source_instance.save()
         return CreateAPISource(API_source=api_source_instance)
 
 
+class DeleteAPISource(Output, graphene.Mutation):
+    class Arguments:
+        api_source_id = graphene.Int(required=True)
+
+    success = graphene.String()
+
+    @staticmethod
+    # @auth_user_by_org(action="create_api_source")
+    def mutate(root, info, api_source_id):
+        try:
+            api_source_instance = APISource.objects.get(pk=api_source_id)
+        except APISource.DoesNotExist as e:
+            raise GraphQLError(
+                {
+                    "success": False,
+                    "errors": {
+                        "id": [
+                            {
+                                "message": "API source with given id not found.",
+                                "code": "404",
+                            }
+                        ]
+                    },
+                }
+            )
+        api_source_instance.delete()
+        return CreateAPISource(success=True)
+
+
 class Mutation(graphene.ObjectType):
     create_api_source = CreateAPISource.Field()
+    delete_api_source = DeleteAPISource.Field()
