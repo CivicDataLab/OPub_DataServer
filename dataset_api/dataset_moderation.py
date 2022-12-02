@@ -3,6 +3,7 @@ from collections.abc import Iterable
 import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
+from graphql import GraphQLError
 
 from .decorators import validate_token, validate_token_or_none
 from .enums import ReviewType
@@ -10,6 +11,7 @@ from .models import DatasetReviewRequest, Dataset
 from .decorators import auth_user_by_org, auth_user_action_resource
 from .search import index_data
 from .email_utils import dataset_approval_notif
+
 
 class ModerationRequestType(DjangoObjectType):
     class Meta:
@@ -27,6 +29,7 @@ class StatusType(graphene.Enum):
     REQUESTED = "REQUESTED"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    ADDRESSING = "ADDRESSING"
 
 
 class Query(graphene.ObjectType):
@@ -141,17 +144,19 @@ class ReviewRequestMutation(graphene.Mutation, Output):
         try:
             dataset = Dataset.objects.get(id=review_request.dataset)
         except Dataset.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {
-                            "message": f"Moderation request with id {review_request.dataset} does not exist",
-                            "code": "404",
-                        }
-                    ]
-                },
-            }
+            raise GraphQLError(
+                {
+                    "success": False,
+                    "errors": {
+                        "id": [
+                            {
+                                "message": "Moderation request does not exist",
+                                "code": "404",
+                            }
+                        ]
+                    },
+                }
+            )
         review_request_instance.dataset = dataset
         review_request_instance.save()
         # TODO: fix magic string
@@ -170,7 +175,10 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
     @validate_token_or_none
     @auth_user_by_org(action="publish_dataset")
     def mutate(
-        root, info, username="", moderation_request: ModerationRequestsApproveRejectInput = None
+        root,
+        info,
+        username="",
+        moderation_request: ModerationRequestsApproveRejectInput = None,
     ):
         errors = []
         moderation_requests = []
@@ -182,7 +190,7 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
             except DatasetReviewRequest.DoesNotExist as e:
                 errors.append(
                     {
-                        "message": f"Moderation request with id {request_id} does not exist",
+                        "message": "Moderation request does not exist",
                         "code": "404",
                     }
                 )
@@ -197,7 +205,9 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
                 dataset = moderation_request_instance.dataset
                 dataset.status = "PUBLISHED"
                 dataset.save()
-                dataset_approval_notif(username, dataset.id, dataset.catalog.organization.id)
+                dataset_approval_notif(
+                    username, dataset.id, dataset.catalog.organization.id
+                )
                 # Index data in Elasticsearch
                 index_data(dataset)
             if moderation_request.status == "REJECTED":
@@ -207,9 +217,41 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
             moderation_request_instance.save()
             moderation_requests.append(moderation_request_instance)
         if errors:
-            return {"success": False, "errors": {"ids": errors}}
+            raise GraphQLError({"success": False, "errors": {"ids": errors}})
 
         return ApproveRejectModerationRequests(moderation_requests=moderation_requests)
+
+
+class AddressModerationRequests(graphene.Mutation, Output):
+    class Arguments:
+        moderation_request = ModerationRequestsApproveRejectInput()
+
+    moderation_request = graphene.Field(ModerationRequestType)
+
+    @staticmethod
+    @validate_token_or_none
+    # @auth_user_by_org(action="publish_dataset")
+    def mutate(
+        root,
+        info,
+        username="",
+        moderation_request: ModerationRequestsApproveRejectInput = None,
+    ):
+        try:
+            moderation_request_instance = DatasetReviewRequest.objects.get(
+                id=moderation_request.ids[0], status__iexact="REJECTED"
+            )
+        except DatasetReviewRequest.DoesNotExist as e:
+            raise GraphQLError(
+                {
+                    "message": "Moderation request does not exist",
+                    "code": "404",
+                }
+            )
+        if moderation_request_instance:
+            moderation_request_instance.status = StatusType.ADDRESSING.value
+        moderation_request_instance.save()
+        return AddressModerationRequests(moderation_request=moderation_request_instance)
 
 
 class ApproveRejectReviewRequests(graphene.Mutation, Output):
@@ -231,7 +273,7 @@ class ApproveRejectReviewRequests(graphene.Mutation, Output):
             except DatasetReviewRequest.DoesNotExist as e:
                 errors.append(
                     {
-                        "message": f"Review request with id {request_id} does not exist",
+                        "message": "Review request does not exist",
                         "code": "404",
                     }
                 )
@@ -255,7 +297,7 @@ class ApproveRejectReviewRequests(graphene.Mutation, Output):
             review_request_instance.save()
             review_requests.append(review_request_instance)
         if errors:
-            return {"success": False, "errors": {"ids": errors}}
+            raise GraphQLError({"success": False, "errors": {"ids": errors}})
 
         return ApproveRejectReviewRequests(review_requests=review_requests)
 
@@ -265,3 +307,4 @@ class Mutation(graphene.ObjectType):
     review_request = ReviewRequestMutation.Field()
     approve_reject_moderation_requests = ApproveRejectModerationRequests.Field()
     approve_reject_review_request = ApproveRejectReviewRequests.Field()
+    address_moderation_requests = AddressModerationRequests.Field()
