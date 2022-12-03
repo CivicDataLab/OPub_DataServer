@@ -48,6 +48,7 @@ class EditDataset(Output, graphene.Mutation):
             try:
                 cloned_resource = Dataset.objects.get(pk=cloned_id)
                 cloned_resource.status = "DRAFT"
+                cloned_resource.parent = dataset_instance
                 cloned_resource.save()
             except Dataset.DoesNotExist as e:
                 raise GraphQLError("Cloned dataset does not exists.")
