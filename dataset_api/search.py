@@ -210,9 +210,10 @@ def facets(request):
         )
     else:
         # For faceted search with query string.
-        filters.append(
-            {"match": {"dataset_title": {"query": query_string,  "operator": "AND", "fuzziness": "AUTO"}}}
-        )
+        # filters.append(
+        #     {"match": {"dataset_title": {"query": query_string,  "operator": "AND", "fuzziness": "AUTO"}}}
+        # )
+        filters.append({"match_phrase_prefix":{"dataset_title":{"query": query_string}}})
         query = {"bool": {"must": filters}}
         resp = es_client.search(
             index="dataset",
