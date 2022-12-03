@@ -548,24 +548,10 @@ class CreateResource(graphene.Mutation, Output):
         try:
             dataset = Dataset.objects.get(id=resource_data.dataset)
         except Dataset.DoesNotExist as e:
-            raise GraphQLError ({
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Dataset with given id not found", "code": "404"}
-                    ]
-                },
-            })
+            raise GraphQLError ({"message": "Dataset with given id not found", "code": "404"})
         try:
             Resource.objects.get(Q(dataset=dataset), Q(title__iexact=resource_data.title))
-            raise GraphQLError ({
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Distribution with same name already exists", "code": "404"}
-                    ]
-                },
-            })
+            raise GraphQLError ({"message": "Distribution with same name already exists", "code": "404"})
         except Resource.DoesNotExist:
             # For checking if file with same name has been uploaded in the same dataset.
             get_all_resource = Resource.objects.filter(dataset=dataset)
@@ -573,14 +559,7 @@ class CreateResource(graphene.Mutation, Output):
                 for resources in get_all_resource:
                     resource_file_details = FileDetails.objects.get(resource=resources)
                     if resource_file_details.file.name.split("/")[-1].replace("_"," ") == str(resource_data.file_details.file.name.replace("_"," ")):
-                        raise GraphQLError({
-                            "success": False,
-                            "errors": {
-                                "id":[{
-                                    "message": "You have already uploaded this file in another distribution.",
-                                    "code": "404"
-                                }]
-                            }})
+                        raise GraphQLError({"message": "You have already uploaded this file in another distribution.", "code": "404"})
                     else:
                         pass
             
@@ -612,17 +591,7 @@ class CreateResource(graphene.Mutation, Output):
                     )
                 except APISource.DoesNotExist as e:
                     resource_instance.delete()
-                    raise GraphQLError ({
-                        "success": False,
-                        "errors": {
-                            "id": [
-                                {
-                                    "message": "API Source with given id not found",
-                                    "code": "404",
-                                }
-                            ]
-                        },
-                    })
+                    raise GraphQLError ({"message": "API Source with given id not found", "code": "404"})
             elif dataset.dataset_type == DataType.FILE.value:
                 _create_update_file_details(
                     resource_instance=resource_instance,
@@ -656,23 +625,9 @@ class UpdateResource(graphene.Mutation, Output):
             resource_instance = Resource.objects.get(id=resource_data.id)
             dataset = Dataset.objects.get(id=resource_data.dataset)
         except Resource.DoesNotExist as e:
-            raise GraphQLError ({
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Distribution with given id not found", "code": "404"}
-                    ]
-                },
-            })
+            raise GraphQLError ({"message": "Distribution with given id not found", "code": "404"})
         except Dataset.DoesNotExist as e:
-            raise GraphQLError ({
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Dataset with given id not found", "code": "404"}
-                    ]
-                },
-            })
+            raise GraphQLError ({"message": "Dataset with given id not found", "code": "404"})
         resource_instance.title = resource_data.title
         resource_instance.description = resource_data.description
         resource_instance.dataset = dataset
@@ -698,17 +653,7 @@ class UpdateResource(graphene.Mutation, Output):
                     attribute=resource_data.api_details,
                 )
             except APISource.DoesNotExist as e:
-                raise GraphQLError ({
-                    "success": False,
-                    "errors": {
-                        "id": [
-                            {
-                                "message": "API Source with given id not found",
-                                "code": "404",
-                            }
-                        ]
-                    },
-                })
+                raise GraphQLError ({"message": "API Source with given id not found", "code": "404",})
         else:
             _create_update_file_details(
                 resource_instance=resource_instance,
@@ -742,14 +687,7 @@ class DeleteResource(graphene.Mutation, Output):
         try:
             resource_instance = Resource.objects.get(id=resource_data.id)
         except Resource.DoesNotExist as e:
-            raise GraphQLError({
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Distribution with given id not found", "code": "404"}
-                    ]
-                },
-            })
+            raise GraphQLError({"message": "Distribution with given id not found", "code": "404"})
         log_activity(
             target_obj=resource_instance,
             ip=get_client_ip(info),

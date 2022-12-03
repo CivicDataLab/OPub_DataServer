@@ -146,15 +146,8 @@ class ReviewRequestMutation(graphene.Mutation, Output):
         except Dataset.DoesNotExist as e:
             raise GraphQLError(
                 {
-                    "success": False,
-                    "errors": {
-                        "id": [
-                            {
-                                "message": "Moderation request does not exist",
-                                "code": "404",
-                            }
-                        ]
-                    },
+                    "message": "Moderation request does not exist",
+                    "code": "404",
                 }
             )
         review_request_instance.dataset = dataset
