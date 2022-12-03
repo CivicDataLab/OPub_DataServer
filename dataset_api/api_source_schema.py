@@ -3,7 +3,7 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from graphql.error import GraphQLError
 
-from .models import APISource, Organization
+from .models import APISource, Organization, APIDetails
 from .enums import AuthLocation, AuthType
 from .decorators import auth_user_by_org
 
@@ -91,19 +91,13 @@ class DeleteAPISource(Output, graphene.Mutation):
         try:
             api_source_instance = APISource.objects.get(pk=api_source_id)
         except APISource.DoesNotExist as e:
-            raise GraphQLError(
-                {
-                    "success": False,
-                    "errors": {
-                        "id": [
-                            {
-                                "message": "API source with given id not found.",
-                                "code": "404",
-                            }
-                        ]
-                    },
-                }
-            )
+            raise GraphQLError("API source with given id not found.")
+        try:
+            api_details_instance = APIDetails.objects.filter(api_source_id=api_source_id)
+            if api_details_instance.exists():
+                raise GraphQLError("This API Source is related to a distribution.")
+        except APIDetails.DoesNotExist as e:
+            pass
         api_source_instance.delete()
         return CreateAPISource(success=True)
 
