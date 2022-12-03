@@ -42,6 +42,7 @@ class DatasetStatus(graphene.Enum):
     UNDERMODERATION = "UNDERMODERATION"
     READYTOPUBLISH = "READYTOPUBLISH"
     TRANSFORMATIONINPROGRESS = "TRANSFORMATIONINPROGRESS"
+    DISABLED = "DISABLED"
 
 
 def _add_update_attributes_to_dataset(
