@@ -6,7 +6,7 @@ from numpy.compat import unicode
 from activity_log.signal import activity
 from dataset_api.enums import RatingStatus
 from dataset_api.models import Dataset, DataAccessModel
-
+from dataset_api.enums import ValidationUnits
 
 def get_client_ip(request):
     x_forwarded_for = request.context.META.get("HTTP_X_FORWARDED_FOR")
@@ -146,3 +146,30 @@ def cloner(object_type, object_id):
     print("---out----")
 
     return clone.id
+
+
+def get_data_access_model_request_validity(data_access_model_request):
+    if data_access_model_request.status == "APPROVED":
+        validity = data_access_model_request.access_model.data_access_model.validation
+        validity_unit = data_access_model_request.access_model.data_access_model.validation_unit
+        approval_date = data_access_model_request.modified
+        validation_deadline = approval_date
+        if validity_unit == ValidationUnits.DAY:
+            validation_deadline = approval_date + datetime.timedelta(days=validity)
+        elif validity_unit == ValidationUnits.WEEK:
+            validation_deadline = approval_date + datetime.timedelta(weeks=validity)
+        elif validity_unit == ValidationUnits.MONTH:
+            validation_deadline = approval_date + datetime.timedelta(
+                days=(30 * validity)
+            )
+        elif validity_unit == ValidationUnits.YEAR:
+            validation_deadline = approval_date + datetime.timedelta(
+                days=(365 * validity)
+            )
+        elif validity_unit == ValidationUnits.LIFETIME:
+            validation_deadline = approval_date + datetime.timedelta(
+                days=(365 * 100)
+            )
+        return validation_deadline
+    else:
+        return None

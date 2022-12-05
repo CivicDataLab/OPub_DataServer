@@ -8,9 +8,7 @@ from dataset_api.models import (
     DatasetAccessModelResource,
     DatasetAccessModelRequest,
 )
-from dataset_api.dataset_access_model_request.schema import (
-    get_data_access_model_request_validity,
-)
+from ..utils import get_data_access_model_request_validity
 
 def create_access_jwt_token(dataset_access_model_request: DatasetAccessModelRequest,
                             dam_resource: DatasetAccessModelResource, username):
