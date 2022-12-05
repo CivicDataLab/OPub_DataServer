@@ -88,7 +88,7 @@ class Query(graphene.ObjectType):
     def resolve_org_datasets(
             self, info, role, dataset_list, first=None, skip=None, status: DatasetStatus = None, username="", **kwargs
     ):
-        if role == "PMU" or role == "DPA":
+        if role == "PMU" or role == "DPA" or role == "DP":
             org_id = info.context.META.get("HTTP_ORGANIZATION")
             organization = Organization.objects.get(id=org_id)
             if status:
@@ -98,7 +98,7 @@ class Query(graphene.ObjectType):
             else:
                 query = Dataset.objects.filter(
                     catalog__organization=organization,
-                    id__in=dataset_list, 
+                    id__in=dataset_list,
                 ).order_by("-modified")
             if skip:
                 query = query[skip:]
