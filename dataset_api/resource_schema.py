@@ -49,6 +49,7 @@ def parse_schema(schema_dict, parent, schema, current_path):
             schema.append(
                 {
                     "key": items_else_parent,
+                    "display_name": items_else_parent,
                     "format": "array",
                     "description": "",
                     "parent": "",
@@ -67,6 +68,7 @@ def parse_schema(schema_dict, parent, schema, current_path):
             schema.append(
                 {
                     "key": items_else_parent,
+                    "display_name": items_else_parent,
                     "format": "json",
                     "description": "",
                     "parent": "",
@@ -85,6 +87,7 @@ def parse_schema(schema_dict, parent, schema, current_path):
             schema.append(
                 {
                     "key": key,
+                    "display_name": key,
                     "format": "string",
                     "description": "",
                     "parent": else_parent,
