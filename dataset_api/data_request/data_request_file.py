@@ -205,7 +205,7 @@ class FormatConverter:
     def convert_xml_to_csv(cls, xml_file_path, src_mime_type, return_type="data"):
         if return_type == "file":
             df = pd.read_xml(xml_file_path)
-            df.to_csv("file.csv")
+            df.to_csv("file.csv", index=False)
 
             response = FileResponse(
                 open("file.csv", "rb"), content_type=src_mime_type
@@ -220,7 +220,7 @@ class FormatConverter:
             return response
         elif return_type == "data":
             df = pd.read_xml(xml_file_path)
-            response = HttpResponse(df.to_string(), content_type="text/csv")
+            response = HttpResponse(df.to_string(index=False), content_type="text/csv")
             return response
         
     @classmethod
@@ -260,7 +260,7 @@ class FormatConverter:
             csv_file = pd.DataFrame(
                 pd.read_csv(csv_file_path, sep=",", header=0, index_col=False)
             )
-            response = HttpResponse(csv_file.to_string(), content_type="text/csv")
+            response = HttpResponse(csv_file.to_string(index=False), content_type="text/csv")
             return response
 
     @classmethod
@@ -274,7 +274,7 @@ class FormatConverter:
             )
         elif return_type == "data":
             json_file = pd.DataFrame(pd.read_json(json_file_path, orient="index"))
-            response = HttpResponse(json_file.to_string(), content_type="text/csv")
+            response = HttpResponse(json_file.to_string(index=False), content_type="text/csv")
         return response
 
     @classmethod
@@ -295,7 +295,7 @@ class FormatConverter:
             os.remove("file.csv")
             return response
         elif return_type == "data":
-            response = HttpResponse(final_json.to_csv(), content_type="text/csv")
+            response = HttpResponse(final_json.to_csv(index=False), content_type="text/csv")
             return response
 
     @classmethod
@@ -343,7 +343,7 @@ class FormatConverter:
     def convert_json_to_xml(cls, json_file_path, src_mime_type, return_type="data"):
         final_json = cls.process_json_data(json_file_path)
         if return_type == "file":
-            final_json.to_xml("file.xml")
+            final_json.to_xml("file.xml", index=False)
             response = FileResponse(
                 open("file.xml", "rb"), content_type="application/x-download"
             )
@@ -356,7 +356,7 @@ class FormatConverter:
             os.remove("file.xml")
             return response
         elif return_type == "data":
-            response = HttpResponse(final_json.to_xml(), content_type="application/xml")
+            response = HttpResponse(final_json.to_xml(index=False), content_type="application/xml")
             return response
 
 
@@ -414,7 +414,7 @@ class FormatExporter:
     @classmethod
     def convert_df_to_xml(cls, df, return_type="data"):
         if return_type == "file":
-            df.to_xml("file.xml")
+            df.to_xml("file.xml", index=False)
             response = FileResponse(
                 open("file.xml", "rb"), content_type="application/x-download"
             )
@@ -425,7 +425,7 @@ class FormatExporter:
             os.remove("file.xml")
             return response
         elif return_type == "data":
-            response = HttpResponse(df.to_xml(), content_type="application/xml")
+            response = HttpResponse(df.to_xml(index=False), content_type="application/xml")
             return response
 
 
@@ -706,23 +706,26 @@ def get_request_file(
 ):
     data_request = DataRequest.objects.get(pk=data_request_id)
     file_path = data_request.file.path
-    if len(file_path):
-        mime_type = mimetypes.guess_type(file_path)[0]
-        if data_request.resource.dataset.dataset_type == "FILE" and target_format and target_format in ["CSV", "XML",
+    try:
+        if len(file_path):
+            mime_type = mimetypes.guess_type(file_path)[0]
+            if data_request.resource.dataset.dataset_type == "FILE" and target_format and target_format in ["CSV", "XML",
                                                                                                         "JSON"]:
-            src_format = FORMAT_MAPPING[mime_type]
-            response = getattr(
+                src_format = FORMAT_MAPPING[mime_type]
+                response = getattr(
                 FormatConverter,
                 f"convert_{src_format.lower()}_to_{target_format.lower()}",
             )(file_path, mime_type, return_type)
-        else:
-            response = HttpResponse(data_request.file, content_type=mime_type)
-            response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+            else:
+                response = HttpResponse(data_request.file, content_type=mime_type)
+                response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 os.path.basename(file_path)
             )
-        update_download_count(username, data_request)
-        data_request.file.delete()
-        return response
+            update_download_count(username, data_request)
+            data_request.file.delete()
+            return response
+    except Exception as e:
+        return HttpResponse("Something went wrong request again!!" + "  " + str(e), content_type="text/plain")
     return HttpResponse("Something went wrong request again!!", content_type="text/plain")
 
 
