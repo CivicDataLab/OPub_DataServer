@@ -8,15 +8,15 @@ import pathlib
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('dataset_api', '0113_alter_resourceschema_display_name_and_more'),
+        ('dataset_api', '0114_alter_datarequest_file_and_more'),
     ]
 
     operations = [
         migrations.AddField(
             model_name='dataset',
             name='parent',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='parent_field', to='dataset_api.dataset'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL,
+                                    related_name='parent_field', to='dataset_api.dataset'),
         ),
     ]

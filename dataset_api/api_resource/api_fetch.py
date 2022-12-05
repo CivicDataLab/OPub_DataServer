@@ -28,6 +28,7 @@ def parse_schema(schema_dict, parent, schema, current_path):
             schema.append(
                 {
                     "key": items_else_parent,
+                    "display_name": items_else_parent,
                     "format": "array",
                     "description": "",
                     "parent": "",
@@ -46,6 +47,7 @@ def parse_schema(schema_dict, parent, schema, current_path):
             schema.append(
                 {
                     "key": items_else_parent,
+                    "display_name": items_else_parent,
                     "format": "json",
                     "description": "",
                     "parent": "",
@@ -64,6 +66,7 @@ def parse_schema(schema_dict, parent, schema, current_path):
             schema.append(
                 {
                     "key": key,
+                    "display_name": key,
                     "format": "string",
                     "description": "",
                     "parent": else_parent,
@@ -94,7 +97,7 @@ def preview(request, resource_id):
     if resp["response_type"].lower() == "csv":
         context = {
             "Success": True,
-            "data": resp["data"].to_dict("records"),
+            "data": resp["data"].to_string(), #.to_dict("records"),
             "response_type": resp["response_type"],
         }
         return JsonResponse(context, safe=False)

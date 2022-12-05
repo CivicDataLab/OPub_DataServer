@@ -1,5 +1,6 @@
+import os
 import graphene
-from django.db.models import Q
+from django.core.files import File
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from graphql import GraphQLError
@@ -28,7 +29,7 @@ class EditDataset(Output, graphene.Mutation):
     @staticmethod
     # @validate_token
     # @auth_user_action_dataset(action="create_dataset")
-    # @map_user_dataset
+    @map_user_dataset
     def mutate(
         root,
         info,
@@ -49,6 +50,7 @@ class EditDataset(Output, graphene.Mutation):
                 cloned_resource = Dataset.objects.get(pk=cloned_id)
                 cloned_resource.status = "DRAFT"
                 cloned_resource.parent = dataset_instance
+                cloned_resource.accepted_agreement = File(dataset_instance.accepted_agreement,os.path.basename(dataset_instance.accepted_agreement.path),)
                 cloned_resource.save()
             except Dataset.DoesNotExist as e:
                 raise GraphQLError("Cloned dataset does not exists.")
