@@ -49,7 +49,7 @@ def map_user_dataset(func):
         # TODO: IF org doesn't exist, mutation returns an error. Not handled here.
         # if not value["success"]:
         #         raise GraphQLError(value["errors"]["id"][0]["message"])
-        print(value.dataset_id, hasattr(value, "dataset"))
+        print(value, hasattr(value, "dataset"))
         dataset_id = value.dataset.id if hasattr(value, "dataset") else value.dataset_id
         user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
         print("dataset_id----", dataset_id)

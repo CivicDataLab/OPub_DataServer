@@ -38,7 +38,7 @@ import xmltodict
 
 def parse_schema(schema_dict, parent, schema, current_path):
     global count
-    count = 0
+    #count = 0
     for key in schema_dict:
         if key == "required":
             continue
