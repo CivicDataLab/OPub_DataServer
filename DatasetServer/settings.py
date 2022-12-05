@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     "dataset_api",
     "graphql_auth",
     "activity_log",
+    "encrypted_json_fields",
 ]
 
 MIDDLEWARE = [
@@ -186,5 +187,7 @@ X_FRAME_OPTIONS = 'ALLOW-FROM http://localhost:3000/'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+FIELD_ENCRYPTION_KEY = env('FIELD_ENCRYPTION_KEY')
 
 django.utils.encoding.force_text = force_str
