@@ -43,13 +43,12 @@ def parse_schema(schema_dict, parent, schema, current_path):
         if key == "required":
             continue
         print(key)
-        items_else_parent = parent + str(count) if parent == "items" else parent
         if key == "items":
             count = count + 1
             schema.append(
                 {
-                    "key": items_else_parent,
-                    "display_name": items_else_parent,
+                    "key": parent + str(count) if parent == "items" else parent,
+                    "display_name": parent + str(count) if parent == "items" else parent,
                     "format": "array",
                     "description": "",
                     "parent": "",
@@ -67,8 +66,8 @@ def parse_schema(schema_dict, parent, schema, current_path):
             path = current_path + ".items" if parent == "items" else current_path
             schema.append(
                 {
-                    "key": items_else_parent,
-                    "display_name": items_else_parent,
+                    "key": parent + str(count) if parent == "items" else parent,
+                    "display_name": parent + str(count) if parent == "items" else parent,
                     "format": "json",
                     "description": "",
                     "parent": "",
@@ -83,14 +82,13 @@ def parse_schema(schema_dict, parent, schema, current_path):
             "array",
             "object",
         ]:
-            else_parent = items_else_parent
             schema.append(
                 {
                     "key": key,
                     "display_name": key,
                     "format": "string",
                     "description": "",
-                    "parent": else_parent,
+                    "parent": parent + str(count) if parent == "items" else parent,
                     "array_field": "",
                     "path": current_path + "." + key,
                     "parent_path": current_path
