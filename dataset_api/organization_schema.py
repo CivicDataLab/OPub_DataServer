@@ -93,7 +93,7 @@ class Query(graphene.ObjectType):
     # Access : DPA of that org.
     @auth_user_by_org(action="query")
     def resolve_organization_by_id(self, info, role, organization_id):
-        if role == "DPA" or role == "PMU":
+        if role == "DPA" or role == "PMU" or role == "DP":
             return Organization.objects.get(pk=organization_id)
         else:
             raise GraphQLError("Access Denied")
