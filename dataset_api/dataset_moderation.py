@@ -9,7 +9,7 @@ from .decorators import validate_token, validate_token_or_none
 from .enums import ReviewType
 from .models import DatasetReviewRequest, Dataset
 from .decorators import auth_user_by_org, auth_user_action_resource
-from .search import index_data
+from .search import index_data, delete_data
 from .email_utils import dataset_approval_notif
 
 
@@ -144,12 +144,7 @@ class ReviewRequestMutation(graphene.Mutation, Output):
         try:
             dataset = Dataset.objects.get(id=review_request.dataset)
         except Dataset.DoesNotExist as e:
-            raise GraphQLError(
-                {
-                    "message": "Moderation request does not exist",
-                    "code": "404",
-                }
-            )
+            raise GraphQLError("Moderation request does not exist")
         review_request_instance.dataset = dataset
         review_request_instance.save()
         # TODO: fix magic string
@@ -181,12 +176,7 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
                     id=request_id
                 )
             except DatasetReviewRequest.DoesNotExist as e:
-                errors.append(
-                    {
-                        "message": "Moderation request does not exist",
-                        "code": "404",
-                    }
-                )
+                errors.append("Moderation request does not exist")
                 continue
 
             if moderation_request_instance:
@@ -196,6 +186,11 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
             #     TODO: FIX magic strings
             if moderation_request.status == "APPROVED":
                 dataset = moderation_request_instance.dataset
+                if dataset.parent:
+                    # DISABLE parent dataset.
+                    dataset.parent.status = "DISABLED"
+                    delete_data(dataset.parent.id) # Remove the listing from ES.
+                    dataset.parent.save()
                 dataset.status = "PUBLISHED"
                 dataset.save()
                 dataset_approval_notif(
@@ -235,12 +230,7 @@ class AddressModerationRequests(graphene.Mutation, Output):
                 id=moderation_request.ids[0], status__iexact="REJECTED"
             )
         except DatasetReviewRequest.DoesNotExist as e:
-            raise GraphQLError(
-                {
-                    "message": "Moderation request does not exist",
-                    "code": "404",
-                }
-            )
+            raise GraphQLError("Moderation request does not exist")
         if moderation_request_instance:
             moderation_request_instance.status = StatusType.ADDRESSING.value
         moderation_request_instance.save()
@@ -264,12 +254,7 @@ class ApproveRejectReviewRequests(graphene.Mutation, Output):
                     id=request_id
                 )
             except DatasetReviewRequest.DoesNotExist as e:
-                errors.append(
-                    {
-                        "message": "Review request does not exist",
-                        "code": "404",
-                    }
-                )
+                errors.append("Review request does not exist")
                 continue
 
             if review_request_instance:

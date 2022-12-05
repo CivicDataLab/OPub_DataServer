@@ -551,20 +551,21 @@ class CreateResource(graphene.Mutation, Output):
         try:
             dataset = Dataset.objects.get(id=resource_data.dataset)
         except Dataset.DoesNotExist as e:
-            raise GraphQLError ({"message": "Dataset with given id not found", "code": "404"})
+            raise GraphQLError ("Dataset with given id not found")
         try:
             Resource.objects.get(Q(dataset=dataset), Q(title__iexact=resource_data.title))
-            raise GraphQLError ({"message": "Distribution with same name already exists", "code": "404"})
+            raise GraphQLError ("Distribution with same name already exists")
         except Resource.DoesNotExist:
             # For checking if file with same name has been uploaded in the same dataset.
-            get_all_resource = Resource.objects.filter(dataset=dataset)
-            if get_all_resource.exists():
-                for resources in get_all_resource:
-                    resource_file_details = FileDetails.objects.get(resource=resources)
-                    if resource_file_details.file.name.split("/")[-1].replace("_"," ") == str(resource_data.file_details.file.name.replace("_"," ")):
-                        raise GraphQLError({"message": "You have already uploaded this file in another distribution.", "code": "404"})
-                    else:
-                        pass
+            if dataset.dataset_type == DataType.FILE.value:
+                get_all_resource = Resource.objects.filter(dataset=dataset)
+                if get_all_resource.exists():
+                    for resources in get_all_resource:
+                        resource_file_details = FileDetails.objects.get(resource=resources)
+                        if resource_file_details.file.name.split("/")[-1].replace("_"," ") == str(resource_data.file_details.file.name.replace("_"," ")):
+                            raise GraphQLError("You have already uploaded this file in another distribution.")
+                        else:
+                            pass
             
             masked_fields = resource_data.masked_fields
             resource_instance = Resource(
