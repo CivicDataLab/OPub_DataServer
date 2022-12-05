@@ -15,57 +15,64 @@ import json
 import xmltodict
 
 
-def parse_schema(schema_dict, parent, schema):
+def parse_schema(schema_dict, parent, schema, current_path):
     global count
+    count = 0
     for key in schema_dict:
         if key == "required":
             continue
         print(key)
+        items_else_parent = parent + str(count) if parent == "items" else parent
         if key == "items":
-            print(count)
             count = count + 1
-            print(count)
             schema.append(
                 {
-                    "key": parent + str(count) if parent == "items" else parent,
+                    "key": items_else_parent,
                     "format": "array",
                     "description": "",
                     "parent": "",
                     "array_field": "items" + str(count),
+                    "path": current_path,
+                    "parent_path": ".".join(current_path.split('.')[0:-1] ) 
                 }
             )
-            parse_schema(schema_dict["items"], key, schema)
+            parse_schema(schema_dict["items"], key, schema, current_path)
             continue
         if key == "type":
             continue
 
         if key == "properties":
+            path = current_path + ".items" if parent == "items" else current_path
             schema.append(
                 {
-                    "key": parent + str(count) if parent == "items" else parent,
+                    "key": items_else_parent,
                     "format": "json",
                     "description": "",
                     "parent": "",
                     "array_field": "",
+                    "path": path,
+                    "parent_path": ".".join(path.split('.')[0:-1] ) 
                 }
             )
-            parse_schema(schema_dict["properties"], parent, schema)
+            parse_schema(schema_dict["properties"], parent, schema, path)
             continue
         if "type" in schema_dict[key] and schema_dict[key]["type"] not in [
             "array",
             "object",
         ]:
+            else_parent = items_else_parent
             schema.append(
                 {
                     "key": key,
                     "format": "string",
                     "description": "",
-                    "parent": parent + str(count) if parent == "items" else parent,
+                    "parent": else_parent,
                     "array_field": "",
+                    "path": current_path
                 }
             )
         else:
-            parse_schema(schema_dict[key], key, schema)
+            parse_schema(schema_dict[key], key, schema, current_path + "." + key)
 
 
 def preview(request, resource_id):
@@ -117,7 +124,7 @@ def schema(request, resource_id):
         #global count
         #count = 0
         print("------asadasf", schema_dict)
-        parse_schema(schema_dict, "", schema)
+        parse_schema(schema_dict, "", schema, "")
         context = {
             "Success": True,
             "schema": schema,
@@ -159,7 +166,7 @@ def schema(request, resource_id):
         #global count
         #count = 0
         print("------asadasf", schema_dict)
-        parse_schema(schema_dict, "", schema)
+        parse_schema(schema_dict, "", schema, "")
         context = {
             "Success": True,
             "schema": schema,
@@ -305,6 +312,5 @@ def fetchapi(resource_id):
         return context
 
     except Exception as e:
-        raise e
         context = {"Success": False, "error": str(e)}
         return context

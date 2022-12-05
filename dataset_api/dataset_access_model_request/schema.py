@@ -21,7 +21,7 @@ from .decorators import auth_query_dam_request
 from dataset_api.enums import SubscriptionUnits, ValidationUnits
 from ..constants import DATAREQUEST_SWAGGER_SPEC
 from ..data_request.token_handler import create_data_refresh_token, create_data_jwt_token
-from ..models import DatasetAccessModelResource, Resource
+from ..models import DatasetAccessModelResource, Resource, DataRequest
 from ..utils import get_client_ip
 
 r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
@@ -70,11 +70,27 @@ class DataAccessModelRequestType(DjangoObjectType):
             return validity.strftime("%d-%m-%Y")
         return None
 
-    @validate_token_or_none
+    @validate_token
     def resolve_is_valid(self: DatasetAccessModelRequest, info, username=""):
         validity = get_data_access_model_request_validity(self)
+        dam_quota_unit = self.access_model.data_access_model.subscription_quota_unit
+        quota_limit = self.access_model.data_access_model.subscription_quota
+        
         if validity:
-            return timezone.now() <= validity
+            if timezone.now() >= validity:
+                return False
+            else:
+                if dam_quota_unit == SubscriptionUnits.LIMITEDDOWNLOAD:
+                    used_quota = r.get(":1:rl||"+ username+ "||"+ str(self.id)+ "||"+ "365d||quota")
+                    if used_quota:
+                        if quota_limit > int(used_quota.decode()):
+                            return True
+                        else:
+                            return False
+                    else:
+                        return None
+                else:
+                    return True
         return None
 
     @validate_token_or_none

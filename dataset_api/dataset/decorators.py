@@ -111,3 +111,21 @@ def auth_query_dataset(action):
         return inner
 
     return accept_func
+
+
+def get_user_datasets(func):
+    def inner(*args, **kwargs):
+        user_token = args[1].context.META.get("HTTP_AUTHORIZATION", "")
+        body = json.dumps(
+            {
+                "access_token": user_token,
+            }
+        )
+        response_json = request_to_server(body, "get_user_datasets")
+        if not response_json["Success"]:
+            raise GraphQLError(response_json["error_description"])
+        else:
+            kwargs["dataset_list"] = response_json["datasets"]
+            return func(*args, **kwargs)
+
+    return inner

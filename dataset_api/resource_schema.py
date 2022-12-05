@@ -35,57 +35,67 @@ from .models import (
 from .utils import log_activity, get_client_ip
 import xmltodict
 
-def parse_schema(schema_dict, parent, schema):
+
+def parse_schema(schema_dict, parent, schema, current_path):
     global count
+    count = 0
     for key in schema_dict:
         if key == "required":
             continue
         print(key)
+        items_else_parent = parent + str(count) if parent == "items" else parent
         if key == "items":
-            print(count)
             count = count + 1
-            print(count)
             schema.append(
                 {
-                    "key": parent + str(count) if parent == "items" else parent,
+                    "key": items_else_parent,
                     "format": "array",
                     "description": "",
                     "parent": "",
                     "array_field": "items" + str(count),
+                    "path": current_path,
+                    "parent_path": ".".join(current_path.split('.')[0:-1] )
                 }
             )
-            parse_schema(schema_dict["items"], key, schema)
+            parse_schema(schema_dict["items"], key, schema, current_path)
             continue
         if key == "type":
             continue
 
         if key == "properties":
+            path = current_path + ".items" if parent == "items" else current_path
             schema.append(
                 {
-                    "key": parent + str(count) if parent == "items" else parent,
+                    "key": items_else_parent,
                     "format": "json",
                     "description": "",
                     "parent": "",
                     "array_field": "",
+                    "path": path,
+                    "parent_path": ".".join(path.split('.')[0:-1] )
                 }
             )
-            parse_schema(schema_dict["properties"], parent, schema)
+            parse_schema(schema_dict["properties"], parent, schema, path)
             continue
         if "type" in schema_dict[key] and schema_dict[key]["type"] not in [
             "array",
             "object",
         ]:
+            else_parent = items_else_parent
             schema.append(
                 {
                     "key": key,
                     "format": "string",
                     "description": "",
-                    "parent": parent + str(count) if parent == "items" else parent,
+                    "parent": else_parent,
                     "array_field": "",
+                    "path": current_path + "." + key,
+                    "parent_path": current_path
                 }
             )
         else:
-            parse_schema(schema_dict[key], key, schema)
+            parse_schema(schema_dict[key], key, schema, current_path + "." + key)
+
 
 
 
@@ -217,7 +227,7 @@ class Query(graphene.ObjectType):
                             schema_dict = builder.to_schema()
                             schema_dict = schema_dict.get("properties", {})
                             schema = []
-                            parse_schema(schema_dict, "", schema)
+                            parse_schema(schema_dict, "", schema, "")
                             return schema
                     if resource.filedetails.format.lower() == "xml":
                         with open(resource.filedetails.file.path) as xmlFile:
@@ -233,7 +243,7 @@ class Query(graphene.ObjectType):
                             schema_dict = builder.to_schema()
                             schema_dict = schema_dict.get("properties", {})
                             schema = []
-                            parse_schema(schema_dict, "", schema)
+                            parse_schema(schema_dict, "", schema, "")
                             return schema
             return []
         else:
@@ -352,7 +362,7 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
             if schema.id:
                 schema_instance = ResourceSchema.objects.get(id=int(schema.id))
                 schema_instance.key = schema.key
-                schema_instance.display_name = (get_display_name(schema),)
+                schema_instance.display_name = get_display_name(schema)
                 schema_instance.format = schema.format
                 schema_instance.description = schema.description
                 schema_instance.resource = resource_instance
@@ -489,6 +499,7 @@ def _create_update_file_details(resource_instance, attribute):
         file_format = FORMAT_MAPPING[mime_type.lower()]
         try:
             file_obj = copy.deepcopy(attribute.file)
+            print(file_format)
             if file_format.lower() == "csv":
                 data = pd.read_csv(file_obj)
             if file_format.lower() == "xlsx":
@@ -502,6 +513,7 @@ def _create_update_file_details(resource_instance, attribute):
             if file_format.lower() == "xml":
                 data = pd.read_xml(file_obj)
         except Exception as e:
+            resource_instance.delete()
             raise GraphQLError(str(e))
 
         if file_format:
@@ -536,25 +548,21 @@ class CreateResource(graphene.Mutation, Output):
         try:
             dataset = Dataset.objects.get(id=resource_data.dataset)
         except Dataset.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Dataset with given id not found", "code": "404"}
-                    ]
-                },
-            }
+            raise GraphQLError ({"message": "Dataset with given id not found", "code": "404"})
         try:
             Resource.objects.get(Q(dataset=dataset), Q(title__iexact=resource_data.title))
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Resource with same name already exists", "code": "404"}
-                    ]
-                },
-            }
+            raise GraphQLError ({"message": "Distribution with same name already exists", "code": "404"})
         except Resource.DoesNotExist:
+            # For checking if file with same name has been uploaded in the same dataset.
+            get_all_resource = Resource.objects.filter(dataset=dataset)
+            if get_all_resource.exists():
+                for resources in get_all_resource:
+                    resource_file_details = FileDetails.objects.get(resource=resources)
+                    if resource_file_details.file.name.split("/")[-1].replace("_"," ") == str(resource_data.file_details.file.name.replace("_"," ")):
+                        raise GraphQLError({"message": "You have already uploaded this file in another distribution.", "code": "404"})
+                    else:
+                        pass
+            
             masked_fields = resource_data.masked_fields
             resource_instance = Resource(
                 title=resource_data.title,
@@ -583,17 +591,7 @@ class CreateResource(graphene.Mutation, Output):
                     )
                 except APISource.DoesNotExist as e:
                     resource_instance.delete()
-                    return {
-                        "success": False,
-                        "errors": {
-                            "id": [
-                                {
-                                    "message": "API Source with given id not found",
-                                    "code": "404",
-                                }
-                            ]
-                        },
-                    }
+                    raise GraphQLError ({"message": "API Source with given id not found", "code": "404"})
             elif dataset.dataset_type == DataType.FILE.value:
                 _create_update_file_details(
                     resource_instance=resource_instance,
@@ -627,23 +625,9 @@ class UpdateResource(graphene.Mutation, Output):
             resource_instance = Resource.objects.get(id=resource_data.id)
             dataset = Dataset.objects.get(id=resource_data.dataset)
         except Resource.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Resource with given id not found", "code": "404"}
-                    ]
-                },
-            }
+            raise GraphQLError ({"message": "Distribution with given id not found", "code": "404"})
         except Dataset.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Dataset with given id not found", "code": "404"}
-                    ]
-                },
-            }
+            raise GraphQLError ({"message": "Dataset with given id not found", "code": "404"})
         resource_instance.title = resource_data.title
         resource_instance.description = resource_data.description
         resource_instance.dataset = dataset
@@ -669,17 +653,7 @@ class UpdateResource(graphene.Mutation, Output):
                     attribute=resource_data.api_details,
                 )
             except APISource.DoesNotExist as e:
-                return {
-                    "success": False,
-                    "errors": {
-                        "id": [
-                            {
-                                "message": "API Source with given id not found",
-                                "code": "404",
-                            }
-                        ]
-                    },
-                }
+                raise GraphQLError ({"message": "API Source with given id not found", "code": "404",})
         else:
             _create_update_file_details(
                 resource_instance=resource_instance,
@@ -713,14 +687,7 @@ class DeleteResource(graphene.Mutation, Output):
         try:
             resource_instance = Resource.objects.get(id=resource_data.id)
         except Resource.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Resource with given id not found", "code": "404"}
-                    ]
-                },
-            }
+            raise GraphQLError({"message": "Distribution with given id not found", "code": "404"})
         log_activity(
             target_obj=resource_instance,
             ip=get_client_ip(info),

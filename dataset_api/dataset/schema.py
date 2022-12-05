@@ -15,7 +15,7 @@ from dataset_api.utils import (
     log_activity,
     get_average_rating,
 )
-from .decorators import auth_user_action_dataset, map_user_dataset, auth_query_dataset
+from .decorators import auth_user_action_dataset, map_user_dataset, auth_query_dataset, get_user_datasets
 from ..data_access_model.contract import update_provider_agreement
 
 
@@ -42,6 +42,7 @@ class DatasetStatus(graphene.Enum):
     UNDERMODERATION = "UNDERMODERATION"
     READYTOPUBLISH = "READYTOPUBLISH"
     TRANSFORMATIONINPROGRESS = "TRANSFORMATIONINPROGRESS"
+    DISABLED = "DISABLED"
 
 
 def _add_update_attributes_to_dataset(
@@ -83,19 +84,21 @@ class Query(graphene.ObjectType):
     # Access : PMU / DPA
     @auth_user_by_org(action="query")
     @validate_token
+    @get_user_datasets
     def resolve_org_datasets(
-            self, info, role, first=None, skip=None, status: DatasetStatus = None, username="", **kwargs
+            self, info, role, dataset_list, first=None, skip=None, status: DatasetStatus = None, username="", **kwargs
     ):
         if role == "PMU" or role == "DPA":
             org_id = info.context.META.get("HTTP_ORGANIZATION")
             organization = Organization.objects.get(id=org_id)
             if status:
                 query = Dataset.objects.filter(
-                    catalog__organization=organization, status=status
+                    catalog__organization=organization, status=status, id__in=dataset_list
                 ).order_by("-modified")
             else:
                 query = Dataset.objects.filter(
                     catalog__organization=organization,
+                    id__in=dataset_list, 
                 ).order_by("-modified")
             if skip:
                 query = query[skip:]
