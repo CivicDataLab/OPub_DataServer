@@ -19,13 +19,13 @@ class APISourceType(DjangoObjectType):
         fields = "__all__"
 
     def resolve_published_dataset_count(self, info):
-        return Dataset.objects.filter(resource__apidetails=self, status="PUBLISHED").count()
+        return Dataset.objects.filter(resource__apidetails__api_source=self, status="PUBLISHED").count()
 
     def resolve_published_datasets(self, info):
-        return Dataset.objects.filter(resource__apidetails=self, status="PUBLISHED")
+        return Dataset.objects.filter(resource__apidetails__api_source=self, status="PUBLISHED")
 
     def resolve_all_dataset_count(self, info):
-        return Dataset.objects.filter(resource__apidetails=self, status="PUBLISHED").count()
+        return Dataset.objects.filter(resource__apidetails__api_source=self, status="PUBLISHED").count()
 
 
 class Query(graphene.ObjectType):
