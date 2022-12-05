@@ -22,37 +22,9 @@ from dataset_api.enums import SubscriptionUnits, ValidationUnits
 from ..constants import DATAREQUEST_SWAGGER_SPEC
 from ..data_request.token_handler import create_data_refresh_token, create_data_jwt_token
 from ..models import DatasetAccessModelResource, Resource, DataRequest
-from ..utils import get_client_ip
+from ..utils import get_client_ip, get_data_access_model_request_validity
 
 r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
-
-
-def get_data_access_model_request_validity(data_access_model_request):
-    if data_access_model_request.status == "APPROVED":
-        validity = data_access_model_request.access_model.data_access_model.validation
-        validity_unit = data_access_model_request.access_model.data_access_model.validation_unit
-        approval_date = data_access_model_request.modified
-        validation_deadline = approval_date
-        if validity_unit == ValidationUnits.DAY:
-            validation_deadline = approval_date + datetime.timedelta(days=validity)
-        elif validity_unit == ValidationUnits.WEEK:
-            validation_deadline = approval_date + datetime.timedelta(weeks=validity)
-        elif validity_unit == ValidationUnits.MONTH:
-            validation_deadline = approval_date + datetime.timedelta(
-                days=(30 * validity)
-            )
-        elif validity_unit == ValidationUnits.YEAR:
-            validation_deadline = approval_date + datetime.timedelta(
-                days=(365 * validity)
-            )
-        elif validity_unit == ValidationUnits.LIFETIME:
-            validation_deadline = approval_date + datetime.timedelta(
-                days=(365 * 100)
-            )
-        return validation_deadline
-    else:
-        return None
-
 
 class DataAccessModelRequestType(DjangoObjectType):
     validity = graphene.String()
