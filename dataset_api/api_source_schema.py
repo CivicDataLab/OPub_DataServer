@@ -10,18 +10,28 @@ from .decorators import auth_user_by_org
 
 
 class APISourceType(DjangoObjectType):
+    published_dataset_count = graphene.Int()
+    all_dataset_count = graphene.Int()
+    published_datasets = graphene.List(DatasetType)
+
     class Meta:
         model = APISource
         fields = "__all__"
+
+    def resolve_published_dataset_count(self, info):
+        return Dataset.objects.filter(resource__apidetails=self, status="PUBLISHED").count()
+
+    def resolve_published_datasets(self, info):
+        return Dataset.objects.filter(resource__apidetails=self, status="PUBLISHED")
+
+    def resolve_all_dataset_count(self, info):
+        return Dataset.objects.filter(resource__apidetails=self, status="PUBLISHED").count()
 
 
 class Query(graphene.ObjectType):
     all_api_source = graphene.List(APISourceType)
     all_api_source_by_org = graphene.List(APISourceType)
-    published_datasets = graphene.List(DatasetType)
     api_source = graphene.Field(APISourceType, api_source_id=graphene.Int())
-    published_dataset_count = graphene.Int()
-    all_dataset_count = graphene.Int()
 
     def resolve_all_api_source(self, info, **kwargs):
         return APISource.objects.all()
@@ -33,15 +43,6 @@ class Query(graphene.ObjectType):
 
     def resolve_api_source(self, info, api_source_id):
         return APISource.objects.get(pk=api_source_id)
-
-    def resolve_published_dataset_count(self, info):
-        return Dataset.objects.filter(resource__apidetails=self, status="PUBLISHED").count()
-
-    def resolve_published_datasets(self, info):
-        return Dataset.objects.filter(resource__apidetails=self, status="PUBLISHED")
-
-    def resolve_all_dataset_count(self, info):
-        return Dataset.objects.filter(resource__apidetails=self, status="PUBLISHED").count()
 
 
 class KeyValueType(graphene.InputObjectType):
