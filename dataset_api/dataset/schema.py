@@ -219,17 +219,7 @@ class CreateDataset(Output, graphene.Mutation):
             organization = Organization.objects.get(id=org_id)
             catalog = Catalog.objects.filter(organization=organization)[0]
         except Organization.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {
-                            "message": "Organization with given id not found",
-                            "code": "404",
-                        }
-                    ]
-                },
-            }
+            raise GraphQLError("Organization with given id not found")
         dataset_instance = Dataset(
             title=dataset_data.title,
             description=dataset_data.description,
@@ -265,26 +255,9 @@ class UpdateDataset(Output, graphene.Mutation):
             dataset_instance = Dataset.objects.get(id=dataset_data.id)
             organization = Organization.objects.get(id=org_id)
         except Organization.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {
-                            "message": "Organization with given id not found",
-                            "code": "404",
-                        }
-                    ]
-                },
-            }
+            raise GraphQLError("Organization with given id not found")
         except Dataset.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Dataset with given id not found", "code": "404"}
-                    ]
-                },
-            }
+            raise GraphQLError("Dataset with given id not found")
         catalog = Catalog.objects.filter(organization=organization)[0]
         dataset_instance.remote_issued = dataset_data.remote_issued
         dataset_instance.remote_modified = dataset_data.remote_modified
@@ -341,14 +314,7 @@ class PatchDataset(Output, graphene.Mutation):
         try:
             dataset_instance = Dataset.objects.get(id=dataset_data.id)
         except Dataset.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Dataset with given id not found", "code": "404"}
-                    ]
-                },
-            }
+            raise GraphQLError("Dataset with given id not found")
         if dataset_data.status:
             dataset_instance.status = dataset_data.status
         if dataset_data.funnel:
