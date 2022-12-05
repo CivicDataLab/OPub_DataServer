@@ -25,7 +25,7 @@ class APISourceType(DjangoObjectType):
         return Dataset.objects.filter(resource__apidetails__api_source=self, status="PUBLISHED")
 
     def resolve_all_dataset_count(self, info):
-        return Dataset.objects.filter(resource__apidetails__api_source=self, status="PUBLISHED").count()
+        return Dataset.objects.filter(resource__apidetails__api_source=self).count()
 
 
 class Query(graphene.ObjectType):
