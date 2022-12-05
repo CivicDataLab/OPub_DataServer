@@ -1,4 +1,5 @@
 import os
+import uuid
 
 
 def _organization_directory_path(org, filename):
@@ -30,8 +31,10 @@ def _resource_directory_path(file_details, filename):
     """
     dataset_name = file_details.resource.dataset.title
     resource_name = file_details.resource.title
+    file_details.source_file_name = filename
     _, extension = os.path.splitext(filename)
-    return f"resources/{dataset_name}/{resource_name}/{extension[1:]}/{filename}"
+    new_name = str(uuid.uuid4()) + "." + extension
+    return f"resources/{dataset_name}/{resource_name}/{extension[1:]}/{new_name}"
 
 
 def _info_directory_path(info, filename):

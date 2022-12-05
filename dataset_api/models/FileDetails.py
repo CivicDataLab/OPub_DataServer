@@ -15,3 +15,4 @@ class FileDetails(models.Model):
     format = models.CharField(max_length=50)
     file = models.FileField(storage=fs, upload_to=_resource_directory_path, blank=True, max_length=1000)
     remote_url = models.URLField(blank=True)
+    source_file_name = models.CharField(max_length=100)
