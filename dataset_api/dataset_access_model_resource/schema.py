@@ -80,6 +80,7 @@ class ResourceFieldInput(graphene.InputObjectType):
 
 class AccessModelResourceInput(graphene.InputObjectType):
     id = graphene.ID()
+    title = graphene.String(required=True)
     resource_map: Iterable = graphene.List(of_type=ResourceFieldInput, required=True)
     access_model_id = graphene.ID(required=True)
     dataset_id = graphene.ID(required=True)
@@ -107,7 +108,8 @@ class CreateAccessModelResource(Output, graphene.Mutation):
             )
 
             dataset_access_model = DatasetAccessModel(
-                data_access_model=data_access_instance, dataset=dataset_instance
+                data_access_model=data_access_instance, dataset=dataset_instance,
+                title=access_model_resource_data.title,
             )
             dataset_access_model.save()
 
@@ -173,6 +175,8 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
             dataset_access_model_instance = DatasetAccessModel.objects.get(
                 pk=access_model_resource_data.id
             )
+            dataset_access_model_instance.title = access_model_resource_data.title
+            dataset_access_model_instance.save()
             if (
                     not access_model_resource_data.resource_map
                     or len(access_model_resource_data.resource_map) == 0
