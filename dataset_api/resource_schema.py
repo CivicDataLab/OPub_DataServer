@@ -13,7 +13,7 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql import GraphQLError
 from graphql_auth.bases import Output
-from django.db.models import Q 
+from django.db.models import Q
 from .api_resource import api_fetch
 from .constants import FORMAT_MAPPING
 from .decorators import (
@@ -38,7 +38,7 @@ import xmltodict
 
 def parse_schema(schema_dict, parent, schema, current_path):
     global count
-    #count = 0
+    # count = 0
     for key in schema_dict:
         if key == "required":
             continue
@@ -54,7 +54,7 @@ def parse_schema(schema_dict, parent, schema, current_path):
                     "parent": "",
                     "array_field": "items" + str(count),
                     "path": current_path,
-                    "parent_path": ".".join(current_path.split('.')[0:-1] )
+                    "parent_path": ".".join(current_path.split('.')[0:-1])
                 }
             )
             parse_schema(schema_dict["items"], key, schema, current_path)
@@ -73,7 +73,7 @@ def parse_schema(schema_dict, parent, schema, current_path):
                     "parent": "",
                     "array_field": "",
                     "path": path,
-                    "parent_path": ".".join(path.split('.')[0:-1] )
+                    "parent_path": ".".join(path.split('.')[0:-1])
                 }
             )
             parse_schema(schema_dict["properties"], parent, schema, path)
@@ -96,9 +96,6 @@ def parse_schema(schema_dict, parent, schema, current_path):
             )
         else:
             parse_schema(schema_dict[key], key, schema, current_path + "." + key)
-
-
-
 
 
 class ResourceSchemaInputType(graphene.InputObjectType):
@@ -220,8 +217,8 @@ class Query(graphene.ObjectType):
                     if resource.filedetails.format.lower() == "json":
                         with open(resource.filedetails.file.path) as jsonFile:
                             # return list(set(get_keys(jsonFile.read(), [])))
-                           # global count
-                           # count = 0
+                            # global count
+                            # count = 0
                             builder = genson.SchemaBuilder()
                             jsondata = json.loads(jsonFile.read())  # json.loads(resource.filedetails.file)
                             builder.add_object(jsondata)
@@ -232,8 +229,8 @@ class Query(graphene.ObjectType):
                             return schema
                     if resource.filedetails.format.lower() == "xml":
                         with open(resource.filedetails.file.path) as xmlFile:
-                            #global count
-                            #count = 0
+                            # global count
+                            # count = 0
                             # return list(set(get_keys(jsonFile.read(), [])))
                             builder = genson.SchemaBuilder()
                             jsondata = xmltodict.parse(xmlFile.read())
@@ -332,9 +329,9 @@ class DeleteResourceInput(graphene.InputObjectType):
 
 def _remove_masked_fields(resource_instance: Resource):
     if (
-        resource_instance.masked_fields
-        and len(resource_instance.filedetails.file.path)
-        and "csv" in resource_instance.filedetails.format.lower()
+            resource_instance.masked_fields
+            and len(resource_instance.filedetails.file.path)
+            and "csv" in resource_instance.filedetails.format.lower()
     ):
         df = pd.read_csv(resource_instance.filedetails.file.path)
         df = df.drop(columns=resource_instance.masked_fields)
@@ -537,10 +534,10 @@ class CreateResource(graphene.Mutation, Output):
     @validate_token
     @auth_user_action_resource(action="create_resource")
     def mutate(
-        root,
-        info,
-        username,
-        resource_data: ResourceInput = None,
+            root,
+            info,
+            username,
+            resource_data: ResourceInput = None,
     ):
         """
 
@@ -549,22 +546,23 @@ class CreateResource(graphene.Mutation, Output):
         try:
             dataset = Dataset.objects.get(id=resource_data.dataset)
         except Dataset.DoesNotExist as e:
-            raise GraphQLError ("Dataset with given id not found")
+            raise GraphQLError("Dataset with given id not found")
         try:
             Resource.objects.get(Q(dataset=dataset), Q(title__iexact=resource_data.title))
-            raise GraphQLError ("Distribution with same name already exists")
+            raise GraphQLError("Distribution with same name already exists")
         except Resource.DoesNotExist:
             # For checking if file with same name has been uploaded in the same dataset.
             if dataset.dataset_type == DataType.FILE.value:
-                get_all_resource = Resource.objects.filter(dataset=dataset)
-                if get_all_resource.exists():
-                    for resources in get_all_resource:
-                        resource_file_details = FileDetails.objects.get(resource=resources)
-                        if resource_file_details.file.name.split("/")[-1].replace("_"," ") == str(resource_data.file_details.file.name.replace("_"," ")):
+                dataset_resources = Resource.objects.filter(dataset=dataset)
+                if dataset_resources.exists():
+                    for resource in dataset_resources:
+                        resource_file_details = FileDetails.objects.get(resource=resource)
+                        if resource_file_details.source_file_name == str(
+                                resource_data.file_details.file.name.replace("_", " ")):
                             raise GraphQLError("You have already uploaded this file in another distribution.")
                         else:
                             pass
-            
+
             masked_fields = resource_data.masked_fields
             resource_instance = Resource(
                 title=resource_data.title,
@@ -593,7 +591,7 @@ class CreateResource(graphene.Mutation, Output):
                     )
                 except APISource.DoesNotExist as e:
                     resource_instance.delete()
-                    raise GraphQLError ({"message": "API Source with given id not found", "code": "404"})
+                    raise GraphQLError({"message": "API Source with given id not found", "code": "404"})
             elif dataset.dataset_type == DataType.FILE.value:
                 _create_update_file_details(
                     resource_instance=resource_instance,
@@ -627,9 +625,9 @@ class UpdateResource(graphene.Mutation, Output):
             resource_instance = Resource.objects.get(id=resource_data.id)
             dataset = Dataset.objects.get(id=resource_data.dataset)
         except Resource.DoesNotExist as e:
-            raise GraphQLError ({"message": "Distribution with given id not found", "code": "404"})
+            raise GraphQLError({"message": "Distribution with given id not found", "code": "404"})
         except Dataset.DoesNotExist as e:
-            raise GraphQLError ({"message": "Dataset with given id not found", "code": "404"})
+            raise GraphQLError({"message": "Dataset with given id not found", "code": "404"})
         resource_instance.title = resource_data.title
         resource_instance.description = resource_data.description
         resource_instance.dataset = dataset
@@ -655,7 +653,7 @@ class UpdateResource(graphene.Mutation, Output):
                     attribute=resource_data.api_details,
                 )
             except APISource.DoesNotExist as e:
-                raise GraphQLError ({"message": "API Source with given id not found", "code": "404",})
+                raise GraphQLError({"message": "API Source with given id not found", "code": "404", })
         else:
             _create_update_file_details(
                 resource_instance=resource_instance,
