@@ -57,9 +57,30 @@ class CreateDatasetRating(Output, graphene.Mutation):
     @validate_token
     def mutate(root, info, rating_data: DatasetRatingInput, username=None, **kwargs):
         dataset = Dataset.objects.get(id=rating_data.dataset)
-        previous_rating_instance = DatasetRatings.objects.filter(user=username, dataset=dataset).order_by("-modified")
-        time_check = previous_rating_instance[0].modified + datetime.timedelta(minutes=1)
-        if datetime.datetime.now(datetime.timezone.utc) > time_check:
+        previous_rating_instance = DatasetRatings.objects.filter(
+            user=username, dataset=dataset
+        ).order_by("-modified")
+        if previous_rating_instance.exists():
+            time_check = previous_rating_instance[0].modified + datetime.timedelta(
+                minutes=1
+            )
+            if datetime.datetime.now(datetime.timezone.utc) > time_check:
+                rating_instance = DatasetRatings(
+                    review=rating_data.review,
+                    # overall=rating_data.overall,
+                    data_quality=rating_data.data_quality,
+                    # data_standards=rating_data.data_standards,
+                    # coverage=rating_data.coverage,
+                    status=RatingStatus.CREATED.value,
+                    dataset=dataset,
+                    user=username,
+                )
+                rating_instance.save()
+            else:
+                raise GraphQLError(
+                    "You have already rated this dataset. Try again after 1 day."
+                )
+        else:
             rating_instance = DatasetRatings(
                 review=rating_data.review,
                 # overall=rating_data.overall,
@@ -71,8 +92,6 @@ class CreateDatasetRating(Output, graphene.Mutation):
                 user=username,
             )
             rating_instance.save()
-        else:
-            raise GraphQLError("You have already rated this dataset. Try again after 1 day.")
         # Update rating in elasticsearch
         # update_rating(rating_instance)
         return CreateDatasetRating(dataset_rating=rating_instance)
@@ -89,7 +108,7 @@ class ApproveRejectRating(graphene.Mutation, Output):
         try:
             rating_instance = DatasetRatings.objects.get(id=rating_data.id)
         except DatasetRatings.DoesNotExist as e:
-            return {"success": False, "errors": {"id": [{"message": "Dataset with given id not found", "code": "404"}]}}
+            raise GraphQLError("Dataset with given id not found")
         rating_instance.status = rating_data.status
         rating_instance.save()
         # Update rating in elasticsearch

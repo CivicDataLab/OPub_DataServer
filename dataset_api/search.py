@@ -30,6 +30,7 @@ def index_data(dataset_obj):
         "dataset_description": dataset_obj.description,
         "action": dataset_obj.action,
         "funnel": dataset_obj.funnel,
+        "issued": dataset_obj.issued,
         "period_from": dataset_obj.period_from,
         "period_to": dataset_obj.period_to,
         "update_frequency": dataset_obj.update_frequency,
@@ -144,13 +145,20 @@ def facets(request):
         size = 5
     paginate_from = request.GET.get("from", 0)
     query_string = request.GET.get("q")
+    sort_by = request.GET.get("sort_by", None)
     sort_order = request.GET.get("sort", None)
     org = request.GET.get("organization", None)
     start_duration = request.GET.get("start_duration", None)
     end_duration = request.GET.get("end_duration", None)
-    if sort_order:
-        if sort_order == "last_modified":
-            sort_mapping = {"remote_modified": {"order": "desc"}}
+    if sort_by and sort_order:
+        if sort_by == "modified":
+            sort_mapping = {"modified": {"order": sort_order}}
+        elif sort_by == "rating":
+            sort_mapping = {"average_rating": {"order": sort_order}}
+        elif sort_by == "provider":
+            sort_mapping = {"org_title.keyword": {"order": sort_order}}
+        elif sort_by == "recent":
+            sort_mapping = {"issued": {"order": "desc"}}
         else:
             sort_mapping = {"dataset_title.keyword": {"order": sort_order}}
     else:
