@@ -194,7 +194,8 @@ def fetchapi(resource_id):
         
         try:
             file_path = res_model.filedetails.file.path
-            file_format = res_model.filedetails.file     
+            file_format = res_model.filedetails.format  
+
             
             if file_format.lower() in ["json"]:
                 with open(file_path, "r") as fp:
