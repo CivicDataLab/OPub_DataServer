@@ -47,11 +47,16 @@ class EditDataset(Output, graphene.Mutation):
             print("----cloned called----")
             cloned_id = cloner(Dataset, dataset_instance.id)
             try:
-                cloned_resource = Dataset.objects.get(pk=cloned_id)
-                cloned_resource.status = "DRAFT"
-                cloned_resource.parent = dataset_instance
-                cloned_resource.accepted_agreement = File(dataset_instance.accepted_agreement,os.path.basename(dataset_instance.accepted_agreement.path),)
-                cloned_resource.save()
+                existing_clone = Dataset.objects.filter(parent_id=dataset_data.id, status="DRAFT").values("id")
+                print("exis-clone--", existing_clone)
+                if not existing_clone.exists():
+                    cloned_resource = Dataset.objects.get(pk=cloned_id)
+                    cloned_resource.status = "DRAFT"
+                    cloned_resource.parent = dataset_instance
+                    cloned_resource.accepted_agreement = File(dataset_instance.accepted_agreement,os.path.basename(dataset_instance.accepted_agreement.path),)
+                    cloned_resource.save()
+                else:
+                    return EditDataset(dataset_id=existing_clone[0].id)
             except Dataset.DoesNotExist as e:
                 raise GraphQLError("Cloned dataset does not exists.")
             return EditDataset(dataset_id=cloned_id)
