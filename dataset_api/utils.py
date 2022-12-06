@@ -135,6 +135,7 @@ def clone_object(obj, attrs={}):
                         "DatasetReviewRequest",
                         "Tag",
                         "DatasetAccessModelRequest",
+                        "Dataset",
 
                     ]:
                         # if child not in ["DataRequest", "Geography", "Sector"]:
