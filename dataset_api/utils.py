@@ -7,6 +7,7 @@ from activity_log.signal import activity
 from dataset_api.enums import RatingStatus
 from dataset_api.models import Dataset, DataAccessModel
 from dataset_api.enums import ValidationUnits
+import datetime
 
 def get_client_ip(request):
     x_forwarded_for = request.context.META.get("HTTP_X_FORWARDED_FOR")
