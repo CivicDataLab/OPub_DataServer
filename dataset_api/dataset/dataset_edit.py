@@ -45,11 +45,12 @@ class EditDataset(Output, graphene.Mutation):
             return EditDataset(dataset_id=dataset_data.id)
         else:
             print("----cloned called----")
-            cloned_id = cloner(Dataset, dataset_instance.id)
+            
             try:
-                existing_clone = Dataset.objects.filter(parent_id=dataset_data.id, status="DRAFT").values("id")
+                existing_clone = Dataset.objects.filter(parent_id=dataset_data.id, status="DRAFT")
                 print("exis-clone--", existing_clone)
                 if not existing_clone.exists():
+                    cloned_id = cloner(Dataset, dataset_instance.id)
                     cloned_resource = Dataset.objects.get(pk=cloned_id)
                     cloned_resource.status = "DRAFT"
                     cloned_resource.parent = dataset_instance
