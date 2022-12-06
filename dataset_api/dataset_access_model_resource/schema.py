@@ -175,8 +175,6 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
             dataset_access_model_instance = DatasetAccessModel.objects.get(
                 pk=access_model_resource_data.id
             )
-            dataset_access_model_instance.title = access_model_resource_data.title
-            dataset_access_model_instance.save()
             if (
                     not access_model_resource_data.resource_map
                     or len(access_model_resource_data.resource_map) == 0
@@ -184,6 +182,8 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                 raise GraphQLError(
                     "Please select at least one distribution and corresponding fields"
                 )
+            dataset_access_model_instance.title = access_model_resource_data.title
+            dataset_access_model_instance.save()
             for resources in access_model_resource_data.resource_map:
                 resource_schema = ResourceSchema.objects.filter(id__in=resources.fields).all()
                 try:
