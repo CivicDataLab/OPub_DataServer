@@ -225,7 +225,7 @@ class Query(graphene.ObjectType):
                             jsondata = json.loads(jsonFile.read())  # json.loads(resource.filedetails.file)
                             builder.add_object(jsondata)
                             schema_dict = builder.to_schema()
-                            schema_dict = schema_dict.get("properties", {})
+                            schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties", {})) #schema_dict.get("properties", {})
                             schema = []
                             parse_schema(schema_dict, "", schema, "")
                             return schema
@@ -241,7 +241,7 @@ class Query(graphene.ObjectType):
                             # )   json.loads(resource.filedetails.file)
                             builder.add_object(jsondata)
                             schema_dict = builder.to_schema()
-                            schema_dict = schema_dict.get("properties", {})
+                            schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties", {})) #schema_dict.get("properties", {})
                             schema = []
                             parse_schema(schema_dict, "", schema, "")
                             return schema
