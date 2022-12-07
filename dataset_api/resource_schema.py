@@ -225,7 +225,7 @@ class Query(graphene.ObjectType):
                             jsondata = json.loads(jsonFile.read())  # json.loads(resource.filedetails.file)
                             builder.add_object(jsondata)
                             schema_dict = builder.to_schema()
-                            schema_dict = schema_dict.get("properties", {})
+                            schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties", {})) #schema_dict.get("properties", {})
                             schema = []
                             parse_schema(schema_dict, "", schema, "")
                             return schema
@@ -241,7 +241,7 @@ class Query(graphene.ObjectType):
                             # )   json.loads(resource.filedetails.file)
                             builder.add_object(jsondata)
                             schema_dict = builder.to_schema()
-                            schema_dict = schema_dict.get("properties", {})
+                            schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties", {})) #schema_dict.get("properties", {})
                             schema = []
                             parse_schema(schema_dict, "", schema, "")
                             return schema
@@ -381,7 +381,7 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
 
     for schema in resource_data.schema:
         schema_instance = ResourceSchema.objects.get(
-            resource_id=resource_instance.id, key=schema.key
+            resource_id=resource_instance.id, key=schema.key, path=schema.path
         )
         if schema.parent and schema.parent != "":
             try:
@@ -411,8 +411,8 @@ def _create_resource_schema_instance(resource_instance, schema):
         format=schema.format,
         description=schema.description,
         resource=resource_instance,
-        path = schema.path,
-        parent_path = schema.parent_path,
+        path=schema.path,
+        parent_path=schema.parent_path,
     )
     schema_instance.save()
     return schema_instance
