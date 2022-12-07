@@ -13,6 +13,7 @@ from .models import (
     Resource,
     Dataset,
     Sector,
+    DatasetAccessModelRequest,
 )
 from .decorators import (
     validate_token,
@@ -37,6 +38,7 @@ class OrganizationType(DjangoObjectType):
     api_count = graphene.Int()
     dataset_count = graphene.Int()
     usecase_count = graphene.Int()
+    download_count = graphene.Int()
 
     class Meta:
         model = Organization
@@ -67,6 +69,13 @@ class OrganizationType(DjangoObjectType):
             Q(dataset__status__exact="PUBLISHED"),
         )
         return len(set(usecase))
+
+    def resolve_download_count(self, info):
+        download = DatasetAccessModelRequest.objects.filter(
+            Q(access_model_id__dataset_id__catalog__organization=self.id),
+            Q(access_model_id__dataset__status__exact="PUBLISHED"),
+        ).values_list('user').distinct().count()
+        return download
 
 
 class Query(graphene.ObjectType):
@@ -263,10 +272,10 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     @auth_user_by_org(action="approve_organization")
     @modify_org_status
     def mutate(
-            root,
-            info,
-            username,
-            organization_data: ApproveRejectOrganizationApprovalInput = None,
+        root,
+        info,
+        username,
+        organization_data: ApproveRejectOrganizationApprovalInput = None,
     ):
         try:
             organization_create_request_instance = (
