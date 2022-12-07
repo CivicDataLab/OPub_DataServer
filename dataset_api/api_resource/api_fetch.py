@@ -69,7 +69,8 @@ def parse_schema(schema_dict, parent, schema, current_path):
                     "description": "",
                     "parent": parent + str(count) if parent == "items" else parent,
                     "array_field": "",
-                    "path": current_path
+                    "path": current_path + "." + key,
+                    "parent_path": current_path
                 }
             )
         else:
