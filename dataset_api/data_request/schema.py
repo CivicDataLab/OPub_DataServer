@@ -37,7 +37,7 @@ from dataset_api.models import (
 )
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
-from dataset_api.utils import skip_col
+from dataset_api.utils import json_keep_column
 
 
 class DataRequestType(DjangoObjectType):
@@ -149,7 +149,13 @@ def initiate_dam_request(
     dam_resource = DatasetAccessModelResource.objects.get(
         dataset_access_model=dam_request.access_model_id, resource=resource.id
     )
+    # dam_resource_field_ids = list(dam_resource.fields.all().values_list('id', flat=True))
+    # schema_rows = list(resource.resourceschema_set.exclude(id__in=dam_resource_field_ids).values_list('path', flat=True))
+    
+    # schema_rows
+    # print ('-------rows', schema_rows)
     fields = []
+  
     try:
         for field in dam_resource.fields.all():
             fields.append(field.key)
@@ -201,7 +207,8 @@ def initiate_dam_request(
             file = json.load(read_file)
             print("--------------------jsonparse", file, "----", fields)
             if len(fields) > 0:
-                skip_col(file, fields)
+                # skip_col(file, fields)
+                file = json_keep_column(file, fields)
             print("-----------------fltrddata", file)
             read_file.close()
             output_file = open(data_request_instance.file.path, "w")
