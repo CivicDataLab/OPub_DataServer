@@ -288,8 +288,7 @@ class FormatConverter:
 
     @classmethod
     def convert_json_to_csv(cls, json_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0):
-        final_json = cls.process_json_data(json_file_path)
-
+        final_json = pd.read_json(json_file_path, orient='index' )  #cls.process_json_data(json_file_path)
         if return_type == "file":
             final_json.to_csv("file.csv", index=False)
             response = FileResponse(

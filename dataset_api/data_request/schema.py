@@ -199,7 +199,10 @@ def initiate_dam_request(
         elif file_instance.format.lower() == "json":
             read_file = open(data_request_instance.file.path, "r")
             file = json.load(read_file)
-            skip_col(file, fields)
+            print("--------------------jsonparse", file, "----", fields)
+            if len(fields) > 0:
+                skip_col(file, fields)
+            print("-----------------fltrddata", file)
             read_file.close()
             output_file = open(data_request_instance.file.path, "w")
             file = json.dump(file, output_file, indent=4)
