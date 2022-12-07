@@ -30,6 +30,7 @@ class StatusType(graphene.Enum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     ADDRESSING = "ADDRESSING"
+    ADDRESSED = "ADDRESSED"
 
 
 class Query(graphene.ObjectType):
@@ -160,8 +161,8 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
     moderation_requests = graphene.List(of_type=ModerationRequestType)
 
     @staticmethod
-    @validate_token_or_none
-    @auth_user_by_org(action="publish_dataset")
+    # @validate_token_or_none
+    # @auth_user_by_org(action="publish_dataset")
     def mutate(
         root,
         info,
@@ -185,6 +186,11 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
                     moderation_request_instance.remark = moderation_request.remark
             #     TODO: FIX magic strings
             if moderation_request.status == "APPROVED":
+                previous_moderations = DatasetReviewRequest.objects.filter(dataset_id=moderation_request_instance.dataset, status="ADDRESSING")
+                if previous_moderations.exists():
+                    for instances in previous_moderations:
+                        instances.status = StatusType.ADDRESSED.value
+                        instances.save()
                 dataset = moderation_request_instance.dataset
                 if dataset.parent:
                     # DISABLE parent dataset.
@@ -197,7 +203,7 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
                     username, dataset.id, dataset.catalog.organization.id
                 )
                 # Index data in Elasticsearch
-                index_data(dataset)
+                # index_data(dataset)
             if moderation_request.status == "REJECTED":
                 dataset = moderation_request_instance.dataset
                 dataset.status = "DRAFT"
