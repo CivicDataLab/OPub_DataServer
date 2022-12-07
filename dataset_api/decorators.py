@@ -197,15 +197,16 @@ def modify_org_status(func):
         )
         response_json_approve = request_to_server(body, "modify_org_status")
         
-        rejected_list = value.rejected
-        body = json.dumps(
-            {
-                "access_token": user_token,
-                "org_list": rejected_list,
-                "org_status": "rejected",
-            }
-        )
-        response_json_rejected = request_to_server(body, "modify_org_status")
+        if value.rejected:
+            rejected_list = value.rejected
+            body = json.dumps(
+                {
+                    "access_token": user_token,
+                    "org_list": rejected_list,
+                    "org_status": "rejected",
+                }
+            )
+            response_json_rejected = request_to_server(body, "modify_org_status")
         if response_json_approve["Success"]:
             return value
         else:
