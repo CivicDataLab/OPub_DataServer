@@ -213,7 +213,7 @@ class CreateOrganization(Output, graphene.Mutation):
             logo_format = IMAGE_FORMAT_MAPPING.get(mime_type[0].lower())
             if not logo_format:
                 organization_additional_info_instance.delete()
-                raise GraphQLError("Unsupported Format!!")
+                raise GraphQLError("Unsupported Format for Logo.")
             return CreateOrganization(
                 organization=organization_additional_info_instance
             )
