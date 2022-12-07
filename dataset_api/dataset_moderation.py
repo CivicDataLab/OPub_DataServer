@@ -186,7 +186,9 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
                     moderation_request_instance.remark = moderation_request.remark
             #     TODO: FIX magic strings
             if moderation_request.status == "APPROVED":
-                previous_moderations = DatasetReviewRequest.objects.filter(dataset_id=moderation_request_instance.dataset, status="ADDRESSING")
+                previous_moderations = DatasetReviewRequest.objects.filter(
+                    dataset_id=moderation_request_instance.dataset, status="ADDRESSING"
+                )
                 if previous_moderations.exists():
                     for instances in previous_moderations:
                         instances.status = StatusType.ADDRESSED.value
@@ -195,7 +197,7 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
                 if dataset.parent:
                     # DISABLE parent dataset.
                     dataset.parent.status = "DISABLED"
-                    delete_data(dataset.parent.id) # Remove the listing from ES.
+                    delete_data(dataset.parent.id)  # Remove the listing from ES.
                     dataset.parent.save()
                 dataset.status = "PUBLISHED"
                 dataset.save()
@@ -203,7 +205,7 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
                     username, dataset.id, dataset.catalog.organization.id
                 )
                 # Index data in Elasticsearch
-                # index_data(dataset)
+                index_data(dataset)
             if moderation_request.status == "REJECTED":
                 dataset = moderation_request_instance.dataset
                 dataset.status = "DRAFT"
