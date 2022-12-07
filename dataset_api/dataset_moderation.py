@@ -235,14 +235,14 @@ class AddressModerationRequests(graphene.Mutation, Output):
         moderation_request: ModerationRequestsApproveRejectInput = None,
     ):
         try:
-            moderation_request_instance = DatasetReviewRequest.objects.get(
-                id=moderation_request.ids[0], status__iexact="REJECTED"
-            )
+            moderation_request_instance = DatasetReviewRequest.objects.get(id=moderation_request.ids[0])
         except DatasetReviewRequest.DoesNotExist as e:
             raise GraphQLError("Moderation request does not exist")
-        if moderation_request_instance:
+        if moderation_request_instance and moderation_request_instance.status==StatusType.REJECTED.value:
             moderation_request_instance.status = StatusType.ADDRESSING.value
-        moderation_request_instance.save()
+            moderation_request_instance.save()
+        else:
+            return AddressModerationRequests(moderation_request=moderation_request_instance)
         return AddressModerationRequests(moderation_request=moderation_request_instance)
 
 
