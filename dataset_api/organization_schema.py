@@ -38,7 +38,7 @@ class OrganizationType(DjangoObjectType):
     api_count = graphene.Int()
     dataset_count = graphene.Int()
     usecase_count = graphene.Int()
-    download_count = graphene.Int()
+    user_count = graphene.Int()
 
     class Meta:
         model = Organization
@@ -70,12 +70,12 @@ class OrganizationType(DjangoObjectType):
         )
         return len(set(usecase))
 
-    def resolve_download_count(self, info):
-        download = DatasetAccessModelRequest.objects.filter(
+    def resolve_user_count(self, info):
+        user_count = DatasetAccessModelRequest.objects.filter(
             Q(access_model_id__dataset_id__catalog__organization=self.id),
             Q(access_model_id__dataset__status__exact="PUBLISHED"),
         ).values_list('user').distinct().count()
-        return download
+        return user_count
 
 
 class Query(graphene.ObjectType):
