@@ -304,10 +304,25 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
                 organization_create_request_instance.status = (
                     OrganizationCreationStatusType.REJECTED.value
                 )
+                organization_create_request_instance.remark = organization_data.remark
+                organization_create_request_instance.save()
+                
+                activity.send(
+                username,
+                verb=organization_data.status,
+                target=organization_create_request_instance,
+                target_group=organization_create_request_instance,
+                ip=get_client_ip(info),)
+                
+                return ApproveRejectOrganizationApproval(
+                organization=organization_create_request_instance,
+                rejected=rejected_list,
+                )
             else:
                 organization_create_request_instance.status = (
                     OrganizationCreationStatusType.APPROVED.value
                 )
+                
                 # Create catalog if org is APPROVED.
                 catalog_instance = Catalog(
                     title=organization.title,
