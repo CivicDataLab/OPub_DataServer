@@ -111,13 +111,21 @@ class ModerationRequestMutation(graphene.Mutation, Output):
     @auth_user_by_org(action="request_dataset_mod")
     def mutate(root, info, moderation_request: ModerationRequestInput, username=""):
         moderation_request_instance = DatasetReviewRequest(
-            status=moderation_request.status,
+            status=StatusType.REQUESTED.value,
             description=moderation_request.description,
             remark=moderation_request.remark,
             user=username,
             request_type=ReviewType.MODERATION.value,
         )
         dataset = Dataset.objects.get(id=moderation_request.dataset)
+        # Check if any previous request is in "ADDRESSING" state.
+        previous_moderations = DatasetReviewRequest.objects.filter(
+            dataset_id=dataset, status="ADDRESSING"
+        )
+        if previous_moderations.exists():
+            for instances in previous_moderations:
+                instances.status = StatusType.ADDRESSED.value
+                instances.save()
         moderation_request_instance.dataset = dataset
         moderation_request_instance.save()
         # TODO: fix magic string
@@ -186,13 +194,6 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
                     moderation_request_instance.remark = moderation_request.remark
             #     TODO: FIX magic strings
             if moderation_request.status == "APPROVED":
-                previous_moderations = DatasetReviewRequest.objects.filter(
-                    dataset_id=moderation_request_instance.dataset, status="ADDRESSING"
-                )
-                if previous_moderations.exists():
-                    for instances in previous_moderations:
-                        instances.status = StatusType.ADDRESSED.value
-                        instances.save()
                 dataset = moderation_request_instance.dataset
                 if dataset.parent:
                     # DISABLE parent dataset.
