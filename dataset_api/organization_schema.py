@@ -1,4 +1,6 @@
 import graphene
+import mimetypes
+
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
@@ -25,7 +27,7 @@ from .decorators import (
 )
 from .enums import OrganizationTypes, OrganizationCreationStatusType
 from .utils import get_client_ip
-
+from .constants import IMAGE_FORMAT_MAPPING
 
 class CreateOrganizationType(DjangoObjectType):
     class Meta:
@@ -207,6 +209,11 @@ class CreateOrganization(Output, graphene.Mutation):
                 username=username,
             )
             organization_additional_info_instance.save()
+            mime_type = mimetypes.guess_type(organization_additional_info_instance.logo.path)
+            logo_format = IMAGE_FORMAT_MAPPING.get(mime_type[0].lower())
+            if not logo_format:
+                organization_additional_info_instance.delete()
+                raise GraphQLError("Unsupported Format!!")
             return CreateOrganization(
                 organization=organization_additional_info_instance
             )
