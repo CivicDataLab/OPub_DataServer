@@ -149,11 +149,11 @@ def initiate_dam_request(
     dam_resource = DatasetAccessModelResource.objects.get(
         dataset_access_model=dam_request.access_model_id, resource=resource.id
     )
-    # dam_resource_field_ids = list(dam_resource.fields.all().values_list('id', flat=True))
-    # schema_rows = list(resource.resourceschema_set.exclude(id__in=dam_resource_field_ids).values_list('path', flat=True))
+    dam_resource_field_ids = list(dam_resource.fields.all().values_list('id', flat=True))
+    schema_rows = list(resource.resourceschema_set.filter(id__in=dam_resource_field_ids).values_list('path', flat=True))
     
-    # schema_rows
-    # print ('-------rows', schema_rows)
+    schema_rows
+    print ('-------rows', schema_rows)
     fields = []
   
     try:
@@ -162,7 +162,7 @@ def initiate_dam_request(
     except:
         pass
 
-    print('------------------aaa', resource.dataset.dataset_type)
+    print('------------------field', resource.dataset.dataset_type, '---', fields)
     # TODO: fix magic strings
     if resource and resource.dataset.dataset_type == "API":
         for parameter in resource.apidetails.apiparameter_set.all():
@@ -179,13 +179,14 @@ def initiate_dam_request(
                 "api_source_id": resource.id,
                 "request_id": str(data_request_instance.id),
                 "request_columns": [x for x in fields],
+                "remove_nodes": [x for x in schema_rows], 
                 "request_rows": "",
                 "target_format": target_format 
             }
         )
         headers = {}
         response = requests.request("POST", url, headers=headers, data=payload)
-        print(response.text)
+        #print(response.text)
     elif resource and resource.dataset.dataset_type == DataType.FILE.value:
         print('-----------------bbbbbaaa')
         data_request_instance.file = File(
@@ -208,7 +209,8 @@ def initiate_dam_request(
             print("--------------------jsonparse", file, "----", fields)
             if len(fields) > 0:
                 # skip_col(file, fields)
-                file = json_keep_column(file, fields)
+                file = json_keep_column(file, fields, schema_rows)
+                # file = json_keep_column(file, fields)
             print("-----------------fltrddata", file)
             read_file.close()
             output_file = open(data_request_instance.file.path, "w")

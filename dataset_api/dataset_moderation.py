@@ -30,6 +30,7 @@ class StatusType(graphene.Enum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     ADDRESSING = "ADDRESSING"
+    ADDRESSED = "ADDRESSED"
 
 
 class Query(graphene.ObjectType):
@@ -110,13 +111,21 @@ class ModerationRequestMutation(graphene.Mutation, Output):
     @auth_user_by_org(action="request_dataset_mod")
     def mutate(root, info, moderation_request: ModerationRequestInput, username=""):
         moderation_request_instance = DatasetReviewRequest(
-            status=moderation_request.status,
+            status=StatusType.REQUESTED.value,
             description=moderation_request.description,
             remark=moderation_request.remark,
             user=username,
             request_type=ReviewType.MODERATION.value,
         )
         dataset = Dataset.objects.get(id=moderation_request.dataset)
+        # Check if any previous request is in "ADDRESSING" state.
+        previous_moderations = DatasetReviewRequest.objects.filter(
+            dataset_id=dataset, status="ADDRESSING"
+        )
+        if previous_moderations.exists():
+            for instances in previous_moderations:
+                instances.status = StatusType.ADDRESSED.value
+                instances.save()
         moderation_request_instance.dataset = dataset
         moderation_request_instance.save()
         # TODO: fix magic string
@@ -160,8 +169,8 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
     moderation_requests = graphene.List(of_type=ModerationRequestType)
 
     @staticmethod
-    @validate_token_or_none
-    @auth_user_by_org(action="publish_dataset")
+    # @validate_token_or_none
+    # @auth_user_by_org(action="publish_dataset")
     def mutate(
         root,
         info,
@@ -189,7 +198,7 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
                 if dataset.parent:
                     # DISABLE parent dataset.
                     dataset.parent.status = "DISABLED"
-                    delete_data(dataset.parent.id) # Remove the listing from ES.
+                    delete_data(dataset.parent.id)  # Remove the listing from ES.
                     dataset.parent.save()
                 dataset.status = "PUBLISHED"
                 dataset.save()
@@ -226,14 +235,14 @@ class AddressModerationRequests(graphene.Mutation, Output):
         moderation_request: ModerationRequestsApproveRejectInput = None,
     ):
         try:
-            moderation_request_instance = DatasetReviewRequest.objects.get(
-                id=moderation_request.ids[0], status__iexact="REJECTED"
-            )
+            moderation_request_instance = DatasetReviewRequest.objects.get(id=moderation_request.ids[0])
         except DatasetReviewRequest.DoesNotExist as e:
             raise GraphQLError("Moderation request does not exist")
-        if moderation_request_instance:
+        if moderation_request_instance and moderation_request_instance.status==StatusType.REJECTED.value:
             moderation_request_instance.status = StatusType.ADDRESSING.value
-        moderation_request_instance.save()
+            moderation_request_instance.save()
+        else:
+            return AddressModerationRequests(moderation_request=moderation_request_instance)
         return AddressModerationRequests(moderation_request=moderation_request_instance)
 
 

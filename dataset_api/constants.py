@@ -17,6 +17,12 @@ FORMAT_MAPPING = {
     "application/xhtml+xml": "XML",
 }
 
+IMAGE_FORMAT_MAPPING = {
+    "image/png": "PNG",
+    "image/jpeg": "JPEG",
+    "image/svg+xml": "SVG",
+}
+
 DATAREQUEST_SWAGGER_SPEC = {
     "openapi": "3.0.0",
     "info": {

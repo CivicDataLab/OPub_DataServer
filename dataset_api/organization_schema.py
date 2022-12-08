@@ -1,4 +1,6 @@
 import graphene
+import mimetypes
+
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
@@ -25,6 +27,7 @@ from .decorators import (
 )
 from .enums import OrganizationTypes, OrganizationCreationStatusType
 from .utils import get_client_ip
+from .constants import IMAGE_FORMAT_MAPPING
 
 
 class CreateOrganizationType(DjangoObjectType):
@@ -71,10 +74,15 @@ class OrganizationType(DjangoObjectType):
         return len(set(usecase))
 
     def resolve_user_count(self, info):
-        user_count = DatasetAccessModelRequest.objects.filter(
-            Q(access_model_id__dataset_id__catalog__organization=self.id),
-            Q(access_model_id__dataset__status__exact="PUBLISHED"),
-        ).values_list('user').distinct().count()
+        user_count = (
+            DatasetAccessModelRequest.objects.filter(
+                Q(access_model_id__dataset_id__catalog__organization=self.id),
+                Q(access_model_id__dataset__status__exact="PUBLISHED"),
+            )
+            .values_list("user")
+            .distinct()
+            .count()
+        )
         return user_count
 
 
@@ -207,6 +215,13 @@ class CreateOrganization(Output, graphene.Mutation):
                 username=username,
             )
             organization_additional_info_instance.save()
+            mime_type = mimetypes.guess_type(
+                organization_additional_info_instance.logo.path
+            )
+            logo_format = IMAGE_FORMAT_MAPPING.get(mime_type[0].lower())
+            if not logo_format:
+                organization_additional_info_instance.delete()
+                raise GraphQLError("Unsupported Format for Logo.")
             return CreateOrganization(
                 organization=organization_additional_info_instance
             )
@@ -297,10 +312,26 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
                 organization_create_request_instance.status = (
                     OrganizationCreationStatusType.REJECTED.value
                 )
+                organization_create_request_instance.remark = organization_data.remark
+                organization_create_request_instance.save()
+
+                activity.send(
+                    username,
+                    verb=organization_data.status,
+                    target=organization_create_request_instance,
+                    target_group=organization_create_request_instance,
+                    ip=get_client_ip(info),
+                )
+
+                return ApproveRejectOrganizationApproval(
+                    organization=organization_create_request_instance,
+                    rejected=None,
+                )
             else:
                 organization_create_request_instance.status = (
                     OrganizationCreationStatusType.APPROVED.value
                 )
+
                 # Create catalog if org is APPROVED.
                 catalog_instance = Catalog(
                     title=organization.title,
