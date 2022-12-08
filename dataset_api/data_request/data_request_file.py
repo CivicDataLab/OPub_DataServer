@@ -1,7 +1,7 @@
 import json
 import mimetypes
 import os
-
+import magic
 import jwt
 import pandas as pd
 import requests
@@ -716,7 +716,7 @@ def get_request_file(
     file_path = data_request.file.path
     try:
         if len(file_path):
-            mime_type = mimetypes.guess_type(file_path)[0]
+            mime_type = magic.from_file(file_path, mime=True)[0]
             if data_request.resource.dataset.dataset_type == "FILE" and target_format and target_format in ["CSV", "XML",
                                                                                                         "JSON"]:
                 src_format = FORMAT_MAPPING[mime_type]
