@@ -39,6 +39,9 @@ import xmltodict
 def parse_schema(schema_dict, parent, schema, current_path):
     global count
     # count = 0
+    if isinstance(schema_dict, list):
+        schema_dict = schema_dict[0]    
+        
     for key in schema_dict:
         if key == "required":
             continue
@@ -215,7 +218,22 @@ class Query(graphene.ObjectType):
                     count = 0
                     if "csv" in resource.filedetails.format.lower():
                         file = pd.read_csv(resource.filedetails.file.path)
-                        return file.columns.tolist()
+                        schema_list = pd.io.json.build_table_schema(file, version=False)
+                        schema_list = schema_list.get("fields", [])
+                        schema = []
+                        for each in schema_list:
+                            schema.append(
+                                {
+                                    "key": each["name"],
+                                    "display_name": each["name"],
+                                    "format": each["type"],
+                                    "description": "",
+                                    "parent": "",
+                                    "array_field": "",
+                                }
+                            )
+                        return schema
+                        # return file.columns.tolist()
                     if resource.filedetails.format.lower() == "json":
                         with open(resource.filedetails.file.path) as jsonFile:
                             # return list(set(get_keys(jsonFile.read(), [])))
