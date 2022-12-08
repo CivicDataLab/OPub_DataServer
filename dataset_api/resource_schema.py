@@ -500,7 +500,10 @@ def _create_update_file_details(resource_instance, attribute):
         mime_type = mimetypes.guess_type(file_detail_object.file.path)[0]
         if isinstance(mime_type, dict) and "value" in mime_type.keys():
             mime_type = mime_type["value"]
-        file_format = FORMAT_MAPPING.get(mime_type.lower(), mime_type.lower())
+        file_format = FORMAT_MAPPING.get(mime_type.lower())
+        if not file_format:
+            resource_instance.delete()
+            raise GraphQLError("Unsupported File Format")
         try:
             file_obj = copy.deepcopy(attribute.file)
             print(file_format)
@@ -516,9 +519,7 @@ def _create_update_file_details(resource_instance, attribute):
                     data = json.load(file_obj)
             if file_format.lower() == "xml":
                 data = pd.read_xml(file_obj)
-            print("------", file_format)
-            if file_format.lower() not in ["csv", "xlsx", "json", "xml"]:
-                raise GraphQLError("Unsupported File Format")
+            # print("------", file_format)
         except Exception as e:
             print("resource---", resource_instance, str(e))
             resource_instance.delete()
@@ -526,9 +527,9 @@ def _create_update_file_details(resource_instance, attribute):
 
         if file_format:
             file_detail_object.format = file_format
-        else:
-            resource_instance.delete()
-            raise GraphQLError("Unsupported format")
+        # else:
+        #     resource_instance.delete()
+        #     raise GraphQLError("Unsupported format")
     if attribute.remote_url:
         file_detail_object.remote_url = attribute.remote_url
     file_detail_object.save()
