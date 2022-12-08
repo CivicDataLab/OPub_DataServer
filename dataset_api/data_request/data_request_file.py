@@ -122,6 +122,10 @@ def update_download_count(username, data_request: DataRequest):
     return {"Success": True, "message": "Dataset download count updated successfully"}
 
 
+class InvalidDataException(Exception):
+    pass
+
+
 class FormatConverter:
     @classmethod
     def convert_csv_to_json(cls, csv_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0):
@@ -333,7 +337,10 @@ class FormatConverter:
                 all_coll = [a for i, a in enumerate(all_coll) if a not in all_coll[:i]]
                 for a in list_cols:
                     all_coll = [each for each in all_coll if not each[:len(a)] == a]
-                df = pd.DataFrame(data)
+                try:
+                    df = pd.DataFrame.from_dict(data)
+                except (KeyError, ValueError) as e:
+                    raise InvalidDataException("Please ensure data is in standard formats.")
                 # for col_path in list_cols:
                 #     try:
                 #         df = pd.json_normalize(
@@ -346,7 +353,7 @@ class FormatConverter:
                 final_json = pd.DataFrame(df)
                 return final_json
             else:
-                return pd.DataFrame(data)
+                return pd.DataFrame.from_dict(data)
 
     @classmethod
     def convert_json_to_xml(cls, json_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0):
@@ -734,6 +741,8 @@ def get_request_file(
             update_download_count(username, data_request)
             data_request.file.delete()
             return response
+    except InvalidDataException as e:
+        return HttpResponse("Invalid data!!" + "  " + str(e), content_type="text/plain")
     except Exception as e:
         return HttpResponse("Something went wrong request again!!" + "  " + str(e), content_type="text/plain")
     return HttpResponse("Something went wrong request again!!", content_type="text/plain")
