@@ -742,10 +742,12 @@ def get_request_file(
             data_request.file.delete()
             return response
     except InvalidDataException as e:
-        return HttpResponse("Invalid data!!" + "  " + str(e), content_type="text/plain")
+        print("Error requesting data " + str(e))
+        return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain")
     except Exception as e:
-        return HttpResponse("Something went wrong request again!!" + "  " + str(e), content_type="text/plain")
-    return HttpResponse("Something went wrong request again!!", content_type="text/plain")
+        print("Error requesting data " + str(e))
+        return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain")
+    return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain")
 
 
 def get_resource_file(request, data_request, token, apidetails, username):
