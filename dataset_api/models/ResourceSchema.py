@@ -17,7 +17,7 @@ class ResourceSchema(models.Model):
         on_delete=models.SET_NULL,
         related_name="parent_field",
     )
-    array_field = models.OneToOneField(
+    array_field = models.ForeignKey(
         "self",
         unique=False,
         blank=True,
