@@ -209,7 +209,8 @@ def initiate_dam_request(
             print("--------------------jsonparse", file, "----", fields)
             if len(fields) > 0:
                 # skip_col(file, fields)
-                file = json_keep_column(file, fields)
+                file = json_keep_column(file, fields, schema_rows)
+                # file = json_keep_column(file, fields)
             print("-----------------fltrddata", file)
             read_file.close()
             output_file = open(data_request_instance.file.path, "w")

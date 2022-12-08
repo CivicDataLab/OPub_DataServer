@@ -73,7 +73,47 @@ def idp_make_cache_key(group, window, rate, value, methods):
 
 #     return d
 
-def json_keep_column(data, cols):
+# def json_keep_column(data, cols):
+#     try:
+        
+#         def get_child_keys(d, child_keys_list):
+#             if isinstance(d,  dict):
+#                 for key in list(d.keys()):
+#                     child_keys_list.append(key)
+#                     if isinstance(d[key], dict):
+#                         get_child_keys(d[key], child_keys_list)  
+#             if isinstance(d,  list):
+#                 for each in d:
+#                     if isinstance(each,  dict):
+#                         get_child_keys(each, child_keys_list)                          
+
+#         def remove_a_key(d, remove_key):
+#             for key in list(d.keys()):
+#                 child_keys_list = []
+#                 get_child_keys(d[key], child_keys_list)
+#                 print ('--------------', child_keys_list)
+#                 if key not in remove_key and not any([ item in remove_key for item in child_keys_list]):
+#                     del d[key]
+#                 else:
+#                     keep_col(d[key], remove_key)
+
+#         def keep_col(d, remove_key):
+#             if isinstance(d, dict):
+#                 remove_a_key(d, remove_key)
+#             if isinstance(d, list):
+#                 for each in d:
+#                     if isinstance(each, dict):
+#                         remove_a_key(each, remove_key)
+#             return d
+
+#         return keep_col(data, cols)
+#     except:
+#         return data
+
+
+def json_keep_column(data, cols, parentnodes):
+    print ('------------inkeepcol', parentnodes)
+    
     try:
         
         def get_child_keys(d, child_keys_list):
@@ -87,28 +127,36 @@ def json_keep_column(data, cols):
                     if isinstance(each,  dict):
                         get_child_keys(each, child_keys_list)                          
 
-        def remove_a_key(d, remove_key):
+        def remove_a_key(d, parent, remove_key, parent_dict):
             for key in list(d.keys()):
                 child_keys_list = []
                 get_child_keys(d[key], child_keys_list)
-                print ('--------------', child_keys_list)
-                if key not in remove_key and not any([ item in remove_key for item in child_keys_list]):
+                print ('--------------', key, '---', child_keys_list)
+                if (key not in remove_key or parent!=parent_dict.get(key, "")) and not any([ item in remove_key for item in child_keys_list]):
                     del d[key]
                 else:
-                    keep_col(d[key], remove_key)
+                    keep_col(d[key], key, remove_key, parent_dict)
 
-        def keep_col(d, remove_key):
+        def keep_col(d, parent, remove_key, parent_dict):
             if isinstance(d, dict):
-                remove_a_key(d, remove_key)
+                remove_a_key(d, parent, remove_key, parent_dict)
             if isinstance(d, list):
                 for each in d:
                     if isinstance(each, dict):
-                        remove_a_key(each, remove_key)
+                        remove_a_key(each, parent, remove_key, parent_dict)
             return d
+        
 
-        return keep_col(data, cols)
-    except:
+        parent_dict = {}
+
+        for each in parentnodes:
+            node_path = [x for x in each.split('.') if x != "" and x != "." and "items" not in x]
+            parent_dict[node_path[-1]] = node_path[-2] if len(node_path)>=2 else ""
+        return keep_col(data, "", cols, parent_dict)
+    except Exception as e:
+        raise e
         return data
+
 
 
 def clone_object(obj, attrs={}):
