@@ -518,6 +518,9 @@ def _create_update_file_details(resource_instance, attribute):
         mime_type = mimetypes.guess_type(file_detail_object.file.path)[0]
         if isinstance(mime_type, dict) and "value" in mime_type.keys():
             mime_type = mime_type["value"]
+        if not mime_type:
+            resource_instance.delete()
+            raise GraphQLError("Unsupported File Format")
         file_format = FORMAT_MAPPING.get(mime_type.lower())
         if not file_format:
             resource_instance.delete()
@@ -541,7 +544,7 @@ def _create_update_file_details(resource_instance, attribute):
         except Exception as e:
             print("resource---", resource_instance, str(e))
             resource_instance.delete()
-            raise GraphQLError(str(e))
+            raise GraphQLError("Please upload file in UTF-8 format")
 
         if file_format:
             file_detail_object.format = file_format
