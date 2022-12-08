@@ -523,7 +523,7 @@ def _create_update_file_details(resource_instance, attribute):
         except Exception as e:
             print("resource---", resource_instance, str(e))
             resource_instance.delete()
-            raise GraphQLError(str(e))
+            raise GraphQLError("Please upload file in UTF-8 format")
 
         if file_format:
             file_detail_object.format = file_format
