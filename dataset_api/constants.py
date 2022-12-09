@@ -3,6 +3,7 @@ from DatasetServer import settings
 FORMAT_MAPPING = {
     "text/csv": "CSV",
     "csv": "CSV",
+    "application/csv": "CSV",
     "application/json": "JSON",
     "json": "JSON",
     "application/msword": "DOC",
