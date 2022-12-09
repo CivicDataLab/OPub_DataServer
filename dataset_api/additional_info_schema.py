@@ -32,7 +32,7 @@ class InfoType(graphene.Enum):
     REPORT = "REPORT"
     BLOG = "BLOG"
     USECASE = "USECASE"
-
+    OTHER = "OTHER"
 
 class AdditionalInfoInput(graphene.InputObjectType):
     id: str = graphene.ID()

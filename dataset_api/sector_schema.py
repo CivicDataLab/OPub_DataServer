@@ -51,10 +51,10 @@ class Query(graphene.ObjectType):
     sector_by_title = graphene.Field(SectorType, sector_title=graphene.String())
 
     def resolve_all_sector(self, info, **kwargs):
-        return Sector.objects.all().distinct()
+        return Sector.objects.all().order_by("name").distinct()
 
     def resolve_active_sector(self, info, **kwargs):
-        return Sector.objects.filter(dataset__status="PUBLISHED").distinct()
+        return Sector.objects.filter(dataset__status="PUBLISHED").order_by("name").distinct()
 
     def resolve_sector(self, info, sector_id):
         return Sector.objects.get(pk=sector_id)

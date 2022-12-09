@@ -117,6 +117,7 @@ class CreateAccessModelResource(Output, graphene.Mutation):
                     not access_model_resource_data.resource_map
                     or len(access_model_resource_data.resource_map) == 0
             ):
+                dataset_access_model.delete()
                 raise GraphQLError(
                     "Please select at least one distribution and corresponding fields"
                 )
