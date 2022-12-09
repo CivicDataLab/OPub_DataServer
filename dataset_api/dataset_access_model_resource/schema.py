@@ -187,18 +187,18 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
             
             # Getting id's that were removed.
             get_all_resources = list(DatasetAccessModelResource.objects.filter(dataset_access_model_id=access_model_resource_data.id).values_list("resource_id", flat=True))
-            print("---------", get_all_resources, type(get_all_resources[0]))
+            # print("---------", get_all_resources, type(get_all_resources[0]))
             for resources in access_model_resource_data.resource_map:
-                print(resources.resource_id)
+                # print(resources.resource_id)
                 try:
-                    print("removing value", type(resources.resource_id))
+                    # print("removing value", type(resources.resource_id))
                     get_all_resources.remove(int(resources.resource_id))
                 except Exception as e:
                     print(str(e))
             # Deleting removed resources.
-            print("bef del", get_all_resources)
+            # print("bef del", get_all_resources)
             dam_resource_instance = DatasetAccessModelResource.objects.filter(resource_id__in=get_all_resources)
-            print("del obj", dam_resource_instance)
+            # print("del obj", dam_resource_instance)
             if dam_resource_instance.exists():
                 for resource in dam_resource_instance:
                     resource.delete()
