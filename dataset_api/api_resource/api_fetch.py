@@ -18,6 +18,9 @@ import xmltodict
 def parse_schema(schema_dict, parent, schema, current_path):
     global count
     #count = 0
+    if isinstance(schema_dict, list):
+        schema_dict = schema_dict[0]    
+        
     for key in schema_dict:
         if key == "required":
             continue
@@ -143,6 +146,7 @@ def schema(request, resource_id):
             schema.append(
                 {
                     "key": each["name"],
+                    "display_name": each["name"],
                     "format": each["type"],
                     "description": "",
                     "parent": "",
