@@ -29,7 +29,7 @@ from .decorators import (
 from .enums import OrganizationTypes, OrganizationCreationStatusType
 from .utils import get_client_ip
 from .constants import IMAGE_FORMAT_MAPPING
-
+from .file_utils import file_validation
 
 class CreateOrganizationType(DjangoObjectType):
     class Meta:
@@ -185,9 +185,9 @@ class CreateOrganization(Output, graphene.Mutation):
     organization = graphene.Field(CreateOrganizationType)
 
     @staticmethod
-    # @validate_token
-    # @create_user_org
-    def mutate(root, info, username="", organization_data: OrganizationInput = None):
+    @validate_token
+    @create_user_org
+    def mutate(root, info, username, organization_data: OrganizationInput = None):
         try:
             OrganizationCreateRequest.objects.get(
                 Q(organization_ptr_id__title__iexact=organization_data.title),
@@ -216,14 +216,18 @@ class CreateOrganization(Output, graphene.Mutation):
                 username=username,
             )
             organization_additional_info_instance.save()
-            mime_type = magic.from_file(organization_additional_info_instance.logo.path, mime=True)
+            mime_type = file_validation(organization_additional_info_instance.logo)
+            if not mime_type:
+                organization_additional_info_instance.delete()
+                raise GraphQLError("Unsupported Logo Format")
+            # mime_type = magic.from_file(organization_additional_info_instance.logo.path, mime=True)
             # mime_type = mimetypes.guess_type(
             #     organization_additional_info_instance.logo.path
             # )
             logo_format = IMAGE_FORMAT_MAPPING.get(mime_type.lower())
             if not logo_format:
                 organization_additional_info_instance.delete()
-                raise GraphQLError("Unsupported Format for Logo.")
+                raise GraphQLError("Unsupported Logo Format")
             return CreateOrganization(
                 organization=organization_additional_info_instance
             )
