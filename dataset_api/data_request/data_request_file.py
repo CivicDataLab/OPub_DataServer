@@ -743,11 +743,11 @@ def get_request_file(
             return response
     except InvalidDataException as e:
         print("Error requesting data " + str(e))
-        return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain")
+        return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain", status=502)
     except Exception as e:
         print("Error requesting data " + str(e))
-        return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain")
-    return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain")
+        return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain", status=502)
+    return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain", status=502)
 
 
 def get_resource_file(request, data_request, token, apidetails, username):
@@ -767,6 +767,7 @@ def get_resource_file(request, data_request, token, apidetails, username):
             return HttpResponse(
                 "Request in progress. Please try again in some time",
                 content_type="text/plain",
+                status=503
             )
         if dam.type != "OPEN":
             # Get the quota count.
@@ -798,6 +799,7 @@ def get_resource_file(request, data_request, token, apidetails, username):
                         size,
                         paginate_from,
                     )
+                    print("file after quota", get_file)
                     get_rate_count = core.get_usage(
                         request,
                         group="rate||" + str(data_request_id),
@@ -896,5 +898,5 @@ def get_dist_data(request):
         return get_resource_file(request, data_request, token, apidetails, username)
 
     return HttpResponse(
-        "Something went wrong request again!!", content_type="text/plain"
+        "Something went wrong request again!!", content_type="text/plain", status=502
     )
