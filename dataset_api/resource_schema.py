@@ -3,6 +3,7 @@ import mimetypes
 import os
 from typing import Iterable
 import copy
+import magic
 
 import genson
 import graphene
@@ -33,6 +34,7 @@ from .models import (
     APIParameter,
 )
 from .utils import log_activity, get_client_ip
+from .file_utils import file_validation
 import xmltodict
 
 
@@ -515,12 +517,19 @@ def _create_update_file_details(resource_instance, attribute):
         file_detail_object = FileDetails(resource=resource_instance)
     if attribute.file:
         file_detail_object.file = attribute.file
-        mime_type = mimetypes.guess_type(file_detail_object.file.path)[0]
-        if isinstance(mime_type, dict) and "value" in mime_type.keys():
-            mime_type = mime_type["value"]
+        # mime_type = mimetypes.guess_type(file_detail_object.file.path)[0]
+        # mime_type = magic.from_buffer(attribute.file.read(), mime=True)
+        # mime_t = magic.Magic(mime=True).from_buffer(attribute.file.read())
+        # if isinstance(mime_type, dict) and "value" in mime_type.keys():
+        #     mime_type = mime_type["value"]
+        # if not mime_type:
+        #     resource_instance.delete()
+        #     raise GraphQLError("Unsupported File Format")
+        mime_type = file_validation(file_detail_object.file)
         if not mime_type:
             resource_instance.delete()
             raise GraphQLError("Unsupported File Format")
+        
         file_format = FORMAT_MAPPING.get(mime_type.lower())
         if not file_format:
             resource_instance.delete()

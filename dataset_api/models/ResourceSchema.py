@@ -25,5 +25,5 @@ class ResourceSchema(models.Model):
         on_delete=models.SET_NULL,
         related_name="array_item",
     )
-    path        = models.CharField(max_length=200, null=True, blank=True)
+    path = models.CharField(max_length=200, null=True, blank=True)
     parent_path = models.CharField(max_length=200, null=True, blank=True)
