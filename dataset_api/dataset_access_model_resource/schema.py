@@ -169,7 +169,7 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
     access_model_resource = graphene.Field(DatasetAccessModelType)
 
     @staticmethod
-    @auth_action_dam_resource(action="update_dam_resource")
+    # @auth_action_dam_resource(action="update_dam_resource")
     def mutate(root, info, access_model_resource_data: AccessModelResourceInput):
         try:
             dataset_access_model_instance = DatasetAccessModel.objects.get(
@@ -184,6 +184,24 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                 )
             dataset_access_model_instance.title = access_model_resource_data.title
             dataset_access_model_instance.save()
+            
+            # Getting id's that were removed.
+            get_all_resources = DatasetAccessModelResource.objects.filter(dataset_access_model_id=access_model_resource_data.id).values_list("resource_id", flat=True)
+            print("---------", get_all_resources)
+            for resources in access_model_resource_data.resource_map:
+                try:
+                    get_all_resources.remove(resources.resource_id)
+                except Exception as e:
+                    pass
+            # Deleting removed resources.
+            print("bef del", get_all_resources)
+            dam_resource_instance = DatasetAccessModelResource.objects.filter(resource_id__in=get_all_resources)
+            print("del obj", dam_resource_instance)
+            if dam_resource_instance.exists():
+                for resource in dam_resource_instance:
+                    resource.delete()
+            
+            # Creating or Updating resources.
             for resources in access_model_resource_data.resource_map:
                 resource_schema = ResourceSchema.objects.filter(id__in=resources.fields).all()
                 try:
