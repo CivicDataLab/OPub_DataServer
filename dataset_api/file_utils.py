@@ -1,5 +1,6 @@
 import magic
 import mimetypes
+from .constants import FORMAT_MAPPING
 
 def check_ext(file_object):
     ext_type = mimetypes.guess_type(file_object.path)[0]
@@ -15,7 +16,7 @@ def file_validation(file_object):
     mime_type = check_mime_type(file_object)
     print("mime--", mime_type)
     if ext_type and mime_type:
-        if ext_type == mime_type:
+        if FORMAT_MAPPING.get(ext_type.lower()) == FORMAT_MAPPING.get(mime_type.lower()):
             return mime_type
         else:
             return None
