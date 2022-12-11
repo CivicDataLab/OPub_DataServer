@@ -269,9 +269,6 @@ class FormatConverter:
             os.remove("file.csv")
             return response
         elif return_type == "data":
-            csv_file = pd.DataFrame(
-                pd.read_csv(csv_file_path, sep=",", header=0, index_col=False)
-            )
             response = HttpResponse(csv_file.to_string(index=False), content_type="text/csv")
             return response
 
