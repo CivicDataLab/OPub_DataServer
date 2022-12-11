@@ -759,7 +759,7 @@ def get_request_file(
             if data_request.resource.dataset.dataset_type == "FILE" and target_format and target_format in ["CSV",
                                                                                                             "XML",
                                                                                                             "JSON"]:
-                src_format = FORMAT_MAPPING[mime_type]
+                src_format = data_request.resource.filedetails.format
                 response = getattr(
                     FormatConverter,
                     f"convert_{src_format.lower()}_to_{target_format.lower()}",
