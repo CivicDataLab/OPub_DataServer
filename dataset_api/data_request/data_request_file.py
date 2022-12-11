@@ -737,7 +737,7 @@ def get_request_file(
     file_path = data_request.file.path
     try:
         if len(file_path):
-            mime_type = magic.from_file(file_path, mime=True)[0]
+            mime_type = magic.from_file(file_path, mime=True)
             if data_request.resource.dataset.dataset_type == "FILE" and target_format and target_format in ["CSV",
                                                                                                             "XML",
                                                                                                             "JSON"]:
