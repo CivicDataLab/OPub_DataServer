@@ -753,7 +753,7 @@ def get_request_file(
                         status=502)
 
 
-def get_resource_file(request, data_request, token, apidetails, username):
+def get_resource_file(request, data_request, token, apidetails, username, return_type="file"):
     format = request.GET.get("format")
     size = request.GET.get("size")
     if not size:
@@ -806,7 +806,7 @@ def get_resource_file(request, data_request, token, apidetails, username):
                         username,
                         data_request_id,
                         format,
-                        "file",
+                        return_type,
                         size,
                         paginate_from,
                     )
@@ -845,7 +845,7 @@ def get_resource_file(request, data_request, token, apidetails, username):
                     username,
                     data_request_id,
                     format,
-                    "file",
+                    return_type,
                     size,
                     paginate_from,
                 )
@@ -865,7 +865,9 @@ def get_resource_file(request, data_request, token, apidetails, username):
 
 def get_dist_data(request):
     token = request.GET.get("token")
-
+    return_type = request.GET.get("type")
+    if not return_type:
+        return_type = "data"
     try:
         token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
@@ -906,7 +908,7 @@ def get_dist_data(request):
         # access_token = create_access_jwt_token(data_request, username)
         # print("------a1", data_request.id)
 
-        return get_resource_file(request, data_request, token, apidetails, username)
+        return get_resource_file(request, data_request, token, apidetails, username, return_type)
 
     return HttpResponse(
         "Something went wrong request again!!", content_type="text/plain", status=502
