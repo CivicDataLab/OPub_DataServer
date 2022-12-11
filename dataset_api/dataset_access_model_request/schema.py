@@ -209,7 +209,7 @@ class Query(graphene.ObjectType):
                 param_input = {
                     "name": parameter.key,
                     "in": "query",
-                    "required": "true",
+                    "required": True,
                     "description": parameter.description,
                     "schema": {"type": parameter.format},
                     "example": parameter.default,
@@ -219,7 +219,7 @@ class Query(graphene.ObjectType):
                 param_input = {
                     "name": "format",
                     "in": "query",
-                    "required": "true",
+                    "required": True,
                     "description": "Return format of data",
                     "schema": {"type": "string", "enum": resource_instance.apidetails.supported_formats},
                     "example": resource_instance.apidetails.default_format,
@@ -230,7 +230,7 @@ class Query(graphene.ObjectType):
                 param_input = {
                     "name": "format",
                     "in": "query",
-                    "required": "true",
+                    "required": True,
                     "description": "Return format of data",
                     "schema": {"type": "string", "enum": ["CSV", "XML", "JSON"]},
                     "example": resource_instance.filedetails.format,
@@ -262,21 +262,32 @@ class Query(graphene.ObjectType):
                     filter_params = {
                         "name": "filters",
                         "in": "query",
-                        "required": "false",
+                        "required": False,
                         "description": "Filter data",
                         "schema": {
                             "type": "object",
                         }
                     }
                     properties = {}
-                    for field in dam_resource.fields.all():
-                        properties[field.key] = {
-                            "type": field.format
-                        }
-                    filter_params["schema"]["properties"] = properties
                     spec["paths"]["/get_dist_data"]["get"]["parameters"].append(pagination_size_param)
                     spec["paths"]["/get_dist_data"]["get"]["parameters"].append(pagination_start_param)
-                    spec["paths"]["/get_dist_data"]["get"]["parameters"].append(filter_params)
+                    for field in dam_resource.fields.all():
+                        filter_param = {
+                            "name": field.key,
+                            "in": "query",
+                            "required": False,
+                            "description": "Filter data by" + field.key,
+                            "schema": {
+                                "type": field.format,
+                            }
+                        }
+                        # properties[field.key] = {
+                        #     "type": field.format
+                        # }
+                        spec["paths"]["/get_dist_data"]["get"]["parameters"].append(filter_param)
+                    # filter_params["schema"]["properties"] = properties
+
+                    # spec["paths"]["/get_dist_data"]["get"]["parameters"].append(filter_params)
         spec["info"]["title"] = resource_instance.title
         spec["info"]["description"] = resource_instance.description
         return {"data_token": data_token, "spec": spec}

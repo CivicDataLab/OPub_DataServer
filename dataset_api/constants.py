@@ -48,7 +48,7 @@ DATAREQUEST_SWAGGER_SPEC = {
                     {
                         "name": "token",
                         "in": "query",
-                        "required": "true",
+                        "required": True,
                         "description": "Access Token",
                         "schema": {
                             "type": "string"
@@ -74,7 +74,7 @@ DATAREQUEST_SWAGGER_SPEC = {
                     {
                         "name": "token",
                         "in": "query",
-                        "required": "true",
+                        "required": True,
                         "description": "Access Token",
                         "schema": {
                             "type": "string"
@@ -101,7 +101,7 @@ GET_RESOURCE = {"/getresource": {
             {
                 "name": "token",
                 "in": "query",
-                "required": "true",
+                "required": True,
                 "description": "Access Token",
                 "schema": {
                     "type": "string"
@@ -110,7 +110,7 @@ GET_RESOURCE = {"/getresource": {
             {
                 "name": "format",
                 "in": "query",
-                "required": "true",
+                "required": True,
                 "description": "Format of return",
                 "schema": {
                     "type": "string",
@@ -120,7 +120,7 @@ GET_RESOURCE = {"/getresource": {
             {
                 "name": "size",
                 "in": "query",
-                "required": "true",
+                "required": True,
                 "description": "number of records to return",
                 "schema": {
                     "type": "integer",
@@ -131,7 +131,7 @@ GET_RESOURCE = {"/getresource": {
             {
                 "name": "from",
                 "in": "query",
-                "required": "true",
+                "required": True,
                 "description": "start of records to return",
                 "schema": {
                     "type": "integer",
