@@ -244,7 +244,7 @@ class FormatConverter:
         elif return_type == "data":
             with open('xml_file_path') as f:
                 contents = f.read()
-            response = HttpResponse(contents, content_type="text/csv")
+            response = HttpResponse(contents, content_type="application/xml")
         return response
 
     @classmethod
@@ -286,7 +286,7 @@ class FormatConverter:
             )
         elif return_type == "data":
             json_file = pd.DataFrame(pd.read_json(json_file_path, orient="index"))
-            response = HttpResponse(json_file.to_string(index=False), content_type="text/csv")
+            response = HttpResponse(json_file.to_string(index=False), content_type="application/json")
         return response
 
     @classmethod
@@ -743,11 +743,14 @@ def get_request_file(
             return response
     except InvalidDataException as e:
         print("Error requesting data " + str(e))
-        return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain", status=502)
+        return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain",
+                            status=502)
     except Exception as e:
         print("Error requesting data " + str(e))
-        return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain", status=502)
-    return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain", status=502)
+        return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain",
+                            status=502)
+    return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain",
+                        status=502)
 
 
 def get_resource_file(request, data_request, token, apidetails, username):
