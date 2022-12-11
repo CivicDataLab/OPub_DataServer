@@ -81,8 +81,11 @@ def parse_schema(schema_dict, parent, schema, current_path):
 
 
 def preview(request, resource_id):
-
-    resp = fetchapi(resource_id)
+    if request.path.split("/")[1] == "resource_preview":
+        res_preview = True
+    else:
+        res_preview = False
+    resp = fetchapi(resource_id, res_preview)
     print("----------dat fetched", resp)
     if resp["Success"] == False:
         return JsonResponse(resp, safe=False)
@@ -188,7 +191,7 @@ def schema(request, resource_id):
     return JsonResponse(context, safe=False)
 
 
-def fetchapi(resource_id):
+def fetchapi(resource_id, res_preview):
     
     res_model = Resource.objects.get(pk=resource_id)
     res_type = "api"
@@ -234,7 +237,8 @@ def fetchapi(resource_id):
             auth_type = res_model.apidetails.api_source.auth_type
             response_type = res_model.apidetails.response_type
             request_type = res_model.apidetails.request_type
-            if res_model.apidetails.apiparameter.type == "PREVIEW":
+            print(res_model.apidetails.apiparameter_set.all())
+            if res_preview:
                 api_params = res_model.apidetails.apiparameter_set.all().filter(type="PREVIEW")
             else:
                 api_params = res_model.apidetails.apiparameter_set.all().exclude(type="PREVIEW")
