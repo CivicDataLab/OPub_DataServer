@@ -6,7 +6,7 @@ import jwt
 import pandas as pd
 import requests
 from django.conf import settings
-from django.http import HttpResponse, FileResponse, HttpResponseForbidden
+from django.http import HttpResponse, FileResponse, HttpResponseForbidden, JsonResponse
 from elasticsearch import Elasticsearch
 from pandas import DataFrame
 from ratelimit import core
@@ -211,13 +211,14 @@ class FormatConverter:
     def convert_xml_to_json(cls, xml_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0,
                             request=None):
         with open(xml_file_path) as xmlFile:
-            data_dict = xmltodict.parse(xmlFile.read())
+            xml_contents = xmlFile.read()
+            data_dict = xmltodict.parse(xml_contents)
         if return_type == "file":
             with open("file.json", "w") as jsonFile:
                 json.dump(data_dict, jsonFile)
 
             response = FileResponse(
-                open("file.json", "rb"), content_type=src_mime_type
+                open("file.json", "rb"), content_type="application/x-download"
             )
             file_name = (
                     ".".join(os.path.basename(xml_file_path).split(".")[:-1]) + ".json"
@@ -228,7 +229,7 @@ class FormatConverter:
             os.remove("file.json")
             return response
         elif return_type == "data":
-            response = HttpResponse(data_dict, content_type="application/json")
+            response = JsonResponse(data_dict, safe=False)
             return response
 
     @classmethod
