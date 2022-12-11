@@ -26,6 +26,7 @@ from ..utils import get_client_ip, get_data_access_model_request_validity
 
 r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
 
+
 class DataAccessModelRequestType(DjangoObjectType):
     validity = graphene.String()
     remaining_quota = graphene.Int()
@@ -47,13 +48,13 @@ class DataAccessModelRequestType(DjangoObjectType):
         validity = get_data_access_model_request_validity(self)
         dam_quota_unit = self.access_model.data_access_model.subscription_quota_unit
         quota_limit = self.access_model.data_access_model.subscription_quota
-        
+
         if validity:
             if timezone.now() >= validity:
                 return False
             else:
                 if dam_quota_unit == SubscriptionUnits.LIMITEDDOWNLOAD:
-                    used_quota = r.get(":1:rl||"+ username+ "||"+ str(self.id)+ "||"+ "365d||quota")
+                    used_quota = r.get(":1:rl||" + username + "||" + str(self.id) + "||" + "365d||quota")
                     if used_quota:
                         if quota_limit > int(used_quota.decode()):
                             return True
@@ -235,6 +236,31 @@ class Query(graphene.ObjectType):
                     "example": resource_instance.filedetails.format,
                 }
                 spec["paths"]["/get_dist_data"]["get"]["parameters"].append(param_input)
+                if resource_instance.filedetails.format in ["CSV"]:
+                    pagination_size_param = {
+                        "name": "size",
+                        "in": "query",
+                        "required": "true",
+                        "description": "number of records to return",
+                        "schema": {
+                            "type": "integer",
+                            "miniumum": 1
+                        },
+                        "example": 5
+                    }
+                    pagination_start_param = {
+                        "name": "from",
+                        "in": "query",
+                        "required": "true",
+                        "description": "start of records to return",
+                        "schema": {
+                            "type": "integer",
+                            "miniumum": 0
+                        },
+                        "example": 0
+                    }
+                    spec["paths"]["/get_dist_data"]["get"]["parameters"].append(pagination_size_param)
+                    spec["paths"]["/get_dist_data"]["get"]["parameters"].append(pagination_start_param)
         spec["info"]["title"] = resource_instance.title
         spec["info"]["description"] = resource_instance.description
         return {"data_token": data_token, "spec": spec}
