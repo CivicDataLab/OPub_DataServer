@@ -179,7 +179,7 @@ class FormatConverter:
             os.remove("file.json")
             return response
         elif return_type == "data":
-            response = HttpResponse(csv_file.to_dict(), content_type="application/json")
+            response = JsonResponse(csv_file.to_dict(), safe=False)
             return response
 
     @classmethod
@@ -243,7 +243,7 @@ class FormatConverter:
             df.to_csv("file.csv", index=False)
 
             response = FileResponse(
-                open("file.csv", "rb"), content_type=src_mime_type
+                open("file.csv", "rb"), content_type="application/x-download"
             )
             file_name = (
                     ".".join(os.path.basename(xml_file_path).split(".")[:-1]) + ".csv"
@@ -262,7 +262,7 @@ class FormatConverter:
                            request=None):
         if return_type == "file":
             response = FileResponse(
-                open(xml_file_path, "rb"), content_type=src_mime_type
+                open(xml_file_path, "rb"), content_type="application/x-download"
             )
             response["Content-Disposition"] = 'attachment; filename="{}"'.format(
                 os.path.basename(xml_file_path)
