@@ -1,14 +1,15 @@
 from typing import Iterable
 
 import graphene
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from graphql import GraphQLError
 
 from dataset_api.decorators import validate_token, auth_user_by_org
 from dataset_api.enums import DataType
-from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization
+from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization, DataRequest, Agreement, \
+    DatasetAccessModelRequest, DatasetAccessModel
 from dataset_api.utils import (
     get_client_ip,
     dataset_slug,
@@ -76,10 +77,22 @@ class Query(graphene.ObjectType):
 
     @validate_token
     def resolve_all_datasets(self, info, username, **kwargs):
+        prefetch_agreements = Prefetch("agreements", queryset=Agreement.objects.filter(username=username))
+
+        prefetch_data_requests = Prefetch("datarequest_set",
+                                          queryset=DataRequest.objects.filter(default=True, user=username))
+        prefetch_dam_requests = Prefetch("datasetaccessmodelrequest_set",
+                                         queryset=DatasetAccessModelRequest.objects.filter(
+                                             user=username).order_by("-modified").prefetch_related(
+                                             prefetch_data_requests))
+        prefetch_dataset_am = Prefetch("datasetaccessmodel_set", queryset=DatasetAccessModel.objects.filter(
+            datasetaccessmodelrequest__user=username,
+            datasetaccessmodelrequest__status="APPROVED")
+                                       .prefetch_related(prefetch_agreements, prefetch_dam_requests))
         return Dataset.objects.filter(
             Q(datasetaccessmodel__datasetaccessmodelrequest__user=username),
             Q(datasetaccessmodel__datasetaccessmodelrequest__status="APPROVED"),
-        )
+        ).prefetch_related(prefetch_dataset_am)
 
     # Access : PMU / DPA
     @auth_user_by_org(action="query")
