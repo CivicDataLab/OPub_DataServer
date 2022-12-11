@@ -26,7 +26,7 @@ class AccessModelResourceType(DjangoObjectType):
             if resource.filedetails.format in ["CSV", "XML", "JSON"]:
                 return ["CSV", "XML", "JSON"]
             else:
-                return resource.filedetails.format
+                return [resource.filedetails.format]
         elif resource.dataset.dataset_type == DataType.API.value:
             if resource.apidetails.supported_formats:
                 return resource.apidetails.supported_formats
@@ -185,9 +185,10 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                 )
             dataset_access_model_instance.title = access_model_resource_data.title
             dataset_access_model_instance.save()
-            
+
             # Getting id's that were removed.
-            get_all_resources = list(DatasetAccessModelResource.objects.filter(dataset_access_model_id=access_model_resource_data.id).values_list("resource_id", flat=True))
+            get_all_resources = list(DatasetAccessModelResource.objects.filter(
+                dataset_access_model_id=access_model_resource_data.id).values_list("resource_id", flat=True))
             # print("---------", get_all_resources, type(get_all_resources[0]))
             for resources in access_model_resource_data.resource_map:
                 # print(resources.resource_id)
@@ -203,7 +204,7 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
             if dam_resource_instance.exists():
                 for resource in dam_resource_instance:
                     resource.delete()
-            
+
             # Creating or Updating resources.
             for resources in access_model_resource_data.resource_map:
                 resource_schema = ResourceSchema.objects.filter(id__in=resources.fields).all()
