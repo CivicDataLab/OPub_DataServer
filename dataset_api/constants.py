@@ -13,6 +13,7 @@ FORMAT_MAPPING = {
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
     "application/xml": "XML",
     "xml": "XML",
+    "text/xml": "XML",
     "application/geo+json": "JSON",
     "application/gml+xml": "XML",
     "application/xhtml+xml": "XML",
