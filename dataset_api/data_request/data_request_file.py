@@ -313,8 +313,9 @@ class FormatConverter:
                 os.path.basename(json_file_path)
             )
         elif return_type == "data":
-            json_file = pd.DataFrame(pd.read_json(json_file_path, orient="index"))
-            response = HttpResponse(json_file.to_string(index=False), content_type="application/json")
+            with open(json_file_path) as f:
+                json_data = json.load(f)
+                response = JsonResponse(json_data, safe=False)
         return response
 
     @classmethod
