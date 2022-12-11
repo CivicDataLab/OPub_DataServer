@@ -259,6 +259,21 @@ class Query(graphene.ObjectType):
                         },
                         "example": 0
                     }
+                    filter_params = {
+                        "name": "filters",
+                        "in": "query",
+                        "required": "false",
+                        "description": "Filter data",
+                        "schema": {
+                            "type": "object",
+                        }
+                    }
+                    properties = {}
+                    for field in dam_resource.fields.all():
+                        properties[field.key] = {
+                            "type": field.format
+                        }
+                    filter_params["schema"]["properties"] = properties
                     spec["paths"]["/get_dist_data"]["get"]["parameters"].append(pagination_size_param)
                     spec["paths"]["/get_dist_data"]["get"]["parameters"].append(pagination_start_param)
         spec["info"]["title"] = resource_instance.title
