@@ -11,7 +11,7 @@ def download(request, license_id):
     license = License.objects.get(pk=license_id)
     file_path = license.file.path
     if len(file_path):
-        mime_type = magic.from_file(file_path, mime=True)[0]
+        mime_type = magic.from_file(file_path, mime=True)
         response = HttpResponse(license.file, content_type=mime_type)
         response['Content-Disposition'] = 'attachment; filename="{}"'.format(os.path.basename(file_path))
     else:

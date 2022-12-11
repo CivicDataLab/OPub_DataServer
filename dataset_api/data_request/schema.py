@@ -297,7 +297,7 @@ def update_data_request_index(data_request: DataRequest):
     es_client = Elasticsearch(settings.ELASTICSEARCH)
     file_path = data_request.file.path
     if len(file_path):
-        mime_type = magic.from_file(file_path, mime=True)[0]
+        mime_type = magic.from_file(file_path, mime=True)
         src_format = FORMAT_MAPPING[mime_type]
         index_name = str(data_request.id)
         es_create_index_if_not_exists(es_client, index_name)
