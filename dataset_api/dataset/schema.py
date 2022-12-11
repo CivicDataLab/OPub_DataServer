@@ -92,7 +92,7 @@ class Query(graphene.ObjectType):
         return Dataset.objects.filter(
             Q(datasetaccessmodel__datasetaccessmodelrequest__user=username),
             Q(datasetaccessmodel__datasetaccessmodelrequest__status="APPROVED"),
-        ).prefetch_related(prefetch_dataset_am)
+        ).prefetch_related(prefetch_dataset_am).distinct()
 
     # Access : PMU / DPA
     @auth_user_by_org(action="query")
