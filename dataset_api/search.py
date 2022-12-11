@@ -146,7 +146,7 @@ def facets(request):
     paginate_from = request.GET.get("from", 0)
     query_string = request.GET.get("q")
     sort_by = request.GET.get("sort_by", None)
-    sort_order = request.GET.get("sort", None)
+    sort_order = request.GET.get("sort", "desc")
     org = request.GET.get("organization", None)
     start_duration = request.GET.get("start_duration", None)
     end_duration = request.GET.get("end_duration", None)
