@@ -126,15 +126,31 @@ class InvalidDataException(Exception):
     pass
 
 
+def filter_csv(request,  csv_file, paginate_from, size):
+    
+    #paginate
+    start = paginate_from
+    end = len(csv_file) if size > len(csv_file) else size
+    csv_file = csv_file[start:end]
+    
+    #filter
+    filters = request.GET.items()
+    col_list = [filters[key] for key in filters if key=="name"]
+    csv_file = csv_file.loc[:, csv_file.columns.isin(col_list)] if len(col_list) > 0 else csv_file
+    
+    return csv_file
+
+
 class FormatConverter:
     @classmethod
-    def convert_csv_to_json(cls, csv_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0):
+    def convert_csv_to_json(cls, csv_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0, request=None):
         csv_file = pd.DataFrame(
             pd.read_csv(csv_file_path, sep=",", header=0, index_col=False, )
         )
-        start = paginate_from
-        end = len(csv_file) if size > len(csv_file) else size
-        csv_file = csv_file[start:end]
+
+        csv_file = filter_csv(request,  csv_file, paginate_from, size)
+        
+
         if return_type == "file":
             csv_file.to_json(
                 "file.json",
@@ -161,13 +177,12 @@ class FormatConverter:
             return response
 
     @classmethod
-    def convert_csv_to_xml(cls, csv_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0):
+    def convert_csv_to_xml(cls, csv_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0, request=None):
         csv_file = pd.DataFrame(
             pd.read_csv(csv_file_path, sep=",", header=0, index_col=False)
         )
-        start = paginate_from
-        end = len(csv_file) if size > len(csv_file) else size
-        csv_file = csv_file[start:end]
+
+        csv_file = filter_csv(request,  csv_file, paginate_from, size)
         if return_type == "file":
             csv_file.to_xml("file.xml", index=False)
             response = FileResponse(
@@ -186,7 +201,7 @@ class FormatConverter:
             return response
 
     @classmethod
-    def convert_xml_to_json(cls, xml_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0):
+    def convert_xml_to_json(cls, xml_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0, request=None):
         if return_type == "file":
             with open(xml_file_path) as xmlFile:
                 data_dict = xmltodict.parse(xmlFile.read())
@@ -211,7 +226,7 @@ class FormatConverter:
             return response
 
     @classmethod
-    def convert_xml_to_csv(cls, xml_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0):
+    def convert_xml_to_csv(cls, xml_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0, request=None):
         if return_type == "file":
             df = pd.read_xml(xml_file_path)
             df.to_csv("file.csv", index=False)
@@ -233,7 +248,7 @@ class FormatConverter:
             return response
 
     @classmethod
-    def convert_xml_to_xml(cls, xml_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0):
+    def convert_xml_to_xml(cls, xml_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0, request=None):
         if return_type == "file":
             response = FileResponse(
                 open(xml_file_path, "rb"), content_type=src_mime_type
@@ -248,13 +263,13 @@ class FormatConverter:
         return response
 
     @classmethod
-    def convert_csv_to_csv(cls, csv_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0):
+    def convert_csv_to_csv(cls, csv_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0, request=None):
         csv_file = pd.DataFrame(
             pd.read_csv(csv_file_path, sep=",", header=0, index_col=False)
         )
-        start = paginate_from
-        end = len(csv_file) if size > len(csv_file) else size
-        csv_file = csv_file[start:end]
+
+        csv_file = filter_csv(request,  csv_file, paginate_from, size)
+
         if return_type == "file":
             csv_file.to_csv("file.csv", index=False)
             response = FileResponse(
@@ -273,7 +288,7 @@ class FormatConverter:
             return response
 
     @classmethod
-    def convert_json_to_json(cls, json_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0):
+    def convert_json_to_json(cls, json_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0, request=None):
         if return_type == "file":
             response = FileResponse(
                 open(json_file_path, "rb"), content_type=src_mime_type
@@ -287,7 +302,7 @@ class FormatConverter:
         return response
 
     @classmethod
-    def convert_json_to_csv(cls, json_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0):
+    def convert_json_to_csv(cls, json_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0, request=None):
         # final_json = pd.read_json(json_file_path, orient='index' )  #cls.process_json_data(json_file_path)
         final_json = cls.process_json_data(json_file_path)
         if return_type == "file":
@@ -353,7 +368,7 @@ class FormatConverter:
                 return pd.DataFrame.from_dict(data)
 
     @classmethod
-    def convert_json_to_xml(cls, json_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0):
+    def convert_json_to_xml(cls, json_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0, request=None):
         final_json = cls.process_json_data(json_file_path)
         if return_type == "file":
             final_json.to_xml("file.xml", index=False)
@@ -716,6 +731,7 @@ def get_request_file(
         return_type="file",
         size=10000,
         paginate_from=0,
+        request=None,
 ):
     data_request = DataRequest.objects.get(pk=data_request_id)
     file_path = data_request.file.path
@@ -729,7 +745,7 @@ def get_request_file(
                 response = getattr(
                     FormatConverter,
                     f"convert_{src_format.lower()}_to_{target_format.lower()}",
-                )(file_path, mime_type, return_type, size, paginate_from)
+                )(file_path, mime_type, return_type, size, paginate_from, request)
             else:
                 response = HttpResponse(data_request.file, content_type=mime_type)
                 response["Content-Disposition"] = 'attachment; filename="{}"'.format(
@@ -806,6 +822,7 @@ def get_resource_file(request, data_request, token, apidetails, username, return
                         return_type,
                         size,
                         paginate_from,
+                        request, 
                     )
                     print("file after quota", get_file)
                     get_rate_count = core.get_usage(

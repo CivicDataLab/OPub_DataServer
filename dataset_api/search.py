@@ -147,9 +147,12 @@ def facets(request):
     query_string = request.GET.get("q")
     sort_by = request.GET.get("sort_by", None)
     sort_order = request.GET.get("sort", None)
+    if sort_order == "":
+        sort_order = "desc"
     org = request.GET.get("organization", None)
     start_duration = request.GET.get("start_duration", None)
     end_duration = request.GET.get("end_duration", None)
+    print(sort_by, sort_order)
     if sort_by and sort_order:
         if sort_by == "modified":
             sort_mapping = {"modified": {"order": sort_order}}

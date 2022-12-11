@@ -7,11 +7,14 @@ def check_ext(file_object):
     return ext_type
 
 def check_mime_type(file_object):
-    mime_type = magic.from_buffer(file_object.file.read(), mime=True)
+    # with open(file_object.file) as mime_file:
+    # print(type(file_object.file))
+    mime_type = magic.from_buffer(file_object.read(), mime=True)
+        #file_object.file.close()
     return mime_type
 
-def file_validation(file_object):
-    ext_type = check_ext(file_object)
+def file_validation(file_object, ext_object):
+    ext_type = check_ext(ext_object)
     print("ext--", ext_type)
     mime_type = check_mime_type(file_object)
     print("mime--", mime_type)
