@@ -535,8 +535,9 @@ def _create_update_file_details(resource_instance, attribute):
             resource_instance.delete()
             raise GraphQLError("Unsupported File Format")
         try:
+            print("before deep clone --", file_format)
             file_obj = copy.deepcopy(attribute.file)
-            print(file_format)
+            #print(file_format)
             if file_format.lower() == "csv":
                 data = pd.read_csv(file_obj)
             if file_format.lower() == "xlsx":
