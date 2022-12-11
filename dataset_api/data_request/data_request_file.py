@@ -759,7 +759,15 @@ def get_resource_file(request, data_request, token, apidetails, username):
     if not size:
         size = 10000
     paginate_from = request.GET.get("from", 0)
-
+    if not str(size).isdigit() or not str(paginate_from).isdigit():
+        return HttpResponse(
+            "invalid pagination params",
+            content_type="text/plain",
+            status=400
+        )
+    else:
+        size = int(size)
+        paginate_from = int(paginate_from)
     if data_request:
 
         data_request_id = data_request.id
