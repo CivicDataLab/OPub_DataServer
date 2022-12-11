@@ -134,10 +134,19 @@ def filter_csv(request,  csv_file, paginate_from, size):
     csv_file = csv_file[start:end]
     
     #filter
-    filters = request.GET.items()
-    col_list = [filters[key] for key in filters if key=="name"]
-    csv_file = csv_file.loc[:, csv_file.columns.isin(col_list)] if len(col_list) > 0 else csv_file
-    
+    filters = dict(request.GET.items())
+    print ('******-----', filters)
+    # col_list = [filters[key] for key in filters if key not in ["format", "size", "from"]]
+    #csv_file = csv_file.loc[:, csv_file.columns.isin(col_list)] if len(col_list) > 0 else csv_file
+    try:
+        for key in filters:
+            if key not in ["format", "size", "from", "token"]:
+                csv_file = csv_file[csv_file[key] == filters[key] ]  
+    except Exception as e:
+        print ('filter exception csv----', str(e))
+
+
+ 
     return csv_file
 
 
@@ -267,8 +276,13 @@ class FormatConverter:
         csv_file = pd.DataFrame(
             pd.read_csv(csv_file_path, sep=",", header=0, index_col=False)
         )
+        
+        try:
+            csv_file = filter_csv(request,  csv_file, paginate_from, size)
+        except Exception as e:
+            print ('----filtercall', str(e))
 
-        csv_file = filter_csv(request,  csv_file, paginate_from, size)
+
 
         if return_type == "file":
             csv_file.to_csv("file.csv", index=False)
