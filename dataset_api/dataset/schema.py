@@ -77,18 +77,18 @@ class Query(graphene.ObjectType):
 
     @validate_token
     def resolve_all_datasets(self, info, username, **kwargs):
-        prefetch_agreements = Prefetch("agreements", queryset=Agreement.objects.filter(username=username))
+        prefetch_agreements = Prefetch("agreements", queryset=Agreement.objects.filter(username=username).distinct())
 
         prefetch_data_requests = Prefetch("datarequest_set",
                                           queryset=DataRequest.objects.filter(default=True, user=username))
         prefetch_dam_requests = Prefetch("datasetaccessmodelrequest_set",
                                          queryset=DatasetAccessModelRequest.objects.filter(
                                              user=username).order_by("-modified").prefetch_related(
-                                             prefetch_data_requests))
+                                             prefetch_data_requests).distinct())
         prefetch_dataset_am = Prefetch("datasetaccessmodel_set", queryset=DatasetAccessModel.objects.filter(
             datasetaccessmodelrequest__user=username,
             datasetaccessmodelrequest__status="APPROVED")
-                                       .prefetch_related(prefetch_agreements, prefetch_dam_requests))
+                                       .prefetch_related(prefetch_agreements, prefetch_dam_requests).distinct())
         return Dataset.objects.filter(
             Q(datasetaccessmodel__datasetaccessmodelrequest__user=username),
             Q(datasetaccessmodel__datasetaccessmodelrequest__status="APPROVED"),
