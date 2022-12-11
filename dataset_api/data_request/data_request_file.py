@@ -235,8 +235,11 @@ class FormatConverter:
     @classmethod
     def convert_xml_to_csv(cls, xml_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0,
                            request=None):
+        with open(xml_file_path) as xmlFile:
+            xml_contents = xmlFile.read()
+            data_dict = xmltodict.parse(xml_contents)
+            df = pd.DataFrame.from_dict(data_dict)
         if return_type == "file":
-            df = pd.read_xml(xml_file_path)
             df.to_csv("file.csv", index=False)
 
             response = FileResponse(
@@ -251,7 +254,6 @@ class FormatConverter:
             os.remove("file.csv")
             return response
         elif return_type == "data":
-            df = pd.read_xml(xml_file_path)
             response = HttpResponse(df.to_string(index=False), content_type="text/csv")
             return response
 
