@@ -234,7 +234,7 @@ def fetchapi(resource_id):
             auth_type = res_model.apidetails.api_source.auth_type
             response_type = res_model.apidetails.response_type
             request_type = res_model.apidetails.request_type
-            api_params = res_model.apidetails.apiparameter_set.all()
+            api_params = res_model.apidetails.apiparameter_set.all().exclude(type="PREVIEW")
 
             format_loc = res_model.apidetails.format_loc
             format_key = res_model.apidetails.format_key

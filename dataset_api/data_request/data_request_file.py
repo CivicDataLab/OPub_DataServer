@@ -896,7 +896,7 @@ def get_dist_data(request):
         parameters = {}
         default_parameters = []
         if apidetails:
-            default_parameters = apidetails.apiparameter_set.all()
+            default_parameters = apidetails.apiparameter_set.all().exclude(type="PREVIEW")
         for param in default_parameters:
             if param.key in request.GET:
                 parameters[param.key] = request.GET.get(param.key)

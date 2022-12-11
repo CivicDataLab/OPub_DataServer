@@ -142,7 +142,7 @@ class ApiDetailsType(DjangoObjectType):
 
     def resolve_parameters(self: APIDetails, info):
         try:
-            parameters = APIParameter.objects.filter(api_details=self)
+            parameters = APIParameter.objects.filter(api_details=self).exclude(type="PREVIEW")
             return parameters
         except APIParameter.DoesNotExist as e:
             return []
@@ -194,8 +194,8 @@ class Query(graphene.ObjectType):
     resource_dataset = graphene.List(ResourceType, dataset_id=graphene.Int())
 
     # Access : PMU
-    @auth_user_by_org(action="query")
-    def resolve_all_resources(self, info, role, **kwargs):
+    # @auth_user_by_org(action="query")
+    def resolve_all_resources(self, info, role="PMU", **kwargs):
         if role == "PMU":
             return Resource.objects.all().order_by("-modified")
         else:

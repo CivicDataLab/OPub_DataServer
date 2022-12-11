@@ -165,7 +165,7 @@ def initiate_dam_request(
     print('------------------field', resource.dataset.dataset_type, '---', fields)
     # TODO: fix magic strings
     if resource and resource.dataset.dataset_type == "API":
-        for parameter in resource.apidetails.apiparameter_set.all():
+        for parameter in resource.apidetails.apiparameter_set.all().exclude(type="PREVIEW"):
             value = parameters.get(parameter.key, parameter.default)
             dr_parameter_instance = DataRequestParameter(
                 api_parameter=parameter, value=value, data_request=data_request_instance
