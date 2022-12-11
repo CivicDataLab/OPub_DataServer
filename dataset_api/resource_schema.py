@@ -517,6 +517,8 @@ def _create_update_file_details(resource_instance, attribute):
         file_detail_object = FileDetails(resource=resource_instance)
     if attribute.file:
         file_detail_object.file = attribute.file
+        obj1 = copy.deepcopy(attribute.file) 
+        #"" + str(attribute.file)
         # mime_type = mimetypes.guess_type(file_detail_object.file.path)[0]
         # mime_type = magic.from_buffer(attribute.file.read(), mime=True)
         # mime_t = magic.Magic(mime=True).from_buffer(attribute.file.read())
@@ -525,7 +527,7 @@ def _create_update_file_details(resource_instance, attribute):
         # if not mime_type:
         #     resource_instance.delete()
         #     raise GraphQLError("Unsupported File Format")
-        mime_type = file_validation(file_detail_object.file)
+        mime_type = file_validation(obj1, file_detail_object.file)
         if not mime_type:
             resource_instance.delete()
             raise GraphQLError("Unsupported File Format")
