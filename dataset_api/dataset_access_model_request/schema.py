@@ -276,6 +276,7 @@ class Query(graphene.ObjectType):
                     filter_params["schema"]["properties"] = properties
                     spec["paths"]["/get_dist_data"]["get"]["parameters"].append(pagination_size_param)
                     spec["paths"]["/get_dist_data"]["get"]["parameters"].append(pagination_start_param)
+                    spec["paths"]["/get_dist_data"]["get"]["parameters"].append(filter_params)
         spec["info"]["title"] = resource_instance.title
         spec["info"]["description"] = resource_instance.description
         return {"data_token": data_token, "spec": spec}
