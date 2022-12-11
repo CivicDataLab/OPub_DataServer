@@ -142,7 +142,7 @@ class ApiDetailsType(DjangoObjectType):
 
     def resolve_parameters(self: APIDetails, info):
         try:
-            parameters = APIParameter.objects.filter(api_details=self).exclude(type="PREVIEW")
+            parameters = APIParameter.objects.filter(api_details=self) #.exclude(type="PREVIEW")
             return parameters
         except APIParameter.DoesNotExist as e:
             return []
