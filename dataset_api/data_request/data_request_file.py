@@ -210,27 +210,25 @@ class FormatConverter:
     @classmethod
     def convert_xml_to_json(cls, xml_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0,
                             request=None):
+        with open(xml_file_path) as xmlFile:
+            data_dict = xmltodict.parse(xmlFile.read())
         if return_type == "file":
-            with open(xml_file_path) as xmlFile:
-                data_dict = xmltodict.parse(xmlFile.read())
-                with open("file.json", "w") as jsonFile:
-                    json.dump(data_dict, jsonFile)
+            with open("file.json", "w") as jsonFile:
+                json.dump(data_dict, jsonFile)
 
-                response = FileResponse(
-                    open("file.json", "rb"), content_type=src_mime_type
-                )
-                file_name = (
-                        ".".join(os.path.basename(xml_file_path).split(".")[:-1]) + ".json"
-                )
-                response["Content-Disposition"] = 'attachment; filename="{}"'.format(
-                    file_name
-                )
-                os.remove("file.json")
-                return response
+            response = FileResponse(
+                open("file.json", "rb"), content_type=src_mime_type
+            )
+            file_name = (
+                    ".".join(os.path.basename(xml_file_path).split(".")[:-1]) + ".json"
+            )
+            response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+                file_name
+            )
+            os.remove("file.json")
+            return response
         elif return_type == "data":
-            with open(xml_file_path) as f:
-                contents = f.read()
-            response = HttpResponse(contents, content_type="application/json")
+            response = HttpResponse(data_dict, content_type="application/json")
             return response
 
     @classmethod
