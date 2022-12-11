@@ -179,7 +179,7 @@ class FormatConverter:
             os.remove("file.json")
             return response
         elif return_type == "data":
-            response = JsonResponse(csv_file.to_dict(), safe=False)
+            response = JsonResponse(csv_file.to_dict(orient="records"), safe=False)
             return response
 
     @classmethod
