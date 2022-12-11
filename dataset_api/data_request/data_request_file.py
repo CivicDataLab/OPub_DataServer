@@ -228,7 +228,7 @@ class FormatConverter:
                 os.remove("file.json")
                 return response
         elif return_type == "data":
-            with open('xml_file_path') as f:
+            with open(xml_file_path) as f:
                 contents = f.read()
             response = HttpResponse(contents, content_type="application/json")
             return response
