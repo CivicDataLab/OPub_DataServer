@@ -124,7 +124,7 @@ def schema(request, resource_id):
 
     if resp["response_type"].lower() == "json":
         builder = genson.SchemaBuilder()
-        jsondata = json.loads(resp["data"])
+        jsondata = json.loads(resp["data"]) if not isinstance(resp["data"], dict) else resp["data"]
         builder.add_object(jsondata)
         schema_dict = builder.to_schema()
         schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties", {})) #schema_dict.get("properties", {})
