@@ -33,7 +33,7 @@ def _resource_directory_path(file_details, filename):
     resource_name = file_details.resource.title
     file_details.source_file_name = filename
     _, extension = os.path.splitext(filename)
-    new_name = str(uuid.uuid4()) + "." + extension
+    new_name = str(uuid.uuid4()) + extension
     return f"resources/{dataset_name}/{resource_name}/{extension[1:]}/{new_name}"
 
 
