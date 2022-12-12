@@ -184,12 +184,12 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
     moderation_requests = graphene.List(of_type=ModerationRequestType)
 
     @staticmethod
-    # @validate_token_or_none
-    # @auth_user_by_org(action="publish_dataset")
+    @validate_token_or_none
+    @auth_user_by_org(action="publish_dataset")
     def mutate(
             root,
             info,
-            username="",
+            username,
             moderation_request: ModerationRequestsApproveRejectInput = None,
     ):
         errors = []
@@ -242,11 +242,11 @@ class AddressModerationRequests(graphene.Mutation, Output):
 
     @staticmethod
     @validate_token_or_none
-    # @auth_user_by_org(action="publish_dataset")
+    @auth_user_by_org(action="publish_dataset")
     def mutate(
             root,
             info,
-            username="",
+            username,
             moderation_request: ModerationRequestsApproveRejectInput = None,
     ):
         try:
