@@ -127,7 +127,7 @@ class ModerationRequestMutation(graphene.Mutation, Output):
         dataset = Dataset.objects.get(id=moderation_request.dataset)
         # Check if any previous request is in "ADDRESSING" state.
         previous_moderations = DatasetReviewRequest.objects.filter(
-            dataset_id=dataset, status="ADDRESSING"
+            dataset_id=dataset, status="ADDRESSING", request_type="MODERATION"
         )
         if previous_moderations.exists():
             for instances in previous_moderations:
@@ -161,6 +161,14 @@ class ReviewRequestMutation(graphene.Mutation, Output):
             dataset = Dataset.objects.get(id=review_request.dataset)
         except Dataset.DoesNotExist as e:
             raise GraphQLError("Moderation request does not exist")
+        # Check if any previous request is in "ADDRESSING" state.
+        previous_reviews = DatasetReviewRequest.objects.filter(
+            dataset_id=dataset, status="ADDRESSING", request_type="REVIEW"
+        )
+        if previous_reviews.exists():
+            for instances in previous_reviews:
+                instances.status = StatusType.ADDRESSED.value
+                instances.save()
         review_request_instance.dataset = dataset
         review_request_instance.save()
         # TODO: fix magic string
