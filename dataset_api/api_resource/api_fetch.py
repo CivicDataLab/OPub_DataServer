@@ -191,7 +191,7 @@ def schema(request, resource_id):
     return JsonResponse(context, safe=False)
 
 
-def fetchapi(resource_id, res_preview):
+def fetchapi(resource_id, res_preview=False):
     
     res_model = Resource.objects.get(pk=resource_id)
     res_type = "api"

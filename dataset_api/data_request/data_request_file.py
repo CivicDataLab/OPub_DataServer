@@ -905,7 +905,7 @@ def get_dist_data(request):
 
         data_request_id = initiate_dam_request(
             dam_request, dam_resource.resource, username, parameters, True,
-            target_format=request.GET.get("format", None))
+            target_format=request.GET.get("format", apidetails.response_type))
         data_request = DataRequest.objects.get(pk=data_request_id)
 
         # do we need this ?
