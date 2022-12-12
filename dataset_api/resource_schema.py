@@ -527,12 +527,16 @@ def _create_update_file_details(resource_instance, attribute):
         # if not mime_type:
         #     resource_instance.delete()
         #     raise GraphQLError("Unsupported File Format")
-        mime_type = file_validation(obj1, file_detail_object.file)
-        if not mime_type:
-            resource_instance.delete()
-            raise GraphQLError("Unsupported File Format")
-        
-        file_format = FORMAT_MAPPING.get(mime_type.lower())
+        print("-----", attribute.file)
+        print(obj1, type(obj1))
+        if not isinstance(attribute.file, str):
+            mime_type = file_validation(obj1, file_detail_object.file)
+            if not mime_type:
+                resource_instance.delete()
+                raise GraphQLError("Unsupported File Format")
+            file_format = FORMAT_MAPPING.get(mime_type.lower())
+        else:
+            file_format = file_detail_object.format
         if not file_format:
             resource_instance.delete()
             raise GraphQLError("Unsupported File Format")

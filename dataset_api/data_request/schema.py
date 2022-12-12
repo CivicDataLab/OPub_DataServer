@@ -14,7 +14,7 @@ from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
 from DatasetServer import settings
-from dataset_api.constants import DATAREQUEST_SWAGGER_SPEC, FORMAT_MAPPING
+from dataset_api.constants import FORMAT_MAPPING
 from dataset_api.data_request.token_handler import (
     create_access_jwt_token,
     generate_refresh_token,
@@ -151,11 +151,11 @@ def initiate_dam_request(
     )
     dam_resource_field_ids = list(dam_resource.fields.all().values_list('id', flat=True))
     schema_rows = list(resource.resourceschema_set.filter(id__in=dam_resource_field_ids).values_list('path', flat=True))
-    
+
     schema_rows
-    print ('-------rows', schema_rows)
+    print('-------rows', schema_rows)
     fields = []
-  
+
     try:
         for field in dam_resource.fields.all():
             fields.append(field.key)
@@ -179,14 +179,14 @@ def initiate_dam_request(
                 "api_source_id": resource.id,
                 "request_id": str(data_request_instance.id),
                 "request_columns": [x for x in fields],
-                "remove_nodes": [x for x in schema_rows], 
+                "remove_nodes": [x for x in schema_rows],
                 "request_rows": "",
-                "target_format": target_format 
+                "target_format": target_format
             }
         )
         headers = {}
         response = requests.request("POST", url, headers=headers, data=payload)
-        #print(response.text)
+        # print(response.text)
     elif resource and resource.dataset.dataset_type == DataType.FILE.value:
         print('-----------------bbbbbaaa')
         data_request_instance.file = File(
@@ -218,7 +218,7 @@ def initiate_dam_request(
             output_file.close()
         data_request_instance.status = "FETCHED"
         data_request_instance.save()
-        #update_data_request_index(data_request_instance)
+        # update_data_request_index(data_request_instance)
     return data_request_instance.id
 
 
@@ -361,7 +361,7 @@ class DataRequestUpdateMutation(graphene.Mutation, Output):
             data_request_instance.status = data_request.status
             data_request_instance.file = data_request.file
         data_request_instance.save()
-        #update_data_request_index(data_request_instance)
+        # update_data_request_index(data_request_instance)
         return DataRequestUpdateMutation(data_request=data_request_instance)
 
 
