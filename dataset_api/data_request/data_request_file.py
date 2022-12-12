@@ -774,10 +774,12 @@ def get_request_file(
             data_request.file.delete()
             return response
     except InvalidDataException as e:
+        # raise e
         print("Error requesting data " + str(e))
         return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain",
                             status=502)
     except Exception as e:
+        # raise e
         print("Error requesting data " + str(e))
         return HttpResponse("There is a problem with data!! Please contact Data Provider", content_type="text/plain",
                             status=502)
@@ -881,6 +883,7 @@ def get_resource_file(request, data_request, token, apidetails, username, return
                     return_type,
                     size,
                     paginate_from,
+                    request
                 )
                 get_rate_count = core.get_usage(
                     request,
@@ -934,7 +937,7 @@ def get_dist_data(request):
 
         data_request_id = initiate_dam_request(
             dam_request, dam_resource.resource, username, parameters, True,
-            target_format=request.GET.get("format", apidetails.response_type))
+            target_format=request.GET.get("format", "" if not apidetails else apidetails.response_type))
         data_request = DataRequest.objects.get(pk=data_request_id)
 
         # do we need this ?
