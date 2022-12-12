@@ -150,7 +150,7 @@ def auth_user_by_org(action):
             if not response_json["Success"]:
                 raise GraphQLError(response_json["error_description"])
             if response_json["access_allowed"]:
-                if action == "query":
+                if action == "query" or action == "list_review_request":
                     kwargs["role"] = response_json["role"]
                 return func(*args, **kwargs)
             else:
@@ -186,7 +186,7 @@ def modify_org_status(func):
         value = func(*args, **kwargs)
         org_list = [value.organization.id]
         org_status = value.organization.status.lower()
-        
+
         user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
         body = json.dumps(
             {
@@ -196,7 +196,7 @@ def modify_org_status(func):
             }
         )
         response_json_approve = request_to_server(body, "modify_org_status")
-        
+
         if value.rejected:
             rejected_list = value.rejected
             body = json.dumps(
