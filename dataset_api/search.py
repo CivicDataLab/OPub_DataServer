@@ -252,7 +252,7 @@ def facets(request):
                                 }
                             }
                         },
-                        {"match": {"tags": {"query": "Sports"}}},
+                        {"match": {"tags": {"query": query_string}}},
                     ]
                 }
             }
