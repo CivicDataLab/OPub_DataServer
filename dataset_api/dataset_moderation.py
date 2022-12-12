@@ -52,10 +52,17 @@ class Query(graphene.ObjectType):
         return DatasetReviewRequest.objects.get(pk=moderation_request_id)
 
     @validate_token
-    def resolve_review_request_user(self, info, username, **kwargs):
-        return DatasetReviewRequest.objects.filter(user=username).order_by(
-            "-modified_date"
-        )
+    @auth_user_by_org(action="list_review_request")
+    def resolve_review_request_user(self, info, username, role, **kwargs):
+        if role == "DP":
+            return DatasetReviewRequest.objects.filter(user=username).order_by(
+                "-modified_date"
+            )
+        elif role == "DPA" or role == "PMU":
+            org_id = info.context.META.get("HTTP_ORGANIZATION")
+            return DatasetReviewRequest.objects.filter(dataset__catalog__organization_id=org_id).order_by(
+                "-modified_date"
+            )
 
     @validate_token
     def resolve_moderation_request_user(self, info, username, **kwargs):
@@ -172,10 +179,10 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
     # @validate_token_or_none
     # @auth_user_by_org(action="publish_dataset")
     def mutate(
-        root,
-        info,
-        username="",
-        moderation_request: ModerationRequestsApproveRejectInput = None,
+            root,
+            info,
+            username="",
+            moderation_request: ModerationRequestsApproveRejectInput = None,
     ):
         errors = []
         moderation_requests = []
@@ -229,16 +236,16 @@ class AddressModerationRequests(graphene.Mutation, Output):
     @validate_token_or_none
     # @auth_user_by_org(action="publish_dataset")
     def mutate(
-        root,
-        info,
-        username="",
-        moderation_request: ModerationRequestsApproveRejectInput = None,
+            root,
+            info,
+            username="",
+            moderation_request: ModerationRequestsApproveRejectInput = None,
     ):
         try:
             moderation_request_instance = DatasetReviewRequest.objects.get(id=moderation_request.ids[0])
         except DatasetReviewRequest.DoesNotExist as e:
             raise GraphQLError("Moderation request does not exist")
-        if moderation_request_instance and moderation_request_instance.status==StatusType.REJECTED.value:
+        if moderation_request_instance and moderation_request_instance.status == StatusType.REJECTED.value:
             moderation_request_instance.status = StatusType.ADDRESSING.value
             moderation_request_instance.save()
         else:
