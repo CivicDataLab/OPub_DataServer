@@ -204,7 +204,7 @@ class Query(graphene.ObjectType):
         spec["paths"]["/get_dist_data"]["get"]["parameters"][0]["example"] = data_token
         parameters = []
         if resource_instance and resource_instance.dataset.dataset_type == "API":
-            parameters = resource_instance.apidetails.apiparameter_set.all()
+            parameters = resource_instance.apidetails.apiparameter_set.all().exclude(type="PREVIEW")
             for parameter in parameters:
                 param_input = {
                     "name": parameter.key,

@@ -77,7 +77,7 @@ class SubscriptionAction(models.TextChoices):
 class ParameterTypes(models.TextChoices):
     EXPOSED = "EXPOSED"
     PAGINATION = "PAGINATION"
-
+    PREVIEW = "PREVIEW"
 
 class FormatLocation(models.TextChoices):
     HEADER = "HEADER"
