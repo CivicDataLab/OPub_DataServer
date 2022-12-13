@@ -223,7 +223,7 @@ class Query(graphene.ObjectType):
                         schema_list = pd.io.json.build_table_schema(file, version=False)
                         schema_list = schema_list.get("fields", [])
                         schema = []
-                        for each in schema_list:
+                        for each in schema_list[1:]:
                             schema.append(
                                 {
                                     "key": each["name"],
