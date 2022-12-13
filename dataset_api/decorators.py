@@ -3,7 +3,7 @@ import json
 import requests
 from graphql import GraphQLError
 
-from .models import Resource, OrganizationCreateRequest
+from .models import Resource, OrganizationCreateRequest, DatasetReviewRequest
 
 auth_url = settings.AUTH_URL
 
@@ -138,11 +138,17 @@ def auth_user_by_org(action):
         def inner(*args, **kwargs):
             org_id = args[1].context.META.get("HTTP_ORGANIZATION", "")
             user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+            dataset_id = ""
+            try:
+                review_id = kwargs['moderation_request']['ids'][0] # Only for address moderation request mutation.
+                dataset_id = DatasetReviewRequest.objects.get(pk=review_id).dataset_id
+            except Exception as e:
+                pass
             body = json.dumps(
                 {
                     "access_token": user_token,
                     "access_org_id": org_id,
-                    "access_data_id": "",
+                    "access_data_id": dataset_id,
                     "access_req": action,
                 }
             )
