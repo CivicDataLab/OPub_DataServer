@@ -242,7 +242,7 @@ class AddressModerationRequests(graphene.Mutation, Output):
 
     @staticmethod
     @validate_token_or_none
-    @auth_user_by_org(action="publish_dataset")
+    # @auth_user_by_org(action="publish_dataset")
     def mutate(
             root,
             info,
