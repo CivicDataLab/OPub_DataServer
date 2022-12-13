@@ -62,7 +62,7 @@ class CreateDatasetRating(Output, graphene.Mutation):
         ).order_by("-modified")
         if previous_rating_instance.exists():
             time_check = previous_rating_instance[0].modified + datetime.timedelta(
-                minutes=1
+                days=1
             )
             if datetime.datetime.now(datetime.timezone.utc) > time_check:
                 rating_instance = DatasetRatings(
