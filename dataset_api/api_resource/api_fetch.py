@@ -145,7 +145,7 @@ def schema(request, resource_id):
         schema_list = schema_list.get("fields", [])
         schema = []
         print(schema_list)
-        for each in schema_list:
+        for each in schema_list[1:]:
             schema.append(
                 {
                     "key": each["name"],
