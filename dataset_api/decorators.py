@@ -138,11 +138,16 @@ def auth_user_by_org(action):
         def inner(*args, **kwargs):
             org_id = args[1].context.META.get("HTTP_ORGANIZATION", "")
             user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+            dataset_id = ""
+            try:
+                dataset_id = kwargs['ids'][0] # Only for address moderation request mutation.
+            except Exception as e:
+                print(str(e))
             body = json.dumps(
                 {
                     "access_token": user_token,
                     "access_org_id": org_id,
-                    "access_data_id": "",
+                    "access_data_id": dataset_id,
                     "access_req": action,
                 }
             )
