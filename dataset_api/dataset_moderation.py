@@ -222,7 +222,8 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
                         username, dataset.id, dataset.catalog.organization.id
                     )
                 except Exception as e:
-                    raise GraphQLError("Couldn't send an email, at this moment.")
+                    print(str(e))
+                    # raise GraphQLError("Couldn't send an email, at this moment.")
                 # Index data in Elasticsearch
                 index_data(dataset)
             if moderation_request.status == "REJECTED":
