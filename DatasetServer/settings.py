@@ -18,7 +18,7 @@ import environ
 env = environ.Env(DEBUG=(bool, False))
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-PRIVATE_FILE_LOCATION = BASE_DIR
+PRIVATE_FILE_LOCATION = os.path.join(BASE_DIR, 'files')
 PRIVATE_FILE_URL = "/"
 # Take environment variables from .env file
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
@@ -185,8 +185,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 MEDIA_URL = 'public/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'public')
-X_FRAME_OPTIONS = 'ALLOW-FROM http://localhost:3000/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'files', 'public')
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
