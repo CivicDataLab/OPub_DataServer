@@ -516,8 +516,14 @@ def _create_update_file_details(resource_instance, attribute):
     except FileDetails.DoesNotExist as e:
         file_detail_object = FileDetails(resource=resource_instance)
     if attribute.file:
-        file_detail_object.file = attribute.file
-        obj1 = copy.deepcopy(attribute.file) 
+        try:
+            file_detail_object.file = attribute.file
+            obj1 = copy.deepcopy(attribute.file) 
+        except Exception as e:
+            resource_instance.delete()
+            print ('----- error', str(e))
+            raise GraphQLError("Please upload file in UTF-8 format")
+            
         #"" + str(attribute.file)
         # mime_type = mimetypes.guess_type(file_detail_object.file.path)[0]
         # mime_type = magic.from_buffer(attribute.file.read(), mime=True)
@@ -540,6 +546,7 @@ def _create_update_file_details(resource_instance, attribute):
         if not file_format:
             resource_instance.delete()
             raise GraphQLError("Unsupported File Format")
+            
         try:
             print("before deep clone --", file_format)
             file_obj = copy.deepcopy(attribute.file)
