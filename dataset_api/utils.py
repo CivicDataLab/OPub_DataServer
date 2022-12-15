@@ -159,7 +159,7 @@ def json_keep_column(data, cols, parentnodes):
 
 
 
-def clone_object(obj, attrs={}):
+def clone_object(obj, clone_list, attrs={}):
 
     print("----clone", obj)
 
@@ -174,6 +174,7 @@ def clone_object(obj, attrs={}):
 
     # save the partial clone to have a valid ID assigned
     clone.save()
+    clone_list.append(str(clone._meta.object_name) + str(clone.pk))
 
     # Scan field to further investigate relations
     fields = clone._meta.get_fields()
@@ -222,9 +223,10 @@ def clone_object(obj, attrs={}):
                         "DatasetAccessModelRequest",
                         "Dataset",
 
-                    ]:
+                    ] and (str(child._meta.object_name) + str(child.pk)) not in clone_list:
+                        clone_list.append(str(child._meta.object_name) + str(child.pk))
                         # if child not in ["DataRequest", "Geography", "Sector"]:
-                        clone_object(child, attrs)
+                        clone_object(child, clone_list, attrs)
 
     return clone
 
@@ -234,7 +236,8 @@ def cloner(object_type, object_id):
     # data = {"id": str(obj.pk)}
 
     print("---in----")
-    clone = clone_object(obj)
+    clone_list = []    
+    clone = clone_object(obj, clone_list)
     print("---out----")
 
     return clone.id
