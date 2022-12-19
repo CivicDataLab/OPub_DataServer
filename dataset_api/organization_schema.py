@@ -1,23 +1,12 @@
 import graphene
-import mimetypes
-import magic
-
+from django.db.models import Q
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
-from graphql_auth.bases import Output
 from graphql import GraphQLError
-from django.db.models import Q
+from graphql_auth.bases import Output
 
 from activity_log.signal import activity
-from .models import (
-    Organization,
-    OrganizationCreateRequest,
-    Catalog,
-    Resource,
-    Dataset,
-    Sector,
-    DatasetAccessModelRequest,
-)
+from .constants import IMAGE_FORMAT_MAPPING
 from .decorators import (
     validate_token,
     create_user_org,
@@ -27,9 +16,18 @@ from .decorators import (
     get_user_org,
 )
 from .enums import OrganizationTypes, OrganizationCreationStatusType
-from .utils import get_client_ip
-from .constants import IMAGE_FORMAT_MAPPING
 from .file_utils import file_validation
+from .models import (
+    Organization,
+    OrganizationCreateRequest,
+    Catalog,
+    Resource,
+    Dataset,
+    Sector,
+    DatasetAccessModelRequest,
+)
+from .utils import get_client_ip
+
 
 class CreateOrganizationType(DjangoObjectType):
     class Meta:
@@ -80,9 +78,9 @@ class OrganizationType(DjangoObjectType):
                 Q(access_model_id__dataset_id__catalog__organization=self.id),
                 Q(access_model_id__dataset__status__exact="PUBLISHED"),
             )
-            .values_list("user")
-            .distinct()
-            .count()
+                .values_list("user")
+                .distinct()
+                .count()
         )
         return user_count
 
@@ -216,7 +214,8 @@ class CreateOrganization(Output, graphene.Mutation):
                 username=username,
             )
             organization_additional_info_instance.save()
-            mime_type = file_validation(organization_additional_info_instance.logo)
+            mime_type = file_validation(organization_additional_info_instance.logo,
+                                        organization_additional_info_instance.logo)
             if not mime_type:
                 organization_additional_info_instance.delete()
                 raise GraphQLError("Unsupported Logo Format")
@@ -293,10 +292,10 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     @auth_user_by_org(action="approve_organization")
     @modify_org_status
     def mutate(
-        root,
-        info,
-        username,
-        organization_data: ApproveRejectOrganizationApprovalInput = None,
+            root,
+            info,
+            username,
+            organization_data: ApproveRejectOrganizationApprovalInput = None,
     ):
         try:
             organization_create_request_instance = (
