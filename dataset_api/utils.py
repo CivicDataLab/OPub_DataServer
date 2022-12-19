@@ -268,6 +268,6 @@ def get_data_access_model_request_validity(data_access_model_request):
                 )
             return validation_deadline
         else:
-            return None
+            return approval_date + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRY_DAYS)
     else:
         return None

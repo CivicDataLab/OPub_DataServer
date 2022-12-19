@@ -32,6 +32,7 @@ REFRESH_TOKEN_SECRET = (
     "django-insecure-ya3++8kan(4=ny+d@^g6(le^a1p@9@d2q=eqp&ksh_lrt!--$+"
 )
 ACCESS_TOKEN_EXPIRY_MINS = 5
+REFRESH_TOKEN_EXPIRY_DAYS = 7
 BASE_DOMAIN = env("BASE_DOMAIN")
 
 # SECURITY WARNING: don't run with debug turned on in production!
