@@ -18,7 +18,7 @@ import environ
 env = environ.Env(DEBUG=(bool, False))
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-PRIVATE_FILE_LOCATION = os.path.join(BASE_DIR, 'files')
+PRIVATE_FILE_LOCATION = os.path.join(BASE_DIR)
 PRIVATE_FILE_URL = "/"
 # Take environment variables from .env file
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
@@ -135,7 +135,7 @@ CACHES = {
     }
 }
 
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10*1024*1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 ELASTICSEARCH = env("ES_URL")
 
@@ -192,5 +192,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'files', 'public')
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 FIELD_ENCRYPTION_KEY = env('FIELD_ENCRYPTION_KEY')
+EJF_ENCRYPTION_KEYS = env('FIELD_ENCRYPTION_KEY')
 
 django.utils.encoding.force_text = force_str

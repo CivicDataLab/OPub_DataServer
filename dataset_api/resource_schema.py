@@ -42,8 +42,8 @@ def parse_schema(schema_dict, parent, schema, current_path):
     global count
     # count = 0
     if isinstance(schema_dict, list):
-        schema_dict = schema_dict[0]    
-        
+        schema_dict = schema_dict[0]
+
     for key in schema_dict:
         if key == "required":
             continue
@@ -142,7 +142,7 @@ class ApiDetailsType(DjangoObjectType):
 
     def resolve_parameters(self: APIDetails, info):
         try:
-            parameters = APIParameter.objects.filter(api_details=self) #.exclude(type="PREVIEW")
+            parameters = APIParameter.objects.filter(api_details=self)  # .exclude(type="PREVIEW")
             return parameters
         except APIParameter.DoesNotExist as e:
             return []
@@ -245,7 +245,8 @@ class Query(graphene.ObjectType):
                             jsondata = json.loads(jsonFile.read())  # json.loads(resource.filedetails.file)
                             builder.add_object(jsondata)
                             schema_dict = builder.to_schema()
-                            schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties", {})) #schema_dict.get("properties", {})
+                            schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties",
+                                                                                                         {}))  # schema_dict.get("properties", {})
                             schema = []
                             parse_schema(schema_dict, "", schema, "")
                             return schema
@@ -261,7 +262,8 @@ class Query(graphene.ObjectType):
                             # )   json.loads(resource.filedetails.file)
                             builder.add_object(jsondata)
                             schema_dict = builder.to_schema()
-                            schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties", {})) #schema_dict.get("properties", {})
+                            schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties",
+                                                                                                         {}))  # schema_dict.get("properties", {})
                             schema = []
                             parse_schema(schema_dict, "", schema, "")
                             return schema
@@ -518,13 +520,13 @@ def _create_update_file_details(resource_instance, attribute):
     if attribute.file:
         try:
             file_detail_object.file = attribute.file
-            obj1 = copy.deepcopy(attribute.file) 
+            deep_copy_file = copy.deepcopy(attribute.file)
         except Exception as e:
             resource_instance.delete()
-            print ('----- error', str(e))
+            print('----- error', str(e))
             raise GraphQLError("Please upload file in UTF-8 format")
-            
-        #"" + str(attribute.file)
+
+        # "" + str(attribute.file)
         # mime_type = mimetypes.guess_type(file_detail_object.file.path)[0]
         # mime_type = magic.from_buffer(attribute.file.read(), mime=True)
         # mime_t = magic.Magic(mime=True).from_buffer(attribute.file.read())
@@ -534,9 +536,9 @@ def _create_update_file_details(resource_instance, attribute):
         #     resource_instance.delete()
         #     raise GraphQLError("Unsupported File Format")
         print("-----", attribute.file)
-        print(obj1, type(obj1))
+        print(deep_copy_file, type(deep_copy_file))
         if not isinstance(attribute.file, str):
-            mime_type = file_validation(obj1, file_detail_object.file)
+            mime_type = file_validation(deep_copy_file, file_detail_object.file)
             if not mime_type:
                 resource_instance.delete()
                 raise GraphQLError("Unsupported File Format")
@@ -546,11 +548,11 @@ def _create_update_file_details(resource_instance, attribute):
         if not file_format:
             resource_instance.delete()
             raise GraphQLError("Unsupported File Format")
-            
+
         try:
             print("before deep clone --", file_format)
             file_obj = copy.deepcopy(attribute.file)
-            #print(file_format)
+            # print(file_format)
             if file_format.lower() == "csv":
                 data = pd.read_csv(file_obj)
             if file_format.lower() == "xlsx":
