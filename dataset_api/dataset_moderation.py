@@ -126,11 +126,9 @@ class ModerationRequestMutation(graphene.Mutation, Output):
         )
         dataset = Dataset.objects.get(id=moderation_request.dataset)
         # Check if any review request is in "APPROVED" state for that dataset.
-        review_requests = DatasetReviewRequest.objects.filter(dataset_id=dataset, status="APPROVED", request_type="REVIEW")
-        if review_requests.exists():
-            for reviews in review_requests:
-                reviews.status = StatusType.ADDRESSED.value
-                reviews.save()
+        review_requests = DatasetReviewRequest.objects.get(dataset_id=dataset, status="APPROVED", request_type="REVIEW")
+        review_requests.status = StatusType.ADDRESSED.value
+        review_requests.save()
         # Check if any previous request is in "ADDRESSING" state.
         previous_moderations = DatasetReviewRequest.objects.filter(
             dataset_id=dataset, status="ADDRESSING", request_type="MODERATION"
@@ -140,6 +138,7 @@ class ModerationRequestMutation(graphene.Mutation, Output):
                 instances.status = StatusType.ADDRESSED.value
                 instances.save()
         moderation_request_instance.dataset = dataset
+        moderation_request_instance.parent = review_requests
         moderation_request_instance.save()
         # TODO: fix magic string
         dataset.status = "UNDERMODERATION"

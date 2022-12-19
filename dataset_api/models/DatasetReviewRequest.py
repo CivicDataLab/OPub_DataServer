@@ -16,3 +16,4 @@ class DatasetReviewRequest(models.Model):
     reject_reason = models.CharField(max_length=500, blank=True)
     user = models.CharField(max_length=50, blank=False, null=False)
     request_type = models.CharField(max_length=50, choices=ReviewType.choices, default=ReviewType.REVIEW)
+    parent = models.ForeignKey("self", unique=False, blank=True, null=True, on_delete=models.SET_NULL, related_name="parent_field")
