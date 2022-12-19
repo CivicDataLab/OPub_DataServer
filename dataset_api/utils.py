@@ -249,22 +249,25 @@ def get_data_access_model_request_validity(data_access_model_request):
         validity_unit = data_access_model_request.access_model.data_access_model.validation_unit
         approval_date = data_access_model_request.modified
         validation_deadline = approval_date
-        if validity_unit == ValidationUnits.DAY:
-            validation_deadline = approval_date + datetime.timedelta(days=validity)
-        elif validity_unit == ValidationUnits.WEEK:
-            validation_deadline = approval_date + datetime.timedelta(weeks=validity)
-        elif validity_unit == ValidationUnits.MONTH:
-            validation_deadline = approval_date + datetime.timedelta(
-                days=(30 * validity)
-            )
-        elif validity_unit == ValidationUnits.YEAR:
-            validation_deadline = approval_date + datetime.timedelta(
-                days=(365 * validity)
-            )
-        elif validity_unit == ValidationUnits.LIFETIME:
-            validation_deadline = approval_date + datetime.timedelta(
-                days=(365 * 100)
-            )
-        return validation_deadline
+        if validity_unit and validity:
+            if validity_unit == ValidationUnits.DAY:
+                validation_deadline = approval_date + datetime.timedelta(days=validity)
+            elif validity_unit == ValidationUnits.WEEK:
+                validation_deadline = approval_date + datetime.timedelta(weeks=validity)
+            elif validity_unit == ValidationUnits.MONTH:
+                validation_deadline = approval_date + datetime.timedelta(
+                    days=(30 * validity)
+                )
+            elif validity_unit == ValidationUnits.YEAR:
+                validation_deadline = approval_date + datetime.timedelta(
+                    days=(365 * validity)
+                )
+            elif validity_unit == ValidationUnits.LIFETIME:
+                validation_deadline = approval_date + datetime.timedelta(
+                    days=(365 * 100)
+                )
+            return validation_deadline
+        else:
+            return None
     else:
         return None
