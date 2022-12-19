@@ -125,6 +125,12 @@ class ModerationRequestMutation(graphene.Mutation, Output):
             request_type=ReviewType.MODERATION.value,
         )
         dataset = Dataset.objects.get(id=moderation_request.dataset)
+        # Check if any review request is in "APPROVED" state for that dataset.
+        review_requests = DatasetReviewRequest.objects.filter(dataset_id=dataset, status="APPROVED", request_type="REVIEW")
+        if review_requests.exists():
+            for reviews in review_requests:
+                reviews.status = StatusType.ADDRESSED.value
+                reviews.save()
         # Check if any previous request is in "ADDRESSING" state.
         previous_moderations = DatasetReviewRequest.objects.filter(
             dataset_id=dataset, status="ADDRESSING", request_type="MODERATION"
@@ -258,7 +264,7 @@ class AddressModerationRequests(graphene.Mutation, Output):
         except DatasetReviewRequest.DoesNotExist as e:
             raise GraphQLError("Moderation request does not exist")
         if moderation_request_instance and moderation_request_instance.status == StatusType.REJECTED.value:
-            moderation_request_instance.status = StatusType.ADDRESSING.value
+            moderation_request_instance.status = moderation_request.status
             moderation_request_instance.save()
         else:
             return AddressModerationRequests(moderation_request=moderation_request_instance)

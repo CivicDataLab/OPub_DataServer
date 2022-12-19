@@ -174,6 +174,7 @@ class CreateDatasetInput(graphene.InputObjectType):
 
 class UpdateDatasetInput(graphene.InputObjectType):
     id = graphene.ID()
+    source = graphene.String(required=True)
     remote_issued = graphene.Date(required=True)
     remote_modified = graphene.Date(required=False)
     period_from = graphene.Date(required=False)
@@ -272,6 +273,7 @@ class UpdateDataset(Output, graphene.Mutation):
         except Dataset.DoesNotExist as e:
             raise GraphQLError("Dataset with given id not found")
         catalog = Catalog.objects.filter(organization=organization)[0]
+        dataset_instance.source = dataset_data.source
         dataset_instance.remote_issued = dataset_data.remote_issued
         dataset_instance.remote_modified = dataset_data.remote_modified
         dataset_instance.funnel = dataset_data.funnel
