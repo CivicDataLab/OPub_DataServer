@@ -538,7 +538,7 @@ def _create_update_file_details(resource_instance, attribute):
         print("-----", attribute.file)
         print(deep_copy_file, type(deep_copy_file))
         if not isinstance(attribute.file, str):
-            mime_type = file_validation(deep_copy_file, file_detail_object.file)
+            mime_type = file_validation(deep_copy_file, file_detail_object.file, FORMAT_MAPPING)
             if not mime_type:
                 resource_instance.delete()
                 raise GraphQLError("Unsupported File Format")

@@ -78,9 +78,9 @@ class OrganizationType(DjangoObjectType):
                 Q(access_model_id__dataset_id__catalog__organization=self.id),
                 Q(access_model_id__dataset__status__exact="PUBLISHED"),
             )
-                .values_list("user")
-                .distinct()
-                .count()
+            .values_list("user")
+            .distinct()
+            .count()
         )
         return user_count
 
@@ -214,8 +214,11 @@ class CreateOrganization(Output, graphene.Mutation):
                 username=username,
             )
             organization_additional_info_instance.save()
-            mime_type = file_validation(organization_additional_info_instance.logo,
-                                        organization_additional_info_instance.logo)
+            mime_type = file_validation(
+                organization_additional_info_instance.logo,
+                organization_additional_info_instance.logo,
+                IMAGE_FORMAT_MAPPING,
+            )
             if not mime_type:
                 organization_additional_info_instance.delete()
                 raise GraphQLError("Unsupported Logo Format")
@@ -292,10 +295,10 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     @auth_user_by_org(action="approve_organization")
     @modify_org_status
     def mutate(
-            root,
-            info,
-            username,
-            organization_data: ApproveRejectOrganizationApprovalInput = None,
+        root,
+        info,
+        username,
+        organization_data: ApproveRejectOrganizationApprovalInput = None,
     ):
         try:
             organization_create_request_instance = (

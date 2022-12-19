@@ -1,6 +1,5 @@
 import magic
 import mimetypes
-from .constants import FORMAT_MAPPING
 
 
 def check_ext(file_object):
@@ -16,13 +15,13 @@ def check_mime_type(file_object):
     return mime_type
 
 
-def file_validation(file_object, ext_object):
+def file_validation(file_object, ext_object, mapping):
     ext_type = check_ext(ext_object)
     print("ext--", ext_type)
     mime_type = check_mime_type(file_object)
     print("mime--", mime_type)
     if ext_type and mime_type:
-        if FORMAT_MAPPING.get(ext_type.lower()) == FORMAT_MAPPING.get(mime_type.lower()):
+        if mapping.get(ext_type.lower()) == mapping.get(mime_type.lower()):
             return mime_type
         else:
             return None
