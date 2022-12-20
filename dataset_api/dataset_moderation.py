@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 
 import graphene
+import datetime
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from graphql import GraphQLError
@@ -224,6 +225,8 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
                     dataset.parent.status = "DISABLED"
                     delete_data(dataset.parent.id)  # Remove the listing from ES.
                     dataset.parent.save()
+                dataset.published_date = dataset.parent.published_date if dataset.parent else datetime.datetime.now()
+                dataset.last_updated = datetime.datetime.now()
                 dataset.status = "PUBLISHED"
                 dataset.save()
                 try:

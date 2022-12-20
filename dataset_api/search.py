@@ -38,6 +38,8 @@ def index_data(dataset_obj):
         "dataset_type": dataset_obj.dataset_type,
         "remote_issued": dataset_obj.remote_issued,
         "remote_modified": dataset_obj.remote_modified,
+        "published_date": dataset_obj.published_date,
+        "last_updated": dataset_obj.last_updated,
         "modified": dataset_obj.modified,
         "slug": dataset_slug(dataset_obj.id),
         "highlights": dataset_obj.highlights or [],
@@ -167,7 +169,7 @@ def facets(request):
         elif sort_by == "provider":
             sort_mapping = {"org_title.keyword": {"order": sort_order}}
         elif sort_by == "recent":
-            sort_mapping = {"issued": {"order": "desc"}}
+            sort_mapping = {"last_updated": {"order": "desc"}}
         else:
             sort_mapping = {"dataset_title.keyword": {"order": sort_order}}
     else:
