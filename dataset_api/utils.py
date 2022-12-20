@@ -159,22 +159,36 @@ def json_keep_column(data, cols, parentnodes):
 
 
 
-def clone_object(obj, clone_list, attrs={}):
+def clone_object(obj, clone_list, old_clone, attrs={}):
 
     print("----clone", obj)
 
-    # we start by building a "flat" clone
-    clone = obj._meta.model.objects.get(pk=obj.pk)
-    clone.pk = None
+    if (str(obj._meta.object_name) + str(obj.pk)) not in clone_list:
+        # we start by building a "flat" clone
+        clone = obj._meta.model.objects.get(pk=obj.pk)
 
-    # if caller specified some attributes to be overridden,
-    # use them
-    for key, value in attrs.items():
-        setattr(clone, key, value)
+        clone.pk = None
 
-    # save the partial clone to have a valid ID assigned
-    clone.save()
-    clone_list.append(str(clone._meta.object_name) + str(clone.pk))
+        # if caller specified some attributes to be overridden,
+        # use them
+        for key, value in attrs.items():
+            setattr(clone, key, value)
+
+        # save the partial clone to have a valid ID assigned
+        clone.save()
+        clone_list.append(str(clone._meta.object_name) + str(clone.pk))
+        old_clone.append(str(obj._meta.object_name) + str(obj.pk))
+    else:
+        print ('----inelse')
+        obj_model = obj._meta.model.objects.get(pk=obj.pk) 
+        for key, value in attrs.items():
+            #print ('----------key', key, '-------val', value)
+            setattr(obj_model, key, value)
+            #obj_model.key = value;
+        # print (obj_model.dataset_access_model_id, '-------------obj')
+        obj_model.save()
+           # setattr(obj_model, key, value)
+        return obj_model
 
     # Scan field to further investigate relations
     fields = clone._meta.get_fields()
@@ -199,8 +213,8 @@ def clone_object(obj, clone_list, attrs={}):
                     **{field.remote_field.name: obj}
                 )
                 for child in children:
-                    print("🍤🍤🍤", str(child._meta.object_name))
-                    print(
+                    print("-----child", str(child), '-----attr', attrs)
+                    '''print(
                         "💪💪💪",
                         str(child._meta.object_name)
                         not in [
@@ -212,7 +226,7 @@ def clone_object(obj, clone_list, attrs={}):
                             "Tag",
                             "DatasetAccessModelRequest",
                         ],
-                    )
+                    )'''
                     if str(child._meta.object_name) not in [
                         "DataRequest",
                         "Geography",
@@ -223,10 +237,10 @@ def clone_object(obj, clone_list, attrs={}):
                         "DatasetAccessModelRequest",
                         "Dataset",
 
-                    ] and (str(child._meta.object_name) + str(child.pk)) not in clone_list:
-                        clone_list.append(str(child._meta.object_name) + str(child.pk))
+                    ] and (str(child._meta.object_name) + str(child.pk)) not in old_clone:
+                        #clone_list.append(str(child._meta.object_name) + str(child.pk))
                         # if child not in ["DataRequest", "Geography", "Sector"]:
-                        clone_object(child, clone_list, attrs)
+                        clone_object(child, clone_list, old_clone, attrs)
 
     return clone
 
@@ -236,8 +250,9 @@ def cloner(object_type, object_id):
     # data = {"id": str(obj.pk)}
 
     print("---in----")
-    clone_list = []    
-    clone = clone_object(obj, clone_list)
+    clone_list = []   
+    old_clone = []
+    clone = clone_object(obj, clone_list, old_clone)
     print("---out----")
 
     return clone.id
@@ -249,22 +264,25 @@ def get_data_access_model_request_validity(data_access_model_request):
         validity_unit = data_access_model_request.access_model.data_access_model.validation_unit
         approval_date = data_access_model_request.modified
         validation_deadline = approval_date
-        if validity_unit == ValidationUnits.DAY:
-            validation_deadline = approval_date + datetime.timedelta(days=validity)
-        elif validity_unit == ValidationUnits.WEEK:
-            validation_deadline = approval_date + datetime.timedelta(weeks=validity)
-        elif validity_unit == ValidationUnits.MONTH:
-            validation_deadline = approval_date + datetime.timedelta(
-                days=(30 * validity)
-            )
-        elif validity_unit == ValidationUnits.YEAR:
-            validation_deadline = approval_date + datetime.timedelta(
-                days=(365 * validity)
-            )
-        elif validity_unit == ValidationUnits.LIFETIME:
-            validation_deadline = approval_date + datetime.timedelta(
-                days=(365 * 100)
-            )
-        return validation_deadline
+        if validity_unit and validity:
+            if validity_unit == ValidationUnits.DAY:
+                validation_deadline = approval_date + datetime.timedelta(days=validity)
+            elif validity_unit == ValidationUnits.WEEK:
+                validation_deadline = approval_date + datetime.timedelta(weeks=validity)
+            elif validity_unit == ValidationUnits.MONTH:
+                validation_deadline = approval_date + datetime.timedelta(
+                    days=(30 * validity)
+                )
+            elif validity_unit == ValidationUnits.YEAR:
+                validation_deadline = approval_date + datetime.timedelta(
+                    days=(365 * validity)
+                )
+            elif validity_unit == ValidationUnits.LIFETIME:
+                validation_deadline = approval_date + datetime.timedelta(
+                    days=(365 * 100)
+                )
+            return validation_deadline
+        else:
+            return approval_date + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRY_DAYS)
     else:
         return None
