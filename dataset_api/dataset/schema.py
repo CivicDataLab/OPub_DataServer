@@ -143,10 +143,7 @@ class Query(graphene.ObjectType):
         if dataset_instance.status == "PUBLISHED":
             return dataset_instance
         if role:
-            if role == "PMU" or role == "DPA":
-                return dataset_instance
-            else:
-                raise GraphQLError("Access Denied")
+            return dataset_instance
         else:
             raise GraphQLError("Access Denied")
 
