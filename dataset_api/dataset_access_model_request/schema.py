@@ -322,8 +322,8 @@ def create_dataset_access_model_request(
             access_model=access_model, status=status, user=username
         ).order_by('-modified')
         print('--dam--req--', data_access_model_request_instance)
-        print('--dam--req--0--', data_access_model_request_instance[0])
         if data_access_model_request_instance.exists():
+            print('--dam--req--0--', data_access_model_request_instance[0])
             validity = get_data_access_model_request_validity(data_access_model_request_instance[0])
             if validity:
                 if timezone.now() >= validity:
