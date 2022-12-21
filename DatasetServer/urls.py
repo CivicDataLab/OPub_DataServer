@@ -24,6 +24,7 @@ from dataset_api import resource_file, organization_logo, license_file
 from dataset_api.data_access_model import contract_file
 from dataset_api.data_request import data_request_file
 from dataset_api.api_resource import api_fetch
+from dataset_api.data_preview import data_preview
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -40,6 +41,7 @@ urlpatterns = [
     path("download/contract/<int:model_id>/", contract_file.download),
     path("api_preview/<int:resource_id>/", api_fetch.preview),
     path("api_schema/<int:resource_id>/", api_fetch.schema),
+    path("data_preview/<int:resource_id>/", data_preview.preview),
     path("resource_preview/<int:resource_id>/", api_fetch.preview),
     path("graphql", csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True))),
     path("", include("dataset_api.urls")),
