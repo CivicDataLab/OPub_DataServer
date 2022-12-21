@@ -266,15 +266,15 @@ class DeleteAccessModelResource(Output, graphene.Mutation):
     def mutate(root, info, access_model_resource_data: DeleteAccessModelResourceInput):
         try:
             access_model_map_instance = DatasetAccessModel.objects.get(
-                pk=access_model_resource_data.dam_id
+                id=access_model_resource_data.dam_id
             )
             access_model_resource_instance = DatasetAccessModelResource.objects.filter(
-                id=access_model_resource_data.dam_id
+                dataset_access_model=access_model_map_instance
             )
             if access_model_resource_instance.exists():
                 for resource in access_model_resource_instance:
                     resource.delete()
-                access_model_map_instance.delete()
+            access_model_map_instance.delete()
         except DatasetAccessModel.DoesNotExist as e:
             return {
                 "success": False,
