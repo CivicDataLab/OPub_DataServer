@@ -22,11 +22,12 @@ def preview(request, resource_id):
     
     row_count = request.GET.get("row_count", None)
     cols      = request.GET.get("fields", None)
-    api_data_params    = dict(request.GET.items())
+    data_params    = dict(request.GET.items())
 
-    for key in api_data_params:
-        if key in ["row_format", "fields"]:
-            del api_data_params[key]
+    api_data_params = {}
+    for key, value in api_data_params.items():
+        if key not in ["row_count", "fields"]:
+            api_data_params[key] = value
   
     
     res_model = Resource.objects.get(pk=resource_id)
