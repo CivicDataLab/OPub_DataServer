@@ -15,9 +15,11 @@ import json
 import xmltodict
 import dicttoxml
 
+
 def preview(request, resource_id):
     
     row_count = request.GET.get("row_count", None)
+    cols      = request.GET.get("cols", [])
     
     resp = fetchapi(resource_id)
     print("----------dat fetched", resp)
@@ -25,6 +27,11 @@ def preview(request, resource_id):
         return JsonResponse(resp, safe=False)
 
     print(resp["response_type"])
+    
+    resource = Resource.objects.get(pk=resource_id)
+    keep_cols = list(resource.resourceschema_set.filter(id__in=cols).values_list('key', flat=True))
+    keep_cols_path = list(resource.resourceschema_set.filter(id__in=cols).values_list('path', flat=True))
+
 
     if resp["response_type"].lower() == "json":
         data = pd.json_normalize(resp["data"])
@@ -36,9 +43,12 @@ def preview(request, resource_id):
         return JsonResponse(context, safe=False)
     
     if resp["response_type"].lower() == "csv":
+        data = resp["data"]
+        data = data.loc[:, data.columns.isin(keep_cols)]
+        data = resp["data"].head(int(row_count) if row_count != None else 5)        
         context = {
             "Success": True,
-            "data": resp["data"].head(row_count).to_string(), #.to_dict("records"),
+            "data": data.to_string(), #.to_dict("records"),
             "response_type": resp["response_type"],
         }
         return JsonResponse(context, safe=False)
