@@ -44,8 +44,7 @@ def preview(request):
             api_data_params_list = dam_resource.parameters 
             api_data_params = {}
             for each in api_data_params_list:
-                for key, value in each.items():
-                    api_data_params[key] = value  
+                api_data_params[each['key']] = each['value']  
         except Exception as e:
             print ('-----error', str(e))
             raise e
