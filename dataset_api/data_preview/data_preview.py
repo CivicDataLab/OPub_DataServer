@@ -19,7 +19,7 @@ import dicttoxml
 def preview(request, resource_id):
     
     row_count = request.GET.get("row_count", None)
-    cols      = request.GET.get("cols", [])
+    cols      = request.GET.get("cols", None)
     
     resp = fetchapi(resource_id)
     print("----------dat fetched", resp)
@@ -29,6 +29,7 @@ def preview(request, resource_id):
     print(resp["response_type"])
     
     resource = Resource.objects.get(pk=resource_id)
+    cols     = cols.split(",") if cols != None else []
     keep_cols = list(resource.resourceschema_set.filter(id__in=cols).values_list('key', flat=True))
     keep_cols_path = list(resource.resourceschema_set.filter(id__in=cols).values_list('path', flat=True))
 
@@ -45,7 +46,7 @@ def preview(request, resource_id):
     if resp["response_type"].lower() == "csv":
         data = resp["data"]
         data = data.loc[:, data.columns.isin(keep_cols)]
-        data = resp["data"].head(int(row_count) if row_count != None else 5)        
+        data = resp["data"].head(int(row_count) if row_count != None else 0)        
         context = {
             "Success": True,
             "data": data.to_string(), #.to_dict("records"),
