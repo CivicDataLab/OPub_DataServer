@@ -319,7 +319,7 @@ def create_dataset_access_model_request(
 ):
     try:
         data_access_model_request_instance = DatasetAccessModelRequest.objects.filter(
-            access_model=access_model, status=status, username=username
+            access_model=access_model, status=status, user=username
         ).order_by('-modified')
         print('--dam--req--', data_access_model_request_instance)
         print('--dam--req--0--', data_access_model_request_instance[0])
