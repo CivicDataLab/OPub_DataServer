@@ -41,7 +41,7 @@ urlpatterns = [
     path("download/contract/<int:model_id>/", contract_file.download),
     path("api_preview/<int:resource_id>/", api_fetch.preview),
     path("api_schema/<int:resource_id>/", api_fetch.schema),
-    path("data_preview/<int:resource_id>/", data_preview.preview),
+    path("data_preview", data_preview.preview),
     path("resource_preview/<int:resource_id>/", api_fetch.preview),
     path("graphql", csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True))),
     path("", include("dataset_api.urls")),

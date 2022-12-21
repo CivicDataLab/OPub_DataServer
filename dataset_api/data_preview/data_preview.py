@@ -5,6 +5,7 @@ from django.http import HttpResponse, JsonResponse
 
 from dataset_api.models.DataAccessModel import DataAccessModel
 from dataset_api.models.Resource import Resource
+from dataset_api.models.DatasetAccessModelResource import DatasetAccessModelResource
 from dataset_api.utils import json_keep_column
 
 import pandas as pd
@@ -20,9 +21,23 @@ import dicttoxml
 
 def preview(request, resource_id):
     
+    resource_id = request.GET.get("resource_id", None)
     row_count = request.GET.get("row_count", None)
     cols      = request.GET.get("fields", None)
+    dam_res_id    = request.GET.get("dam_id", None)
     api_data_params    = dict(request.GET.items())
+    
+    if dam_res_id != None:
+        try:
+            dam_resource = DatasetAccessModelResource.objects.get(pk=dam_res_id)
+            dam_resource_field_ids = list(dam_resource.fields.all().values_list('id', flat=True))
+            cols = dam_resource_field_ids
+            row_count = dam_resource.sample_rows
+            resource_id = dam_resource.resource.id
+        except Exception as e:
+            print ('-----error', str(e))
+            raise e
+
 
     for key in api_data_params:
         if key in ["row_format", "fields"]:
