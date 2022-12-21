@@ -37,6 +37,8 @@ class AccessModelResourceType(DjangoObjectType):
 class ResourceFieldInput(graphene.InputObjectType):
     resource_id = graphene.ID(required=True)
     fields = graphene.List(of_type=graphene.String, required=True)
+    sample_enabled = graphene.Boolean(required=True)
+    sample_rows = graphene.Int(required=True)
 
 
 class AccessModelResourceInput(graphene.InputObjectType):
@@ -45,8 +47,6 @@ class AccessModelResourceInput(graphene.InputObjectType):
     resource_map: Iterable = graphene.List(of_type=ResourceFieldInput, required=True)
     access_model_id = graphene.ID(required=True)
     dataset_id = graphene.ID(required=True)
-    sample_enabled = graphene.Boolean(required=True)
-    sample_rows = graphene.Int(required=True)
 
 
 class DeleteAccessModelResourceInput(graphene.InputObjectType):
@@ -75,9 +75,7 @@ class CreateAccessModelResource(Output, graphene.Mutation):
                 data_access_model=data_access_instance, dataset=dataset_instance,
                 title=access_model_resource_data.title,
             )
-            if access_model_resource_data.sample_enabled:
-                dataset_access_model.sample_enabled = access_model_resource_data.sample_enabled
-                dataset_access_model.sample_rows = access_model_resource_data.sample_rows
+
             dataset_access_model.save()
 
             if (
@@ -97,6 +95,9 @@ class CreateAccessModelResource(Output, graphene.Mutation):
                         resource_id=resources.resource_id,
                         dataset_access_model=dataset_access_model,
                     )
+                    if resources.sample_enabled:
+                        access_model_resource_instance.sample_enabled = resources.sample_enabled
+                        access_model_resource_instance.sample_rows = resources.sample_rows
                     access_model_resource_instance.save()
                     access_model_resource_instance.fields.set(resource_schema)
                 except Resource.DoesNotExist as e:
@@ -151,8 +152,6 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                     "Please select at least one distribution and corresponding fields"
                 )
             dataset_access_model_instance.title = access_model_resource_data.title
-            dataset_access_model_instance.sample_enabled = access_model_resource_data.sample_enabled
-            dataset_access_model_instance.sample_rows = access_model_resource_data.sample_rows
             dataset_access_model_instance.save()
 
             # Getting id's that were removed.
@@ -185,6 +184,8 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                             resource_id=resources.resource_id,
                         )
                     )
+                    access_model_resource_instance.sample_enabled = resources.sample_enabled
+                    access_model_resource_instance.sample_rows = resources.sample_rows
                     access_model_resource_instance.fields.set(resource_schema)
                     access_model_resource_instance.save()
                 except DatasetAccessModelResource.DoesNotExist as e:
