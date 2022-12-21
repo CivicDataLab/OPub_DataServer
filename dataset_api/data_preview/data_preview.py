@@ -19,13 +19,15 @@ import dicttoxml
 
 
 
-def preview(request, resource_id):
+def preview(request):
     
     resource_id = request.GET.get("resource_id", None)
     row_count = request.GET.get("row_count", None)
     cols      = request.GET.get("fields", None)
     data_params    = dict(request.GET.items())
     dam_res_id    = request.GET.get("dam_id", None)
+
+    cols     = cols.split(",") if cols != None else []
     
     if dam_res_id != None:
         try:
@@ -49,7 +51,6 @@ def preview(request, resource_id):
     if hasattr(res_model, "filedetails") and res_model.filedetails != None:
         res_type = "file"
         
-    cols     = cols.split(",") if cols != None else []
     print('------------cols', cols)      
     keep_cols = list(res_model.resourceschema_set.filter(id__in=cols).values_list('key', flat=True))
     keep_cols_path = list(res_model.resourceschema_set.filter(id__in=cols).values_list('path', flat=True))
