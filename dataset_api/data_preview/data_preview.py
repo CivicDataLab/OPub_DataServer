@@ -22,27 +22,37 @@ def preview(request, resource_id):
     
     row_count = request.GET.get("row_count", None)
     cols      = request.GET.get("fields", None)
+    api_data_params    = dict(request.GET.items())
+
+    for key in api_data_params:
+        if key in ["row_format", "fields"]:
+            del api_data_params[key]
+  
     
-    resp = fetchapi(resource_id)
+    res_model = Resource.objects.get(pk=resource_id)
+    res_type = "api"
+    if hasattr(res_model, "filedetails") and res_model.filedetails != None:
+        res_type = "file"
+        
+    cols     = cols.split(",") if cols != None else []
+    print('------------cols', cols)      
+    keep_cols = list(res_model.resourceschema_set.filter(id__in=cols).values_list('key', flat=True))
+    keep_cols_path = list(res_model.resourceschema_set.filter(id__in=cols).values_list('path', flat=True))
+    print('------------keepcols', keep_cols)
+    print('------------keepcolspath', keep_cols_path)        
+    
+    resp = fetchapi(resource_id, api_data_params)
     # print("----------dat fetched", resp)
     if resp["Success"] == False:
         return JsonResponse(resp, safe=False)
+    # print(resp["response_type"])
 
-    print(resp["response_type"])
-    
-    resource = Resource.objects.get(pk=resource_id)
-    cols     = cols.split(",") if cols != None else []
-    print('------------cols', cols)
-    keep_cols = list(resource.resourceschema_set.filter(id__in=cols).values_list('key', flat=True))
-    keep_cols_path = list(resource.resourceschema_set.filter(id__in=cols).values_list('path', flat=True))
-    print('------------keepcols', keep_cols)
-    print('------------keepcolspath', keep_cols_path)  
 
     if resp["response_type"].lower() == "json":
         data = resp["data"]
         data = json_keep_column(data, keep_cols, keep_cols_path)
         data = pd.json_normalize(data)
-        data = data.head(int(row_count) if row_count != None else 0) 
+        data = data if res_type == "api" else data.head(int(row_count) if row_count != None else 0) 
         data = data.to_dict("records")
         context = {
             "Success": True,
@@ -54,7 +64,7 @@ def preview(request, resource_id):
     if resp["response_type"].lower() == "csv":
         data = resp["data"]
         data = data.loc[:, data.columns.isin(keep_cols)]
-        data = data.head(int(row_count) if row_count != None else 0)      
+        data = data if res_type == "api" else data.head(int(row_count) if row_count != None else 0)      
         data = data.to_string() if len(data.columns) > 0 and len(data) > 0 else ""
         context = {
             "Success": True,
@@ -68,7 +78,7 @@ def preview(request, resource_id):
         data = xmltodict.parse(resp["data"])
         data = json_keep_column(data, keep_cols, keep_cols_path)
         data = pd.json_normalize(data)
-        data = data.head(int(row_count) if row_count != None else 0)
+        data = data if res_type == "api" else data.head(int(row_count) if row_count != None else 0)
         data = dicttoxml.dicttoxml(data.to_dict("records")).decode("utf-8") 
         context = {
             "Success": True,
@@ -85,7 +95,7 @@ def preview(request, resource_id):
     return JsonResponse(context, safe=False)
 
 
-def fetchapi(resource_id):
+def fetchapi(resource_id, api_data_params):
     
     res_model = Resource.objects.get(pk=resource_id)
     res_type = "api"
@@ -176,7 +186,8 @@ def fetchapi(resource_id):
             print("-----apiparams", api_params)
             for each in api_params:
                 print("---each", each)
-                param.update({each.key: each.default})
+                param.update({each.key: each.default})    
+            param.update(api_data_params)
 
             base_url = base_url.strip()
             url_path = url_path.strip()
@@ -218,29 +229,6 @@ def fetchapi(resource_id):
                 data = pd.read_csv(csv_data, sep=",")
                 context = {"Success": True, "data": data, "response_type": response_type}
                 return context
-
-            if response_type.lower() not in ["json", "csv"]:
-                try:
-                    data_check = api_request.json()
-                    context = {
-                        "Success": True,
-                        "data": api_response,
-                        "response_type": "json",
-                    }
-                    return context
-                except Exception as e:
-                    try:
-                        csv_data = StringIO(api_response)
-                        data = pd.read_csv(csv_data, sep=",")
-                        context = {"Success": True, "data": data, "response_type": "csv"}
-                        return context
-                    except:
-                        context = {
-                            "Success": True,
-                            "data": api_response,
-                            "response_type": "text",
-                        }
-                        return context
 
             print(response_type, "----", api_response)
             context = {
