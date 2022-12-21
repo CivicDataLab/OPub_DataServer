@@ -29,6 +29,11 @@ def preview(request):
 
     cols     = cols.split(",") if cols != None else []
     
+    api_data_params = {}
+    for key, value in data_params.items():
+        if key not in ["row_count", "fields"]:
+            api_data_params[key] = value    
+    
     if dam_res_id != None:
         try:
             dam_resource = DatasetAccessModelResource.objects.get(pk=dam_res_id)
@@ -36,14 +41,14 @@ def preview(request):
             cols = dam_resource_field_ids
             row_count = dam_resource.sample_rows
             resource_id = dam_resource.resource.id
+            api_data_params_list = dam_resource.parameters 
+            api_data_params = {}
+            for each in api_data_params_list:
+                for key, value in each.items():
+                    api_data_params[key] = value  
         except Exception as e:
             print ('-----error', str(e))
             raise e
-
-    api_data_params = {}
-    for key, value in api_data_params.items():
-        if key not in ["row_count", "fields"]:
-            api_data_params[key] = value
   
     
     res_model = Resource.objects.get(pk=resource_id)
