@@ -391,7 +391,7 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
                 schema_instance.path = schema.path
                 schema_instance.parent_path = schema.parent_path
                 schema_instance.resource = resource_instance
-                schema_instance.filterable = schema.filterable
+                schema_instance.filterable = schema.filterable if schema.filterable else False
                 schema_instance.save()
             else:
                 # Add new schema
@@ -437,7 +437,7 @@ def _create_resource_schema_instance(resource_instance, schema):
         resource=resource_instance,
         path=schema.path,
         parent_path=schema.parent_path,
-        filterable=schema.filterable,
+        filterable=schema.filterable if schema.filterable else False,
     )
     schema_instance.save()
     return schema_instance
