@@ -27,4 +27,4 @@ class ResourceSchema(models.Model):
     )
     path = models.CharField(max_length=200, null=True, blank=True)
     parent_path = models.CharField(max_length=200, null=True, blank=True)
-    filterable = models.BooleanField(default=False)
+    filterable = models.BooleanField(default=True)

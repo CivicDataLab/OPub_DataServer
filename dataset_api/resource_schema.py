@@ -113,7 +113,7 @@ class ResourceSchemaInputType(graphene.InputObjectType):
     array_field = graphene.String(required=False)
     path = graphene.String(required=False)
     parent_path = graphene.String(required=False)
-    filterable = graphene.Boolean(required=True, default=False)
+    filterable = graphene.Boolean(required=False, default=False)
 
 
 class ResourceSchemaType(DjangoObjectType):
