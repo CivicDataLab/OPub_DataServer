@@ -11,3 +11,5 @@ class DatasetAccessModelResource(models.Model):
     # Make this one to many field
     fields = models.ManyToManyField(ResourceSchema)
     dataset_access_model = models.ForeignKey(DatasetAccessModel, on_delete=models.CASCADE, default="")
+    sample_enabled = models.BooleanField(blank=False, null=False, default=False)
+    sample_rows = models.IntegerField(blank=False, null=False, default=5)

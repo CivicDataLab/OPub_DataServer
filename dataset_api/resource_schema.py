@@ -618,7 +618,7 @@ class CreateResource(graphene.Mutation, Output):
                     for resource in dataset_resources:
                         resource_file_details = FileDetails.objects.get(resource=resource)
                         if resource_file_details.source_file_name == str(
-                                resource_data.file_details.file.name.replace("_", " ")):
+                                resource_data.file_details.file.name):
                             raise GraphQLError("You have already uploaded this file in another distribution.")
                         else:
                             pass

@@ -5,11 +5,12 @@ from graphene_django import DjangoObjectType
 from graphql import GraphQLError
 from graphql_auth.bases import Output
 
-from dataset_api.models import DataAccessModel, DataRequest, ResourceSchema
-from dataset_api.models import Dataset, Resource, DatasetAccessModelRequest
+from dataset_api.models import DataAccessModel, ResourceSchema
+from dataset_api.models import Dataset, Resource
 from dataset_api.models import DatasetAccessModel
 from dataset_api.models import DatasetAccessModelResource
 from .decorators import auth_action_dam_resource
+from ..dataset_access_model.schema import DatasetAccessModelType
 from ..enums import DataType
 
 
@@ -33,49 +34,11 @@ class AccessModelResourceType(DjangoObjectType):
         return []
 
 
-class DatasetAccessModelType(DjangoObjectType):
-    resource_formats = graphene.List(of_type=graphene.String)
-    usage = graphene.Int()
-
-    class Meta:
-        model = DatasetAccessModel
-        fields = "__all__"
-
-    def resolve_resource_formats(self: DatasetAccessModel, info):
-        formats = []
-        for dam_resource in self.datasetaccessmodelresource_set.all():
-            has_resource = hasattr(dam_resource, "resource")
-            if has_resource and hasattr(dam_resource.resource, "apidetails"):
-                formats.append(dam_resource.resource.apidetails.response_type)
-            if has_resource and hasattr(dam_resource.resource, "filedetails"):
-                formats.append(dam_resource.resource.filedetails.format)
-        return list(set(formats))
-
-    def resolve_usage(self: DatasetAccessModel, info):
-        try:
-            dam_requests = DatasetAccessModelRequest.objects.filter(
-                access_model_id=self.id
-            )
-            # dam_requests = self.datasetaccessmodelrequest_set.all()
-            print(
-                [
-                    x.datarequest_set.filter(status="FETCHED").count()
-                    for x in dam_requests
-                ]
-            )
-            return sum(
-                [
-                    x.datarequest_set.filter(status="FETCHED").count()
-                    for x in dam_requests
-                ]
-            )
-        except (DatasetAccessModelRequest.DoesNotExist, DataRequest.DoesNotExist) as e:
-            return 0
-
-
 class ResourceFieldInput(graphene.InputObjectType):
     resource_id = graphene.ID(required=True)
     fields = graphene.List(of_type=graphene.String, required=True)
+    sample_enabled = graphene.Boolean(required=True)
+    sample_rows = graphene.Int(required=True)
 
 
 class AccessModelResourceInput(graphene.InputObjectType):
@@ -88,6 +51,7 @@ class AccessModelResourceInput(graphene.InputObjectType):
 
 class DeleteAccessModelResourceInput(graphene.InputObjectType):
     dataset_id = graphene.ID(required=True)
+    dam_id = graphene.ID(required=True)
 
 
 class CreateAccessModelResource(Output, graphene.Mutation):
@@ -111,6 +75,7 @@ class CreateAccessModelResource(Output, graphene.Mutation):
                 data_access_model=data_access_instance, dataset=dataset_instance,
                 title=access_model_resource_data.title,
             )
+
             dataset_access_model.save()
 
             if (
@@ -130,6 +95,9 @@ class CreateAccessModelResource(Output, graphene.Mutation):
                         resource_id=resources.resource_id,
                         dataset_access_model=dataset_access_model,
                     )
+                    if resources.sample_enabled:
+                        access_model_resource_instance.sample_enabled = resources.sample_enabled
+                        access_model_resource_instance.sample_rows = resources.sample_rows
                     access_model_resource_instance.save()
                     access_model_resource_instance.fields.set(resource_schema)
                 except Resource.DoesNotExist as e:
@@ -216,6 +184,8 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                             resource_id=resources.resource_id,
                         )
                     )
+                    access_model_resource_instance.sample_enabled = resources.sample_enabled
+                    access_model_resource_instance.sample_rows = resources.sample_rows
                     access_model_resource_instance.fields.set(resource_schema)
                     access_model_resource_instance.save()
                 except DatasetAccessModelResource.DoesNotExist as e:
@@ -265,15 +235,15 @@ class DeleteAccessModelResource(Output, graphene.Mutation):
     def mutate(root, info, access_model_resource_data: DeleteAccessModelResourceInput):
         try:
             access_model_map_instance = DatasetAccessModel.objects.get(
-                pk=access_model_resource_data.dataset_id
+                id=access_model_resource_data.dam_id
             )
             access_model_resource_instance = DatasetAccessModelResource.objects.filter(
-                id=access_model_resource_data.dataset_id
+                dataset_access_model=access_model_map_instance
             )
             if access_model_resource_instance.exists():
                 for resource in access_model_resource_instance:
                     resource.delete()
-                access_model_map_instance.delete()
+            access_model_map_instance.delete()
         except DatasetAccessModel.DoesNotExist as e:
             return {
                 "success": False,
