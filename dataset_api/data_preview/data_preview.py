@@ -31,7 +31,7 @@ def preview(request):
     
     api_data_params = {}
     for key, value in data_params.items():
-        if key not in ["row_count", "fields"]:
+        if key not in ["row_count", "fields", "resource_id"]:
             api_data_params[key] = value    
     
     if dam_res_id != None:
@@ -69,7 +69,7 @@ def preview(request):
 
 
     if resp["response_type"].lower() == "json":
-        data = resp["data"]
+        data = resp["data"] if isinstance(resp["data"], dict) else json.loads(resp["data"])  
         data = json_keep_column(data, keep_cols, keep_cols_path)
         data = pd.json_normalize(data)
         data = data if res_type == "api" else data.head(int(row_count) if row_count != None else 0) 
