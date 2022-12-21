@@ -5,6 +5,7 @@ from django.http import HttpResponse, JsonResponse
 
 from dataset_api.models.DataAccessModel import DataAccessModel
 from dataset_api.models.Resource import Resource
+from dataset_api.utils import json_keep_column
 
 import pandas as pd
 import requests
@@ -14,6 +15,7 @@ import genson
 import json
 import xmltodict
 import dicttoxml
+
 
 
 def preview(request, resource_id):
@@ -35,10 +37,14 @@ def preview(request, resource_id):
 
 
     if resp["response_type"].lower() == "json":
-        data = pd.json_normalize(resp["data"])
+        data = resp["data"]
+        data = json_keep_column(data, keep_cols, keep_cols_path)
+        data = pd.json_normalize(data)
+        data = data.head(int(row_count) if row_count != None else 0) 
+        data = data.to_dict("records")
         context = {
             "Success": True,
-            "data":  data.head(row_count).to_dict("records"),
+            "data":  data,
             "response_type": resp["response_type"],
         }
         return JsonResponse(context, safe=False)
@@ -46,10 +52,11 @@ def preview(request, resource_id):
     if resp["response_type"].lower() == "csv":
         data = resp["data"]
         data = data.loc[:, data.columns.isin(keep_cols)]
-        data = resp["data"].head(int(row_count) if row_count != None else 0)        
+        data = data.head(int(row_count) if row_count != None else 0)      
+        data = data.to_string()  
         context = {
             "Success": True,
-            "data": data.to_string(), #.to_dict("records"),
+            "data": data, #.to_dict("records"),
             "response_type": resp["response_type"],
         }
         return JsonResponse(context, safe=False)
@@ -57,9 +64,10 @@ def preview(request, resource_id):
     
     if resp["response_type"].lower() == "xml":
         data = xmltodict.parse(resp["data"])
+        data = json_keep_column(data, keep_cols, keep_cols_path)
         data = pd.json_normalize(data)
-        data = data.head(row_count).to_dict("records")
-        data = dicttoxml.dicttoxml(data)
+        data = data.head(int(row_count) if row_count != None else 0)
+        data = dicttoxml.dicttoxml(data.to_dict("records"))
         context = {
             "Success": True,
             "data": data, 
