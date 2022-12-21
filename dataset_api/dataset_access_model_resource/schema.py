@@ -37,8 +37,8 @@ class AccessModelResourceType(DjangoObjectType):
 class ResourceFieldInput(graphene.InputObjectType):
     resource_id = graphene.ID(required=True)
     fields = graphene.List(of_type=graphene.String, required=True)
-    sample_enabled = graphene.Boolean(required=True)
-    sample_rows = graphene.Int(required=True)
+    sample_enabled = graphene.Boolean(required=False)
+    sample_rows = graphene.Int(required=False)
 
 
 class AccessModelResourceInput(graphene.InputObjectType):
@@ -184,8 +184,9 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                             resource_id=resources.resource_id,
                         )
                     )
-                    access_model_resource_instance.sample_enabled = resources.sample_enabled
-                    access_model_resource_instance.sample_rows = resources.sample_rows
+                    if resources.sample_enabled:
+                        access_model_resource_instance.sample_enabled = resources.sample_enabled
+                        access_model_resource_instance.sample_rows = resources.sample_rows
                     access_model_resource_instance.fields.set(resource_schema)
                     access_model_resource_instance.save()
                 except DatasetAccessModelResource.DoesNotExist as e:
