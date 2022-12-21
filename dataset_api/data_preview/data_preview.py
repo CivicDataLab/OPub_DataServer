@@ -21,10 +21,10 @@ import dicttoxml
 def preview(request, resource_id):
     
     row_count = request.GET.get("row_count", None)
-    cols      = request.GET.get("cols", None)
+    cols      = request.GET.get("fields", None)
     
     resp = fetchapi(resource_id)
-    print("----------dat fetched", resp)
+    # print("----------dat fetched", resp)
     if resp["Success"] == False:
         return JsonResponse(resp, safe=False)
 
@@ -32,9 +32,11 @@ def preview(request, resource_id):
     
     resource = Resource.objects.get(pk=resource_id)
     cols     = cols.split(",") if cols != None else []
+    print('------------cols', cols)
     keep_cols = list(resource.resourceschema_set.filter(id__in=cols).values_list('key', flat=True))
     keep_cols_path = list(resource.resourceschema_set.filter(id__in=cols).values_list('path', flat=True))
-
+    print('------------keepcols', keep_cols)
+    print('------------keepcolspath', keep_cols_path)  
 
     if resp["response_type"].lower() == "json":
         data = resp["data"]
@@ -53,7 +55,7 @@ def preview(request, resource_id):
         data = resp["data"]
         data = data.loc[:, data.columns.isin(keep_cols)]
         data = data.head(int(row_count) if row_count != None else 0)      
-        data = data.to_string()  
+        data = data.to_string() if len(data.columns) > 0 and len(data) > 0 else ""
         context = {
             "Success": True,
             "data": data, #.to_dict("records"),
@@ -67,7 +69,7 @@ def preview(request, resource_id):
         data = json_keep_column(data, keep_cols, keep_cols_path)
         data = pd.json_normalize(data)
         data = data.head(int(row_count) if row_count != None else 0)
-        data = dicttoxml.dicttoxml(data.to_dict("records"))
+        data = dicttoxml.dicttoxml(data.to_dict("records")).decode("utf-8") 
         context = {
             "Success": True,
             "data": data, 
@@ -90,7 +92,6 @@ def fetchapi(resource_id):
     if hasattr(res_model, "filedetails") and res_model.filedetails != None:
         res_type = "file"
         
-    print ('----', res_type)
         
     if  res_type == "file":
         
@@ -112,7 +113,6 @@ def fetchapi(resource_id):
                     data = xmlFile.read()
               
             context = {"Success": True, "data": data, "response_type": file_format}
-            print ('----', context)
             return context
             
         except Exception as e:

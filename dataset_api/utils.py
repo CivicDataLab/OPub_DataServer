@@ -112,7 +112,7 @@ def idp_make_cache_key(group, window, rate, value, methods):
 
 
 def json_keep_column(data, cols, parentnodes):
-    print ('------------inkeepcol', parentnodes)
+    #print ('------------inkeepcol', parentnodes)
     
     try:
         
@@ -131,7 +131,7 @@ def json_keep_column(data, cols, parentnodes):
             for key in list(d.keys()):
                 child_keys_list = []
                 get_child_keys(d[key], child_keys_list)
-                print ('--------------', key, '---', child_keys_list)
+                #print ('--------------', key, '---', child_keys_list)
                 if (key not in remove_key or parent!=parent_dict.get(key, "")) and not any([ item in remove_key for item in child_keys_list]):
                     del d[key]
                 else:
