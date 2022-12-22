@@ -163,6 +163,7 @@ class CreateDataAccessModel(Output, graphene.Mutation):
             validation=data_access_model_data.validation,
             validation_unit=data_access_model_data.validation_unit,
         )
+        data_access_model_instance.save()
 
         log_activity(
             target_obj=data_access_model_instance,
