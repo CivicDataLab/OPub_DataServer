@@ -3,6 +3,7 @@ import mimetypes
 import os
 from typing import Iterable
 import copy
+import magic
 
 import genson
 import graphene
@@ -13,7 +14,7 @@ from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql import GraphQLError
 from graphql_auth.bases import Output
-from django.db.models import Q 
+from django.db.models import Q
 from .api_resource import api_fetch
 from .constants import FORMAT_MAPPING
 from .decorators import (
@@ -33,6 +34,73 @@ from .models import (
     APIParameter,
 )
 from .utils import log_activity, get_client_ip
+from .file_utils import file_validation
+import xmltodict
+
+
+def parse_schema(schema_dict, parent, schema, current_path):
+    global count
+    # count = 0
+    if isinstance(schema_dict, list):
+        schema_dict = schema_dict[0]
+
+    for key in schema_dict:
+        if key == "required":
+            continue
+        print(key)
+        if key == "items":
+            count = count + 1
+            schema.append(
+                {
+                    "key": parent + str(count) if parent == "items" else parent,
+                    "display_name": parent + str(count) if parent == "items" else parent,
+                    "format": "array",
+                    "description": "",
+                    "parent": "",
+                    "array_field": "items" + str(count),
+                    "path": current_path,
+                    "parent_path": ".".join(current_path.split('.')[0:-1])
+                }
+            )
+            parse_schema(schema_dict["items"], key, schema, current_path)
+            continue
+        if key == "type":
+            continue
+
+        if key == "properties":
+            path = current_path + ".items" if parent == "items" else current_path
+            schema.append(
+                {
+                    "key": parent + str(count) if parent == "items" else parent,
+                    "display_name": parent + str(count) if parent == "items" else parent,
+                    "format": "json",
+                    "description": "",
+                    "parent": "",
+                    "array_field": "",
+                    "path": path,
+                    "parent_path": ".".join(path.split('.')[0:-1])
+                }
+            )
+            parse_schema(schema_dict["properties"], parent, schema, path)
+            continue
+        if "type" in schema_dict[key] and schema_dict[key]["type"] not in [
+            "array",
+            "object",
+        ]:
+            schema.append(
+                {
+                    "key": key,
+                    "display_name": key,
+                    "format": "string",
+                    "description": "",
+                    "parent": parent + str(count) if parent == "items" else parent,
+                    "array_field": "",
+                    "path": current_path + "." + key,
+                    "parent_path": current_path
+                }
+            )
+        else:
+            parse_schema(schema_dict[key], key, schema, current_path + "." + key)
 
 
 class ResourceSchemaInputType(graphene.InputObjectType):
@@ -43,6 +111,9 @@ class ResourceSchemaInputType(graphene.InputObjectType):
     description = graphene.String(required=False)
     parent = graphene.String(required=False)
     array_field = graphene.String(required=False)
+    path = graphene.String(required=False)
+    parent_path = graphene.String(required=False)
+    filterable = graphene.Boolean(required=False, default=False)
 
 
 class ResourceSchemaType(DjangoObjectType):
@@ -72,7 +143,7 @@ class ApiDetailsType(DjangoObjectType):
 
     def resolve_parameters(self: APIDetails, info):
         try:
-            parameters = APIParameter.objects.filter(api_details=self)
+            parameters = APIParameter.objects.filter(api_details=self)  # .exclude(type="PREVIEW")
             return parameters
         except APIParameter.DoesNotExist as e:
             return []
@@ -124,8 +195,8 @@ class Query(graphene.ObjectType):
     resource_dataset = graphene.List(ResourceType, dataset_id=graphene.Int())
 
     # Access : PMU
-    @auth_user_by_org(action="query")
-    def resolve_all_resources(self, info, role, **kwargs):
+    # @auth_user_by_org(action="query")
+    def resolve_all_resources(self, info, role="PMU", **kwargs):
         if role == "PMU":
             return Resource.objects.all().order_by("-modified")
         else:
@@ -146,19 +217,56 @@ class Query(graphene.ObjectType):
             resource = Resource.objects.get(pk=resource_id)
             if resource.dataset.dataset_type == DataType.FILE.value:
                 if resource.filedetails.file and len(resource.filedetails.file.path):
+                    global count
+                    count = 0
                     if "csv" in resource.filedetails.format.lower():
                         file = pd.read_csv(resource.filedetails.file.path)
-                        return file.columns.tolist()
+                        schema_list = pd.io.json.build_table_schema(file, version=False)
+                        schema_list = schema_list.get("fields", [])
+                        schema = []
+                        for each in schema_list[1:]:
+                            schema.append(
+                                {
+                                    "key": each["name"],
+                                    "display_name": each["name"],
+                                    "format": each["type"],
+                                    "description": "",
+                                    "parent": "",
+                                    "array_field": "",
+                                }
+                            )
+                        return schema
+                        # return file.columns.tolist()
                     if resource.filedetails.format.lower() == "json":
                         with open(resource.filedetails.file.path) as jsonFile:
                             # return list(set(get_keys(jsonFile.read(), [])))
+                            # global count
+                            # count = 0
                             builder = genson.SchemaBuilder()
                             jsondata = json.loads(jsonFile.read())  # json.loads(resource.filedetails.file)
                             builder.add_object(jsondata)
                             schema_dict = builder.to_schema()
-                            schema_dict = schema_dict.get("properties", {})
+                            schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties",
+                                                                                                         {}))  # schema_dict.get("properties", {})
                             schema = []
-                            api_fetch.parse_schema(schema_dict, "", schema)
+                            parse_schema(schema_dict, "", schema, "")
+                            return schema
+                    if resource.filedetails.format.lower() == "xml":
+                        with open(resource.filedetails.file.path) as xmlFile:
+                            # global count
+                            # count = 0
+                            # return list(set(get_keys(jsonFile.read(), [])))
+                            builder = genson.SchemaBuilder()
+                            jsondata = xmltodict.parse(xmlFile.read())
+                            # jsondata = json.loads(
+                            #     jsonFile.read()
+                            # )   json.loads(resource.filedetails.file)
+                            builder.add_object(jsondata)
+                            schema_dict = builder.to_schema()
+                            schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties",
+                                                                                                         {}))  # schema_dict.get("properties", {})
+                            schema = []
+                            parse_schema(schema_dict, "", schema, "")
                             return schema
             return []
         else:
@@ -246,9 +354,9 @@ class DeleteResourceInput(graphene.InputObjectType):
 
 def _remove_masked_fields(resource_instance: Resource):
     if (
-        resource_instance.masked_fields
-        and len(resource_instance.filedetails.file.path)
-        and "csv" in resource_instance.filedetails.format.lower()
+            resource_instance.masked_fields
+            and len(resource_instance.filedetails.file.path)
+            and "csv" in resource_instance.filedetails.format.lower()
     ):
         df = pd.read_csv(resource_instance.filedetails.file.path)
         df = df.drop(columns=resource_instance.masked_fields)
@@ -277,10 +385,13 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
             if schema.id:
                 schema_instance = ResourceSchema.objects.get(id=int(schema.id))
                 schema_instance.key = schema.key
-                schema_instance.display_name = (get_display_name(schema),)
+                schema_instance.display_name = get_display_name(schema)
                 schema_instance.format = schema.format
                 schema_instance.description = schema.description
+                schema_instance.path = schema.path
+                schema_instance.parent_path = schema.parent_path
                 schema_instance.resource = resource_instance
+                schema_instance.filterable = schema.filterable if schema.filterable else False
                 schema_instance.save()
             else:
                 # Add new schema
@@ -294,12 +405,12 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
 
     for schema in resource_data.schema:
         schema_instance = ResourceSchema.objects.get(
-            resource_id=resource_instance.id, key=schema.key
+            resource_id=resource_instance.id, key=schema.key, path=schema.path
         )
         if schema.parent and schema.parent != "":
             try:
                 parent_instance = ResourceSchema.objects.get(
-                    resource_id=resource_instance.id, key=schema.parent
+                    resource_id=resource_instance.id, key=schema.parent, path=schema.parent_path
                 )
                 schema_instance.parent = parent_instance
             except ResourceSchema.DoesNotExist:
@@ -324,6 +435,9 @@ def _create_resource_schema_instance(resource_instance, schema):
         format=schema.format,
         description=schema.description,
         resource=resource_instance,
+        path=schema.path,
+        parent_path=schema.parent_path,
+        filterable=schema.filterable if schema.filterable else False,
     )
     schema_instance.save()
     return schema_instance
@@ -407,29 +521,64 @@ def _create_update_file_details(resource_instance, attribute):
     except FileDetails.DoesNotExist as e:
         file_detail_object = FileDetails(resource=resource_instance)
     if attribute.file:
-        file_detail_object.file = attribute.file
-        mime_type = mimetypes.guess_type(file_detail_object.file.path)[0]
-        if isinstance(mime_type, dict) and "value" in mime_type.keys():
-            mime_type = mime_type["value"]
-        file_format = FORMAT_MAPPING[mime_type.lower()]
         try:
+            file_detail_object.file = attribute.file
+            deep_copy_file = copy.deepcopy(attribute.file)
+        except Exception as e:
+            resource_instance.delete()
+            print('----- error', str(e))
+            raise GraphQLError("Please upload file in UTF-8 format")
+
+        # "" + str(attribute.file)
+        # mime_type = mimetypes.guess_type(file_detail_object.file.path)[0]
+        # mime_type = magic.from_buffer(attribute.file.read(), mime=True)
+        # mime_t = magic.Magic(mime=True).from_buffer(attribute.file.read())
+        # if isinstance(mime_type, dict) and "value" in mime_type.keys():
+        #     mime_type = mime_type["value"]
+        # if not mime_type:
+        #     resource_instance.delete()
+        #     raise GraphQLError("Unsupported File Format")
+        print("-----", attribute.file)
+        print(deep_copy_file, type(deep_copy_file))
+        if not isinstance(attribute.file, str):
+            mime_type = file_validation(deep_copy_file, file_detail_object.file, FORMAT_MAPPING)
+            if not mime_type:
+                resource_instance.delete()
+                raise GraphQLError("Unsupported File Format")
+            file_format = FORMAT_MAPPING.get(mime_type.lower())
+        else:
+            file_format = file_detail_object.format
+        if not file_format:
+            resource_instance.delete()
+            raise GraphQLError("Unsupported File Format")
+
+        try:
+            print("before deep clone --", file_format)
             file_obj = copy.deepcopy(attribute.file)
+            # print(file_format)
             if file_format.lower() == "csv":
                 data = pd.read_csv(file_obj)
             if file_format.lower() == "xlsx":
                 data = pd.read_excel(file_obj, 1)
             if file_format.lower() == "json":
-                data = pd.read_json(file_obj)
+                if isinstance(file_obj, str):
+                    with open(file_obj, 'r') as data_file:
+                        data = json.load(data_file)
+                else:
+                    data = json.load(file_obj)
             if file_format.lower() == "xml":
                 data = pd.read_xml(file_obj)
+            # print("------", file_format)
         except Exception as e:
-            raise GraphQLError(str(e))
+            print("resource---", resource_instance, str(e))
+            resource_instance.delete()
+            raise GraphQLError("Please upload file in UTF-8 format")
 
         if file_format:
             file_detail_object.format = file_format
-        else:
-            resource_instance.delete()
-            raise GraphQLError("Unsupported format")
+        # else:
+        #     resource_instance.delete()
+        #     raise GraphQLError("Unsupported format")
     if attribute.remote_url:
         file_detail_object.remote_url = attribute.remote_url
     file_detail_object.save()
@@ -445,10 +594,10 @@ class CreateResource(graphene.Mutation, Output):
     @validate_token
     @auth_user_action_resource(action="create_resource")
     def mutate(
-        root,
-        info,
-        username,
-        resource_data: ResourceInput = None,
+            root,
+            info,
+            username,
+            resource_data: ResourceInput = None,
     ):
         """
 
@@ -457,25 +606,23 @@ class CreateResource(graphene.Mutation, Output):
         try:
             dataset = Dataset.objects.get(id=resource_data.dataset)
         except Dataset.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Dataset with given id not found", "code": "404"}
-                    ]
-                },
-            }
+            raise GraphQLError("Dataset with given id not found")
         try:
             Resource.objects.get(Q(dataset=dataset), Q(title__iexact=resource_data.title))
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Resource with same name already exists", "code": "404"}
-                    ]
-                },
-            }
+            raise GraphQLError("Distribution with same name already exists")
         except Resource.DoesNotExist:
+            # For checking if file with same name has been uploaded in the same dataset.
+            if dataset.dataset_type == DataType.FILE.value:
+                dataset_resources = Resource.objects.filter(dataset=dataset)
+                if dataset_resources.exists():
+                    for resource in dataset_resources:
+                        resource_file_details = FileDetails.objects.get(resource=resource)
+                        if resource_file_details.source_file_name == str(
+                                resource_data.file_details.file.name):
+                            raise GraphQLError("You have already uploaded this file in another distribution.")
+                        else:
+                            pass
+
             masked_fields = resource_data.masked_fields
             resource_instance = Resource(
                 title=resource_data.title,
@@ -504,17 +651,7 @@ class CreateResource(graphene.Mutation, Output):
                     )
                 except APISource.DoesNotExist as e:
                     resource_instance.delete()
-                    return {
-                        "success": False,
-                        "errors": {
-                            "id": [
-                                {
-                                    "message": "API Source with given id not found",
-                                    "code": "404",
-                                }
-                            ]
-                        },
-                    }
+                    raise GraphQLError({"message": "API Source with given id not found", "code": "404"})
             elif dataset.dataset_type == DataType.FILE.value:
                 _create_update_file_details(
                     resource_instance=resource_instance,
@@ -548,23 +685,9 @@ class UpdateResource(graphene.Mutation, Output):
             resource_instance = Resource.objects.get(id=resource_data.id)
             dataset = Dataset.objects.get(id=resource_data.dataset)
         except Resource.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Resource with given id not found", "code": "404"}
-                    ]
-                },
-            }
+            raise GraphQLError({"message": "Distribution with given id not found", "code": "404"})
         except Dataset.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Dataset with given id not found", "code": "404"}
-                    ]
-                },
-            }
+            raise GraphQLError({"message": "Dataset with given id not found", "code": "404"})
         resource_instance.title = resource_data.title
         resource_instance.description = resource_data.description
         resource_instance.dataset = dataset
@@ -590,17 +713,7 @@ class UpdateResource(graphene.Mutation, Output):
                     attribute=resource_data.api_details,
                 )
             except APISource.DoesNotExist as e:
-                return {
-                    "success": False,
-                    "errors": {
-                        "id": [
-                            {
-                                "message": "API Source with given id not found",
-                                "code": "404",
-                            }
-                        ]
-                    },
-                }
+                raise GraphQLError({"message": "API Source with given id not found", "code": "404", })
         else:
             _create_update_file_details(
                 resource_instance=resource_instance,
@@ -634,14 +747,7 @@ class DeleteResource(graphene.Mutation, Output):
         try:
             resource_instance = Resource.objects.get(id=resource_data.id)
         except Resource.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Resource with given id not found", "code": "404"}
-                    ]
-                },
-            }
+            raise GraphQLError({"message": "Distribution with given id not found", "code": "404"})
         log_activity(
             target_obj=resource_instance,
             ip=get_client_ip(info),

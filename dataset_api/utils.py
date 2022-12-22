@@ -6,7 +6,8 @@ from numpy.compat import unicode
 from activity_log.signal import activity
 from dataset_api.enums import RatingStatus
 from dataset_api.models import Dataset, DataAccessModel
-
+from dataset_api.enums import ValidationUnits
+import datetime
 
 def get_client_ip(request):
     x_forwarded_for = request.context.META.get("HTTP_X_FORWARDED_FOR")
@@ -54,20 +55,234 @@ def idp_make_cache_key(group, window, rate, value, methods):
     return prefix + value + "||" + rate + "||" + group[0]
 
 
-def remove_a_key(d, remove_key):
-    for key in list(d.keys()):
-        if key not in remove_key:
-            del d[key]
+# def remove_a_key(d, remove_key):
+#     for key in list(d.keys()):
+#         if key not in remove_key:
+#             del d[key]
+#         else:
+#             skip_col(d[key], remove_key)
+
+
+# def skip_col(d, remove_key):
+#     if isinstance(d, dict):
+#         remove_a_key(d, remove_key)
+#     if isinstance(d, list):
+#         for each in d:
+#             if isinstance(each, dict):
+#                 remove_a_key(each, remove_key)
+
+#     return d
+
+# def json_keep_column(data, cols):
+#     try:
+        
+#         def get_child_keys(d, child_keys_list):
+#             if isinstance(d,  dict):
+#                 for key in list(d.keys()):
+#                     child_keys_list.append(key)
+#                     if isinstance(d[key], dict):
+#                         get_child_keys(d[key], child_keys_list)  
+#             if isinstance(d,  list):
+#                 for each in d:
+#                     if isinstance(each,  dict):
+#                         get_child_keys(each, child_keys_list)                          
+
+#         def remove_a_key(d, remove_key):
+#             for key in list(d.keys()):
+#                 child_keys_list = []
+#                 get_child_keys(d[key], child_keys_list)
+#                 print ('--------------', child_keys_list)
+#                 if key not in remove_key and not any([ item in remove_key for item in child_keys_list]):
+#                     del d[key]
+#                 else:
+#                     keep_col(d[key], remove_key)
+
+#         def keep_col(d, remove_key):
+#             if isinstance(d, dict):
+#                 remove_a_key(d, remove_key)
+#             if isinstance(d, list):
+#                 for each in d:
+#                     if isinstance(each, dict):
+#                         remove_a_key(each, remove_key)
+#             return d
+
+#         return keep_col(data, cols)
+#     except:
+#         return data
+
+
+def json_keep_column(data, cols, parentnodes):
+    #print ('------------inkeepcol', parentnodes)
+    
+    try:
+        
+        def get_child_keys(d, child_keys_list):
+            if isinstance(d,  dict):
+                for key in list(d.keys()):
+                    child_keys_list.append(key)
+                    if isinstance(d[key], dict):
+                        get_child_keys(d[key], child_keys_list)  
+            if isinstance(d,  list):
+                for each in d:
+                    if isinstance(each,  dict):
+                        get_child_keys(each, child_keys_list)                          
+
+        def remove_a_key(d, parent, remove_key, parent_dict):
+            for key in list(d.keys()):
+                child_keys_list = []
+                get_child_keys(d[key], child_keys_list)
+                #print ('--------------', key, '---', child_keys_list)
+                if (key not in remove_key or parent!=parent_dict.get(key, "")) and not any([ item in remove_key for item in child_keys_list]):
+                    del d[key]
+                else:
+                    keep_col(d[key], key, remove_key, parent_dict)
+
+        def keep_col(d, parent, remove_key, parent_dict):
+            if isinstance(d, dict):
+                remove_a_key(d, parent, remove_key, parent_dict)
+            if isinstance(d, list):
+                for each in d:
+                    if isinstance(each, dict):
+                        remove_a_key(each, parent, remove_key, parent_dict)
+            return d
+        
+
+        parent_dict = {}
+
+        for each in parentnodes:
+            node_path = [x for x in each.split('.') if x != "" and x != "." and "items" not in x]
+            parent_dict[node_path[-1]] = node_path[-2] if len(node_path)>=2 else ""
+        return keep_col(data, "", cols, parent_dict)
+    except Exception as e:
+        raise e
+        return data
+
+
+
+def clone_object(obj, clone_list, old_clone, attrs={}):
+
+    print("----clone", obj)
+
+    if (str(obj._meta.object_name) + str(obj.pk)) not in clone_list:
+        # we start by building a "flat" clone
+        clone = obj._meta.model.objects.get(pk=obj.pk)
+
+        clone.pk = None
+
+        # if caller specified some attributes to be overridden,
+        # use them
+        for key, value in attrs.items():
+            setattr(clone, key, value)
+
+        # save the partial clone to have a valid ID assigned
+        clone.save()
+        clone_list.append(str(clone._meta.object_name) + str(clone.pk))
+        old_clone.append(str(obj._meta.object_name) + str(obj.pk))
+    else:
+        print ('----inelse')
+        obj_model = obj._meta.model.objects.get(pk=obj.pk) 
+        for key, value in attrs.items():
+            #print ('----------key', key, '-------val', value)
+            setattr(obj_model, key, value)
+            #obj_model.key = value;
+        # print (obj_model.dataset_access_model_id, '-------------obj')
+        obj_model.save()
+           # setattr(obj_model, key, value)
+        return obj_model
+
+    # Scan field to further investigate relations
+    fields = clone._meta.get_fields()
+    for field in fields:
+
+        # Manage M2M fields by replicating all related records
+        # found on parent "obj" into "clone"
+        if not field.auto_created and field.many_to_many:
+            for row in getattr(obj, field.name).all():
+                getattr(clone, field.name).add(row)
+
+        # Manage 1-N and 1-1 relations by cloning child objects
+        if field.auto_created and field.is_relation:
+            if field.many_to_many:
+                # do nothing
+                pass
+            else:
+                # provide "clone" object to replace "obj"
+                # on remote field
+                attrs = {field.remote_field.name: clone}
+                children = field.related_model.objects.filter(
+                    **{field.remote_field.name: obj}
+                )
+                for child in children:
+                    print("-----child", str(child), '-----attr', attrs)
+                    '''print(
+                        "💪💪💪",
+                        str(child._meta.object_name)
+                        not in [
+                            "DataRequest",
+                            "Geography",
+                            "Sector",
+                            "Catalog",
+                            "DatasetReviewRequest",
+                            "Tag",
+                            "DatasetAccessModelRequest",
+                        ],
+                    )'''
+                    if str(child._meta.object_name) not in [
+                        "DataRequest",
+                        "Geography",
+                        "Sector",
+                        "Catalog",
+                        "DatasetReviewRequest",
+                        "Tag",
+                        "DatasetAccessModelRequest",
+                        "Dataset",
+
+                    ] and (str(child._meta.object_name) + str(child.pk)) not in old_clone:
+                        #clone_list.append(str(child._meta.object_name) + str(child.pk))
+                        # if child not in ["DataRequest", "Geography", "Sector"]:
+                        clone_object(child, clone_list, old_clone, attrs)
+
+    return clone
+
+
+def cloner(object_type, object_id):
+    obj = object_type.objects.get(pk=object_id)
+    # data = {"id": str(obj.pk)}
+
+    print("---in----")
+    clone_list = []   
+    old_clone = []
+    clone = clone_object(obj, clone_list, old_clone)
+    print("---out----")
+
+    return clone.id
+
+
+def get_data_access_model_request_validity(data_access_model_request):
+    if data_access_model_request.status == "APPROVED":
+        validity = data_access_model_request.access_model.data_access_model.validation
+        validity_unit = data_access_model_request.access_model.data_access_model.validation_unit
+        approval_date = data_access_model_request.modified
+        validation_deadline = approval_date
+        if validity_unit and validity:
+            if validity_unit == ValidationUnits.DAY:
+                validation_deadline = approval_date + datetime.timedelta(days=validity)
+            elif validity_unit == ValidationUnits.WEEK:
+                validation_deadline = approval_date + datetime.timedelta(weeks=validity)
+            elif validity_unit == ValidationUnits.MONTH:
+                validation_deadline = approval_date + datetime.timedelta(
+                    days=(30 * validity)
+                )
+            elif validity_unit == ValidationUnits.YEAR:
+                validation_deadline = approval_date + datetime.timedelta(
+                    days=(365 * validity)
+                )
+            elif validity_unit == ValidationUnits.LIFETIME:
+                validation_deadline = approval_date + datetime.timedelta(
+                    days=(365 * 100)
+                )
+            return validation_deadline
         else:
-            skip_col(d[key], remove_key)
-
-
-def skip_col(d, remove_key):
-    if isinstance(d, dict):
-        remove_a_key(d, remove_key)
-    if isinstance(d, list):
-        for each in d:
-            if isinstance(each, dict):
-                remove_a_key(each, remove_key)
-
-    return d
+            return approval_date + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRY_DAYS)
+    else:
+        return None

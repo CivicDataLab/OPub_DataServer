@@ -1,16 +1,31 @@
 import graphene
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
+from graphql.error import GraphQLError
 
-from .models import APISource, Organization
+from .dataset.schema import DatasetType
+from .models import APISource, Organization, APIDetails, Dataset
 from .enums import AuthLocation, AuthType
 from .decorators import auth_user_by_org
 
 
 class APISourceType(DjangoObjectType):
+    published_dataset_count = graphene.Int()
+    all_dataset_count = graphene.Int()
+    published_datasets = graphene.List(DatasetType)
+
     class Meta:
         model = APISource
         fields = "__all__"
+
+    def resolve_published_dataset_count(self, info):
+        return Dataset.objects.filter(resource__apidetails__api_source=self, status="PUBLISHED").count()
+
+    def resolve_published_datasets(self, info):
+        return Dataset.objects.filter(resource__apidetails__api_source=self, status="PUBLISHED")
+
+    def resolve_all_dataset_count(self, info):
+        return Dataset.objects.filter(resource__apidetails__api_source=self).count()
 
 
 class Query(graphene.ObjectType):
@@ -72,11 +87,35 @@ class CreateAPISource(Output, graphene.Mutation):
             auth_credentials=api_source_data.auth_credentials,
             auth_token=api_source_data.auth_token,
             auth_token_key=api_source_data.auth_token_key,
-            organization=organization
+            organization=organization,
         )
         api_source_instance.save()
         return CreateAPISource(API_source=api_source_instance)
 
 
+class DeleteAPISource(Output, graphene.Mutation):
+    class Arguments:
+        api_source_id = graphene.Int(required=True)
+
+    success = graphene.String()
+
+    @staticmethod
+    # @auth_user_by_org(action="create_api_source")
+    def mutate(root, info, api_source_id):
+        try:
+            api_source_instance = APISource.objects.get(pk=api_source_id)
+        except APISource.DoesNotExist as e:
+            raise GraphQLError("API source with given id not found.")
+        try:
+            api_details_instance = APIDetails.objects.filter(api_source_id=api_source_id)
+            if api_details_instance.exists():
+                raise GraphQLError("This API Source is related to a distribution.")
+        except APIDetails.DoesNotExist as e:
+            pass
+        api_source_instance.delete()
+        return CreateAPISource(success=True)
+
+
 class Mutation(graphene.ObjectType):
     create_api_source = CreateAPISource.Field()
+    delete_api_source = DeleteAPISource.Field()

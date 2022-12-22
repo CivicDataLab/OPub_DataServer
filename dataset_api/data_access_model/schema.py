@@ -90,13 +90,13 @@ class DataAccessModelInput(graphene.InputObjectType):
     description = graphene.String(required=True)
     contract = Upload(required=False)
     license = graphene.ID(required=True)
-    subscription_quota = graphene.Int(required=True)
-    subscription_quota_unit = graphene.Enum.from_enum(SubscriptionUnits)(required=True)
+    subscription_quota = graphene.Int(required=False)
+    subscription_quota_unit = graphene.Enum.from_enum(SubscriptionUnits)(required=False)
     rate_limit = graphene.Int(required=True)
     rate_limit_unit = RateLimitUnits(required=True)
     additions: Iterable = graphene.List(of_type=graphene.ID, required=False, default=[])
-    validation = graphene.Int(required=True)
-    validation_unit = graphene.Enum.from_enum(ValidationUnits)(required=True)
+    validation = graphene.Int(required=False)
+    validation_unit = graphene.Enum.from_enum(ValidationUnits)(required=False)
 
 
 class DeleteDataAccessModelInput(graphene.InputObjectType):

@@ -1,21 +1,22 @@
 from typing import Iterable
 
 import graphene
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from graphql import GraphQLError
 
 from dataset_api.decorators import validate_token, auth_user_by_org
 from dataset_api.enums import DataType
-from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization
+from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization, DataRequest, Agreement, \
+    DatasetAccessModelRequest, DatasetAccessModel
 from dataset_api.utils import (
     get_client_ip,
     dataset_slug,
     log_activity,
     get_average_rating,
 )
-from .decorators import auth_user_action_dataset, map_user_dataset, auth_query_dataset
+from .decorators import auth_user_action_dataset, map_user_dataset, auth_query_dataset, get_user_datasets
 from ..data_access_model.contract import update_provider_agreement
 
 
@@ -42,6 +43,7 @@ class DatasetStatus(graphene.Enum):
     UNDERMODERATION = "UNDERMODERATION"
     READYTOPUBLISH = "READYTOPUBLISH"
     TRANSFORMATIONINPROGRESS = "TRANSFORMATIONINPROGRESS"
+    DISABLED = "DISABLED"
 
 
 def _add_update_attributes_to_dataset(
@@ -75,26 +77,41 @@ class Query(graphene.ObjectType):
 
     @validate_token
     def resolve_all_datasets(self, info, username, **kwargs):
+        prefetch_agreements = Prefetch("agreements", queryset=Agreement.objects.filter(username=username).distinct())
+
+        prefetch_data_requests = Prefetch("datarequest_set",
+                                          queryset=DataRequest.objects.filter(default=True, user=username))
+        prefetch_dam_requests = Prefetch("datasetaccessmodelrequest_set",
+                                         queryset=DatasetAccessModelRequest.objects.filter(
+                                             user=username).order_by("-modified").prefetch_related(
+                                             prefetch_data_requests).distinct())
+        prefetch_dataset_am = Prefetch("datasetaccessmodel_set", queryset=DatasetAccessModel.objects.filter(
+            datasetaccessmodelrequest__user=username,
+            datasetaccessmodelrequest__status="APPROVED")
+                                       .prefetch_related(prefetch_agreements, prefetch_dam_requests).distinct())
         return Dataset.objects.filter(
             Q(datasetaccessmodel__datasetaccessmodelrequest__user=username),
             Q(datasetaccessmodel__datasetaccessmodelrequest__status="APPROVED"),
-        )
+        ).prefetch_related(prefetch_dataset_am).distinct()
 
     # Access : PMU / DPA
     @auth_user_by_org(action="query")
+    @validate_token
+    @get_user_datasets
     def resolve_org_datasets(
-            self, info, role, first=None, skip=None, status: DatasetStatus = None, **kwargs
+            self, info, role, dataset_list, first=None, skip=None, status: DatasetStatus = None, username="", **kwargs
     ):
-        if role == "PMU" or role == "DPA":
+        if role == "PMU" or role == "DPA" or role == "DP":
             org_id = info.context.META.get("HTTP_ORGANIZATION")
             organization = Organization.objects.get(id=org_id)
             if status:
                 query = Dataset.objects.filter(
-                    catalog__organization=organization, status=status
+                    catalog__organization=organization, status=status, id__in=dataset_list
                 ).order_by("-modified")
             else:
                 query = Dataset.objects.filter(
-                    catalog__organization=organization
+                    catalog__organization=organization,
+                    id__in=dataset_list,
                 ).order_by("-modified")
             if skip:
                 query = query[skip:]
@@ -126,10 +143,7 @@ class Query(graphene.ObjectType):
         if dataset_instance.status == "PUBLISHED":
             return dataset_instance
         if role:
-            if role == "PMU" or role == "DPA":
-                return dataset_instance
-            else:
-                raise GraphQLError("Access Denied")
+            return dataset_instance
         else:
             raise GraphQLError("Access Denied")
 
@@ -157,6 +171,7 @@ class CreateDatasetInput(graphene.InputObjectType):
 
 class UpdateDatasetInput(graphene.InputObjectType):
     id = graphene.ID()
+    source = graphene.String(required=True)
     remote_issued = graphene.Date(required=True)
     remote_modified = graphene.Date(required=False)
     period_from = graphene.Date(required=False)
@@ -215,17 +230,7 @@ class CreateDataset(Output, graphene.Mutation):
             organization = Organization.objects.get(id=org_id)
             catalog = Catalog.objects.filter(organization=organization)[0]
         except Organization.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {
-                            "message": "Organization with given id not found",
-                            "code": "404",
-                        }
-                    ]
-                },
-            }
+            raise GraphQLError("Organization with given id not found")
         dataset_instance = Dataset(
             title=dataset_data.title,
             description=dataset_data.description,
@@ -261,27 +266,11 @@ class UpdateDataset(Output, graphene.Mutation):
             dataset_instance = Dataset.objects.get(id=dataset_data.id)
             organization = Organization.objects.get(id=org_id)
         except Organization.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {
-                            "message": "Organization with given id not found",
-                            "code": "404",
-                        }
-                    ]
-                },
-            }
+            raise GraphQLError("Organization with given id not found")
         except Dataset.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Dataset with given id not found", "code": "404"}
-                    ]
-                },
-            }
+            raise GraphQLError("Dataset with given id not found")
         catalog = Catalog.objects.filter(organization=organization)[0]
+        dataset_instance.source = dataset_data.source
         dataset_instance.remote_issued = dataset_data.remote_issued
         dataset_instance.remote_modified = dataset_data.remote_modified
         dataset_instance.funnel = dataset_data.funnel
@@ -337,14 +326,7 @@ class PatchDataset(Output, graphene.Mutation):
         try:
             dataset_instance = Dataset.objects.get(id=dataset_data.id)
         except Dataset.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {"message": "Dataset with given id not found", "code": "404"}
-                    ]
-                },
-            }
+            raise GraphQLError("Dataset with given id not found")
         if dataset_data.status:
             dataset_instance.status = dataset_data.status
         if dataset_data.funnel:

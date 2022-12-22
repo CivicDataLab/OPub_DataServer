@@ -8,7 +8,7 @@ from dataset_api.models import (
     DatasetAccessModelResource,
     DatasetAccessModelRequest,
 )
-
+from ..utils import get_data_access_model_request_validity
 
 def create_access_jwt_token(dataset_access_model_request: DatasetAccessModelRequest,
                             dam_resource: DatasetAccessModelResource, username):
@@ -69,13 +69,20 @@ def create_data_refresh_token(
         dam_request: DatasetAccessModelRequest,
         username,
 ):
+    validity = get_data_access_model_request_validity(dam_request)
+    validity = (
+        validity
+        if validity and validity != ""
+        else datetime.datetime.utcnow()
+        + datetime.timedelta(days=0, minutes=settings.ACCESS_TOKEN_EXPIRY_MINS)
+    )
     refresh_token_payload = {
         "username": username,
         "dam_resource": dam_resource.id,
         "dam_request": dam_request.id,
         "dam": dam_resource.dataset_access_model.id,
         "resource_id": dam_resource.resource.id,
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7, minutes=0),
+        "exp": validity,
         "iat": datetime.datetime.utcnow(),
     }
     refresh_token = jwt.encode(

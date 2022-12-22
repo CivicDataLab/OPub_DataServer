@@ -1,15 +1,18 @@
 from collections.abc import Iterable
 
 import graphene
+import datetime
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
+from graphql import GraphQLError
 
 from .decorators import validate_token, validate_token_or_none
 from .enums import ReviewType
 from .models import DatasetReviewRequest, Dataset
 from .decorators import auth_user_by_org, auth_user_action_resource
-from .search import index_data
+from .search import index_data, delete_data
 from .email_utils import dataset_approval_notif
+
 
 class ModerationRequestType(DjangoObjectType):
     class Meta:
@@ -27,6 +30,8 @@ class StatusType(graphene.Enum):
     REQUESTED = "REQUESTED"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    ADDRESSING = "ADDRESSING"
+    ADDRESSED = "ADDRESSED"
 
 
 class Query(graphene.ObjectType):
@@ -48,10 +53,17 @@ class Query(graphene.ObjectType):
         return DatasetReviewRequest.objects.get(pk=moderation_request_id)
 
     @validate_token
-    def resolve_review_request_user(self, info, username, **kwargs):
-        return DatasetReviewRequest.objects.filter(user=username).order_by(
-            "-modified_date"
-        )
+    @auth_user_by_org(action="list_review_request")
+    def resolve_review_request_user(self, info, username, role, **kwargs):
+        if role == "DP":
+            return DatasetReviewRequest.objects.filter(user=username).order_by(
+                "-modified_date"
+            )
+        elif role == "DPA" or role == "PMU":
+            org_id = info.context.META.get("HTTP_ORGANIZATION")
+            return DatasetReviewRequest.objects.filter(dataset__catalog__organization_id=org_id).order_by(
+                "-modified_date"
+            )
 
     @validate_token
     def resolve_moderation_request_user(self, info, username, **kwargs):
@@ -107,14 +119,31 @@ class ModerationRequestMutation(graphene.Mutation, Output):
     @auth_user_by_org(action="request_dataset_mod")
     def mutate(root, info, moderation_request: ModerationRequestInput, username=""):
         moderation_request_instance = DatasetReviewRequest(
-            status=moderation_request.status,
+            status=StatusType.REQUESTED.value,
             description=moderation_request.description,
             remark=moderation_request.remark,
             user=username,
             request_type=ReviewType.MODERATION.value,
         )
         dataset = Dataset.objects.get(id=moderation_request.dataset)
+        # Check if any review request is in "APPROVED" state for that dataset.
+        review_requests =  None
+        try:
+            review_requests = DatasetReviewRequest.objects.get(dataset_id=dataset, status="APPROVED", request_type="REVIEW")
+            review_requests.status = StatusType.ADDRESSED.value
+            review_requests.save()
+        except:
+            pass
+        # Check if any previous request is in "ADDRESSING" state.
+        previous_moderations = DatasetReviewRequest.objects.filter(
+            dataset_id=dataset, status="ADDRESSING", request_type="MODERATION"
+        )
+        if previous_moderations.exists():
+            for instances in previous_moderations:
+                instances.status = StatusType.ADDRESSED.value
+                instances.save()
         moderation_request_instance.dataset = dataset
+        moderation_request_instance.parent = review_requests if review_requests else None
         moderation_request_instance.save()
         # TODO: fix magic string
         dataset.status = "UNDERMODERATION"
@@ -141,17 +170,15 @@ class ReviewRequestMutation(graphene.Mutation, Output):
         try:
             dataset = Dataset.objects.get(id=review_request.dataset)
         except Dataset.DoesNotExist as e:
-            return {
-                "success": False,
-                "errors": {
-                    "id": [
-                        {
-                            "message": f"Moderation request with id {review_request.dataset} does not exist",
-                            "code": "404",
-                        }
-                    ]
-                },
-            }
+            raise GraphQLError("Moderation request does not exist")
+        # Check if any previous request is in "ADDRESSING" state.
+        previous_reviews = DatasetReviewRequest.objects.filter(
+            dataset_id=dataset, status="ADDRESSING", request_type="REVIEW"
+        )
+        if previous_reviews.exists():
+            for instances in previous_reviews:
+                instances.status = StatusType.ADDRESSED.value
+                instances.save()
         review_request_instance.dataset = dataset
         review_request_instance.save()
         # TODO: fix magic string
@@ -170,7 +197,10 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
     @validate_token_or_none
     @auth_user_by_org(action="publish_dataset")
     def mutate(
-        root, info, username="", moderation_request: ModerationRequestsApproveRejectInput = None
+            root,
+            info,
+            username,
+            moderation_request: ModerationRequestsApproveRejectInput = None,
     ):
         errors = []
         moderation_requests = []
@@ -180,12 +210,7 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
                     id=request_id
                 )
             except DatasetReviewRequest.DoesNotExist as e:
-                errors.append(
-                    {
-                        "message": f"Moderation request with id {request_id} does not exist",
-                        "code": "404",
-                    }
-                )
+                errors.append("Moderation request does not exist")
                 continue
 
             if moderation_request_instance:
@@ -195,9 +220,21 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
             #     TODO: FIX magic strings
             if moderation_request.status == "APPROVED":
                 dataset = moderation_request_instance.dataset
+                if dataset.parent:
+                    # DISABLE parent dataset.
+                    dataset.parent.status = "DISABLED"
+                    delete_data(dataset.parent.id)  # Remove the listing from ES.
+                    dataset.parent.save()
+                dataset.published_date = dataset.parent.published_date if dataset.parent else datetime.datetime.now()
+                dataset.last_updated = datetime.datetime.now()
                 dataset.status = "PUBLISHED"
                 dataset.save()
-                dataset_approval_notif(username, dataset.id, dataset.catalog.organization.id)
+                try:
+                    dataset_approval_notif(
+                        username, dataset.id, dataset.catalog.organization.id
+                    )
+                except Exception as e:
+                    print(str(e))
                 # Index data in Elasticsearch
                 index_data(dataset)
             if moderation_request.status == "REJECTED":
@@ -207,9 +244,36 @@ class ApproveRejectModerationRequests(graphene.Mutation, Output):
             moderation_request_instance.save()
             moderation_requests.append(moderation_request_instance)
         if errors:
-            return {"success": False, "errors": {"ids": errors}}
+            raise GraphQLError({"success": False, "errors": {"ids": errors}})
 
         return ApproveRejectModerationRequests(moderation_requests=moderation_requests)
+
+
+class AddressModerationRequests(graphene.Mutation, Output):
+    class Arguments:
+        moderation_request = ModerationRequestsApproveRejectInput()
+
+    moderation_request = graphene.Field(ModerationRequestType)
+
+    @staticmethod
+    @validate_token_or_none
+    @auth_user_by_org(action="request_dataset_review")
+    def mutate(
+            root,
+            info,
+            username,
+            moderation_request: ModerationRequestsApproveRejectInput = None,
+    ):
+        try:
+            moderation_request_instance = DatasetReviewRequest.objects.get(id=moderation_request.ids[0])
+        except DatasetReviewRequest.DoesNotExist as e:
+            raise GraphQLError("Moderation request does not exist")
+        if moderation_request_instance and moderation_request_instance.status == StatusType.REJECTED.value:
+            moderation_request_instance.status = moderation_request.status
+            moderation_request_instance.save()
+        else:
+            return AddressModerationRequests(moderation_request=moderation_request_instance)
+        return AddressModerationRequests(moderation_request=moderation_request_instance)
 
 
 class ApproveRejectReviewRequests(graphene.Mutation, Output):
@@ -229,12 +293,7 @@ class ApproveRejectReviewRequests(graphene.Mutation, Output):
                     id=request_id
                 )
             except DatasetReviewRequest.DoesNotExist as e:
-                errors.append(
-                    {
-                        "message": f"Review request with id {request_id} does not exist",
-                        "code": "404",
-                    }
-                )
+                errors.append("Review request does not exist")
                 continue
 
             if review_request_instance:
@@ -255,7 +314,7 @@ class ApproveRejectReviewRequests(graphene.Mutation, Output):
             review_request_instance.save()
             review_requests.append(review_request_instance)
         if errors:
-            return {"success": False, "errors": {"ids": errors}}
+            raise GraphQLError({"success": False, "errors": {"ids": errors}})
 
         return ApproveRejectReviewRequests(review_requests=review_requests)
 
@@ -265,3 +324,4 @@ class Mutation(graphene.ObjectType):
     review_request = ReviewRequestMutation.Field()
     approve_reject_moderation_requests = ApproveRejectModerationRequests.Field()
     approve_reject_review_request = ApproveRejectReviewRequests.Field()
+    address_moderation_requests = AddressModerationRequests.Field()

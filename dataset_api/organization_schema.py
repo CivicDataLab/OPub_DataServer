@@ -1,19 +1,12 @@
 import graphene
+from django.db.models import Q
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
-from graphql_auth.bases import Output
 from graphql import GraphQLError
-from django.db.models import Q
+from graphql_auth.bases import Output
 
 from activity_log.signal import activity
-from .models import (
-    Organization,
-    OrganizationCreateRequest,
-    Catalog,
-    Resource,
-    Dataset,
-    Sector,
-)
+from .constants import IMAGE_FORMAT_MAPPING
 from .decorators import (
     validate_token,
     create_user_org,
@@ -23,6 +16,16 @@ from .decorators import (
     get_user_org,
 )
 from .enums import OrganizationTypes, OrganizationCreationStatusType
+from .file_utils import file_validation
+from .models import (
+    Organization,
+    OrganizationCreateRequest,
+    Catalog,
+    Resource,
+    Dataset,
+    Sector,
+    DatasetAccessModelRequest,
+)
 from .utils import get_client_ip
 
 
@@ -37,6 +40,7 @@ class OrganizationType(DjangoObjectType):
     api_count = graphene.Int()
     dataset_count = graphene.Int()
     usecase_count = graphene.Int()
+    user_count = graphene.Int()
 
     class Meta:
         model = Organization
@@ -68,6 +72,18 @@ class OrganizationType(DjangoObjectType):
         )
         return len(set(usecase))
 
+    def resolve_user_count(self, info):
+        user_count = (
+            DatasetAccessModelRequest.objects.filter(
+                Q(access_model_id__dataset_id__catalog__organization=self.id),
+                Q(access_model_id__dataset__status__exact="PUBLISHED"),
+            )
+            .values_list("user")
+            .distinct()
+            .count()
+        )
+        return user_count
+
 
 class Query(graphene.ObjectType):
     all_organizations = graphene.List(OrganizationType)
@@ -93,7 +109,7 @@ class Query(graphene.ObjectType):
     # Access : DPA of that org.
     @auth_user_by_org(action="query")
     def resolve_organization_by_id(self, info, role, organization_id):
-        if role == "DPA" or role == "PMU":
+        if role == "DPA" or role == "PMU" or role == "DP":
             return Organization.objects.get(pk=organization_id)
         else:
             raise GraphQLError("Access Denied")
@@ -198,6 +214,22 @@ class CreateOrganization(Output, graphene.Mutation):
                 username=username,
             )
             organization_additional_info_instance.save()
+            mime_type = file_validation(
+                organization_additional_info_instance.logo,
+                organization_additional_info_instance.logo,
+                IMAGE_FORMAT_MAPPING,
+            )
+            if not mime_type:
+                organization_additional_info_instance.delete()
+                raise GraphQLError("Unsupported Logo Format")
+            # mime_type = magic.from_file(organization_additional_info_instance.logo.path, mime=True)
+            # mime_type = mimetypes.guess_type(
+            #     organization_additional_info_instance.logo.path
+            # )
+            logo_format = IMAGE_FORMAT_MAPPING.get(mime_type.lower())
+            if not logo_format:
+                organization_additional_info_instance.delete()
+                raise GraphQLError("Unsupported Logo Format")
             return CreateOrganization(
                 organization=organization_additional_info_instance
             )
@@ -263,10 +295,10 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     @auth_user_by_org(action="approve_organization")
     @modify_org_status
     def mutate(
-            root,
-            info,
-            username,
-            organization_data: ApproveRejectOrganizationApprovalInput = None,
+        root,
+        info,
+        username,
+        organization_data: ApproveRejectOrganizationApprovalInput = None,
     ):
         try:
             organization_create_request_instance = (
@@ -288,10 +320,26 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
                 organization_create_request_instance.status = (
                     OrganizationCreationStatusType.REJECTED.value
                 )
+                organization_create_request_instance.remark = organization_data.remark
+                organization_create_request_instance.save()
+
+                activity.send(
+                    username,
+                    verb=organization_data.status,
+                    target=organization_create_request_instance,
+                    target_group=organization_create_request_instance,
+                    ip=get_client_ip(info),
+                )
+
+                return ApproveRejectOrganizationApproval(
+                    organization=organization_create_request_instance,
+                    rejected=None,
+                )
             else:
                 organization_create_request_instance.status = (
                     OrganizationCreationStatusType.APPROVED.value
                 )
+
                 # Create catalog if org is APPROVED.
                 catalog_instance = Catalog(
                     title=organization.title,
@@ -304,7 +352,7 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
             organization_create_request_instance.save()
 
             same_org_instance = OrganizationCreateRequest.objects.filter(
-                organization_ptr_id__title=organization.title
+                organization_ptr_id__title__iexact=organization.title
             )
             if same_org_instance.exists():
                 rejected_list = []

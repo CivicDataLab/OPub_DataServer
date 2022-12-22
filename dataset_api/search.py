@@ -13,7 +13,8 @@ from .models import (
     FileDetails,
     APIDetails,
     Dataset,
-    DatasetAccessModel, )
+    DatasetAccessModel,
+)
 from .utils import dataset_slug, get_average_rating
 
 # from django.utils.datastructures import MultiValueDictKeyError
@@ -30,29 +31,37 @@ def index_data(dataset_obj):
         "dataset_description": dataset_obj.description,
         "action": dataset_obj.action,
         "funnel": dataset_obj.funnel,
+        "issued": dataset_obj.issued,
         "period_from": dataset_obj.period_from,
         "period_to": dataset_obj.period_to,
         "update_frequency": dataset_obj.update_frequency,
         "dataset_type": dataset_obj.dataset_type,
         "remote_issued": dataset_obj.remote_issued,
         "remote_modified": dataset_obj.remote_modified,
+        "published_date": dataset_obj.published_date,
+        "last_updated": dataset_obj.last_updated,
         "modified": dataset_obj.modified,
         "slug": dataset_slug(dataset_obj.id),
         "highlights": dataset_obj.highlights or [],
         "download_count": dataset_obj.download_count,
-        "average_rating": get_average_rating(dataset_obj)
+        "average_rating": get_average_rating(dataset_obj),
     }
 
     geography = dataset_obj.geography.all()
     sector = dataset_obj.sector.all()
+    tags = dataset_obj.tags.all()
     dataset_geography = []
     dataset_sector = []
+    dataset_tag = []
     for geo in geography:
         dataset_geography.append(geo.name)
     for sec in sector:
         dataset_sector.append(sec.name)
+    for tag in tags:
+        dataset_tag.append(tag.name)
     doc["geography"] = dataset_geography
     doc["sector"] = dataset_sector
+    doc["tags"] = dataset_tag
 
     catalog_instance = Catalog.objects.get(id=dataset_obj.catalog_id)
     doc["catalog_title"] = catalog_instance.title
@@ -144,13 +153,23 @@ def facets(request):
         size = 5
     paginate_from = request.GET.get("from", 0)
     query_string = request.GET.get("q")
+    sort_by = request.GET.get("sort_by", None)
     sort_order = request.GET.get("sort", None)
+    if sort_order == "":
+        sort_order = "desc"
     org = request.GET.get("organization", None)
     start_duration = request.GET.get("start_duration", None)
     end_duration = request.GET.get("end_duration", None)
-    if sort_order:
-        if sort_order == "last_modified":
-            sort_mapping = {"remote_modified": {"order": "desc"}}
+    print(sort_by, sort_order)
+    if sort_by and sort_order:
+        if sort_by == "modified":
+            sort_mapping = {"modified": {"order": sort_order}}
+        elif sort_by == "rating":
+            sort_mapping = {"average_rating": {"order": sort_order}}
+        elif sort_by == "provider":
+            sort_mapping = {"org_title.keyword": {"order": sort_order}}
+        elif sort_by == "recent":
+            sort_mapping = {"last_updated": {"order": "desc"}}
         else:
             sort_mapping = {"dataset_title.keyword": {"order": sort_order}}
     else:
@@ -159,16 +178,20 @@ def facets(request):
     # Creating query for faceted search (filters).
     for value in facet:
         if request.GET.get(value):
-            filters.append({"match": {f"{value}": request.GET.get(value).replace("||", " ")}})
+            filters.append(
+                {"match": {f"{value}": request.GET.get(value).replace("||", " ")}}
+            )
             selected_facets.append({f"{value}": request.GET.get(value).split("||")})
-    
+
     if dam_type:
-        filters.append({"match": {"data_access_model_type": dam_type.replace("||", " ")}})
+        filters.append(
+            {"match": {"data_access_model_type": dam_type.replace("||", " ")}}
+        )
         selected_facets.append({"type": dam_type.split("||")})
-    
+
     if org:
-        filters.append({"terms": {"org_title.keyword": org.split('||')}})
-        selected_facets.append({"organization": org.split('||')})
+        filters.append({"terms": {"org_title.keyword": org.split("||")}})
+        selected_facets.append({"organization": org.split("||")})
 
     if start_duration and end_duration:
         filters.append(
@@ -192,10 +215,18 @@ def facets(request):
         "format": {"terms": {"field": "format.keyword"}},
         "status": {"terms": {"field": "status.keyword"}},
         "rating": {"terms": {"field": "rating.keyword"}},
-        "organization": {"global": {}, "aggs": {"all": {"terms": {"field": "org_title.keyword"}}}},
-        "duration": {"global": {}, "aggs": {"min": {"min": {"field": "period_from", "format": "yyyy-MM-dd"}},
-                                            "max": {"max": {"field": "period_to", "format": "yyyy-MM-dd"}}}},
-        "type": {"terms": {"field": "data_access_model_type.keyword"}}
+        "organization": {
+            "global": {},
+            "aggs": {"all": {"terms": {"field": "org_title.keyword"}}},
+        },
+        "duration": {
+            "global": {},
+            "aggs": {
+                "min": {"min": {"field": "period_from", "format": "yyyy-MM-dd"}},
+                "max": {"max": {"field": "period_to", "format": "yyyy-MM-dd"}},
+            },
+        },
+        "type": {"terms": {"field": "data_access_model_type.keyword"}},
     }
     if not query_string:
         # For filter search
@@ -211,9 +242,26 @@ def facets(request):
     else:
         # For faceted search with query string.
         filters.append(
-            {"match": {"dataset_title": {"query": query_string,  "operator": "AND", "fuzziness": "AUTO"}}}
+            {
+                "bool": {
+                    "should": [
+                        {
+                            "match": {
+                                "dataset_title": {
+                                    "query": query_string,
+                                    "operator": "OR",
+                                    "fuzziness": "AUTO",
+                                }
+                            }
+                        },
+                        {"match": {"tags": {"query": query_string}}},
+                    ]
+                }
+            }
         )
+        # filters.append({"match_phrase_prefix":{"dataset_title":{"query": query_string}}})
         query = {"bool": {"must": filters}}
+        print(query)
         resp = es_client.search(
             index="dataset",
             aggs=agg,
@@ -259,7 +307,7 @@ def more_like_this(request):
                 "like": [{"_index": "dataset", "_id": id}],
                 "min_term_freq": 0,
                 "max_query_terms": 10,
-                "min_doc_freq": 0
+                "min_doc_freq": 0,
             }
         }
         resp = es_client.search(index="dataset", query=query)

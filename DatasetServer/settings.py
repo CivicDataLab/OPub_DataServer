@@ -18,7 +18,7 @@ import environ
 env = environ.Env(DEBUG=(bool, False))
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-PRIVATE_FILE_LOCATION = BASE_DIR
+PRIVATE_FILE_LOCATION = os.path.join(BASE_DIR)
 PRIVATE_FILE_URL = "/"
 # Take environment variables from .env file
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
@@ -32,6 +32,7 @@ REFRESH_TOKEN_SECRET = (
     "django-insecure-ya3++8kan(4=ny+d@^g6(le^a1p@9@d2q=eqp&ksh_lrt!--$+"
 )
 ACCESS_TOKEN_EXPIRY_MINS = 5
+REFRESH_TOKEN_EXPIRY_DAYS = 7
 BASE_DOMAIN = env("BASE_DOMAIN")
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -80,6 +81,7 @@ INSTALLED_APPS = [
     "dataset_api",
     "graphql_auth",
     "activity_log",
+    "encrypted_json_fields",
 ]
 
 MIDDLEWARE = [
@@ -134,6 +136,8 @@ CACHES = {
     }
 }
 
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+
 ELASTICSEARCH = env("ES_URL")
 
 AUTH_URL = env("AUTH_URL")
@@ -141,6 +145,8 @@ PIPELINE_URL = env("PIPELINE_URL")
 
 REDIS_HOST = env("REDIS_HOST")
 REDIS_PORT = env("REDIS_PORT")
+
+EMAIL_URL = env("EMAIL_URL")
 
 X_FRAME_OPTIONS = "ALLOW-FROM http://localhost:3000/"
 
@@ -180,11 +186,13 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 MEDIA_URL = 'public/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'public')
-X_FRAME_OPTIONS = 'ALLOW-FROM http://localhost:3000/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'files', 'public')
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+FIELD_ENCRYPTION_KEY = env('FIELD_ENCRYPTION_KEY')
+EJF_ENCRYPTION_KEYS = env('FIELD_ENCRYPTION_KEY')
 
 django.utils.encoding.force_text = force_str

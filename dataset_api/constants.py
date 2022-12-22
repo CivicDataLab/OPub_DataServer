@@ -3,19 +3,27 @@ from DatasetServer import settings
 FORMAT_MAPPING = {
     "text/csv": "CSV",
     "csv": "CSV",
+    "application/csv": "CSV",
     "application/json": "JSON",
     "json": "JSON",
-    "application/msword": "DOC",
-    "application/doc": "DOC",
-    "application/ms-doc": "DOC",
+    # "application/msword": "DOC",
+    # "application/doc": "DOC",
+    # "application/ms-doc": "DOC",
     "application/pdf": "PDF",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+    # "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
     "application/xml": "XML",
     "xml": "XML",
+    "text/xml": "XML",
     "application/geo+json": "JSON",
     "application/gml+xml": "XML",
-    "application/gzip": "GZIP",
     "application/xhtml+xml": "XML",
+    # "text/plain": "TXT",
+}
+
+IMAGE_FORMAT_MAPPING = {
+    "image/png": "PNG",
+    "image/jpeg": "JPEG",
+    "image/svg+xml": "SVG",
 }
 
 DATAREQUEST_SWAGGER_SPEC = {
@@ -41,7 +49,7 @@ DATAREQUEST_SWAGGER_SPEC = {
                     {
                         "name": "token",
                         "in": "query",
-                        "required": "true",
+                        "required": True,
                         "description": "Access Token",
                         "schema": {
                             "type": "string"
@@ -67,7 +75,7 @@ DATAREQUEST_SWAGGER_SPEC = {
                     {
                         "name": "token",
                         "in": "query",
-                        "required": "true",
+                        "required": True,
                         "description": "Access Token",
                         "schema": {
                             "type": "string"
@@ -94,7 +102,7 @@ GET_RESOURCE = {"/getresource": {
             {
                 "name": "token",
                 "in": "query",
-                "required": "true",
+                "required": True,
                 "description": "Access Token",
                 "schema": {
                     "type": "string"
@@ -103,7 +111,7 @@ GET_RESOURCE = {"/getresource": {
             {
                 "name": "format",
                 "in": "query",
-                "required": "true",
+                "required": True,
                 "description": "Format of return",
                 "schema": {
                     "type": "string",
@@ -113,7 +121,7 @@ GET_RESOURCE = {"/getresource": {
             {
                 "name": "size",
                 "in": "query",
-                "required": "true",
+                "required": True,
                 "description": "number of records to return",
                 "schema": {
                     "type": "integer",
@@ -124,7 +132,7 @@ GET_RESOURCE = {"/getresource": {
             {
                 "name": "from",
                 "in": "query",
-                "required": "true",
+                "required": True,
                 "description": "start of records to return",
                 "schema": {
                     "type": "integer",

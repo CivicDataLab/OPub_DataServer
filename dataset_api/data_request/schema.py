@@ -2,7 +2,7 @@ import json
 import mimetypes
 import os
 from typing import Iterator
-
+import magic
 import graphene
 import pandas as pd
 import requests
@@ -14,7 +14,7 @@ from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
 from DatasetServer import settings
-from dataset_api.constants import DATAREQUEST_SWAGGER_SPEC, FORMAT_MAPPING
+from dataset_api.constants import FORMAT_MAPPING
 from dataset_api.data_request.token_handler import (
     create_access_jwt_token,
     generate_refresh_token,
@@ -38,6 +38,7 @@ from dataset_api.models import (
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
 from dataset_api.utils import skip_col, get_client_ip, log_activity
+from dataset_api.utils import json_keep_column
 
 
 class DataRequestType(DjangoObjectType):
@@ -149,17 +150,23 @@ def initiate_dam_request(
     dam_resource = DatasetAccessModelResource.objects.get(
         dataset_access_model=dam_request.access_model_id, resource=resource.id
     )
+    dam_resource_field_ids = list(dam_resource.fields.all().values_list('id', flat=True))
+    schema_rows = list(resource.resourceschema_set.filter(id__in=dam_resource_field_ids).values_list('path', flat=True))
+
+    schema_rows
+    print('-------rows', schema_rows)
     fields = []
+
     try:
         for field in dam_resource.fields.all():
             fields.append(field.key)
     except:
         pass
 
-    print('------------------aaa', resource.dataset.dataset_type)
+    print('------------------field', resource.dataset.dataset_type, '---', fields)
     # TODO: fix magic strings
     if resource and resource.dataset.dataset_type == "API":
-        for parameter in resource.apidetails.apiparameter_set.all():
+        for parameter in resource.apidetails.apiparameter_set.all().exclude(type="PREVIEW"):
             value = parameters.get(parameter.key, parameter.default)
             dr_parameter_instance = DataRequestParameter(
                 api_parameter=parameter, value=value, data_request=data_request_instance
@@ -173,13 +180,14 @@ def initiate_dam_request(
                 "api_source_id": resource.id,
                 "request_id": str(data_request_instance.id),
                 "request_columns": [x for x in fields],
+                "remove_nodes": [x for x in schema_rows],
                 "request_rows": "",
-                target_format: target_format
+                "target_format": target_format
             }
         )
         headers = {}
         response = requests.request("POST", url, headers=headers, data=payload)
-        print(response.text)
+        # print(response.text)
     elif resource and resource.dataset.dataset_type == DataType.FILE.value:
         print('-----------------bbbbbaaa')
         data_request_instance.file = File(
@@ -199,14 +207,19 @@ def initiate_dam_request(
         elif file_instance.format.lower() == "json":
             read_file = open(data_request_instance.file.path, "r")
             file = json.load(read_file)
-            skip_col(file, fields)
+            print("--------------------jsonparse", file, "----", fields)
+            if len(fields) > 0:
+                # skip_col(file, fields)
+                file = json_keep_column(file, fields, schema_rows)
+                # file = json_keep_column(file, fields)
+            print("-----------------fltrddata", file)
             read_file.close()
             output_file = open(data_request_instance.file.path, "w")
             file = json.dump(file, output_file, indent=4)
             output_file.close()
         data_request_instance.status = "FETCHED"
         data_request_instance.save()
-        update_data_request_index(data_request_instance)
+        # update_data_request_index(data_request_instance)
     return data_request_instance.id
 
 
@@ -297,7 +310,7 @@ def update_data_request_index(data_request: DataRequest):
     es_client = Elasticsearch(settings.ELASTICSEARCH)
     file_path = data_request.file.path
     if len(file_path):
-        mime_type = mimetypes.guess_type(file_path)[0]
+        mime_type = magic.from_file(file_path, mime=True)
         src_format = FORMAT_MAPPING[mime_type]
         index_name = str(data_request.id)
         es_create_index_if_not_exists(es_client, index_name)
@@ -369,6 +382,7 @@ class DataRequestUpdateMutation(graphene.Mutation, Output):
             verb="Updated",
         )
         update_data_request_index(data_request_instance)
+        # update_data_request_index(data_request_instance)
         return DataRequestUpdateMutation(data_request=data_request_instance)
 
 

@@ -25,6 +25,7 @@ class Query(graphene.ObjectType):
 class GeographyInput(graphene.InputObjectType):
     id = graphene.ID()
     name = graphene.String()
+    official_id = graphene.String(required=True)
     # organization = graphene.String()
 
 
@@ -39,10 +40,25 @@ class CreateGeography(Output, graphene.Mutation):
         # organization = Organization.objects.get(id=geography_data.organization)
         geography_instance = Geography(
             name=geography_data.name,
+            official_id=geography_data.official_id,
         )
         geography_instance.save()
         return CreateGeography(geography=geography_instance)
+    
+class UpdateGeography(Output, graphene.Mutation):
+    class Arguments:
+        geography_data = GeographyInput(required=True)
+
+    sector = graphene.Field(GeographyType)
+
+    @staticmethod
+    def mutate(root, info, geography_data=None):
+        geography_instance = Geography.objects.get(official_id=geography_data.official_id)
+        geography_instance.name = geography_data.name          
+        geography_instance.save()
+        return UpdateGeography(sector=geography_instance)    
 
 
 class Mutation(graphene.ObjectType):
     create_geography = CreateGeography.Field()
+    update_geography = UpdateGeography.Field()

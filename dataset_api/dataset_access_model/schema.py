@@ -1,10 +1,49 @@
 import graphene
 from django.db.models import Prefetch
+from graphene_django import DjangoObjectType
 
-from dataset_api.dataset_access_model_resource.schema import DatasetAccessModelType
 from dataset_api.decorators import validate_token_or_none
-from dataset_api.models import Dataset, Agreement, DatasetAccessModelRequest, DataRequest
-from dataset_api.models.DatasetAccessModel import DatasetAccessModel
+from dataset_api.models import Dataset, Agreement, DatasetAccessModelRequest, DataRequest, DatasetAccessModel
+
+
+class DatasetAccessModelType(DjangoObjectType):
+    resource_formats = graphene.List(of_type=graphene.String)
+    usage = graphene.Int()
+
+    class Meta:
+        model = DatasetAccessModel
+        fields = "__all__"
+
+    def resolve_resource_formats(self: DatasetAccessModel, info):
+        formats = []
+        for dam_resource in self.datasetaccessmodelresource_set.all():
+            has_resource = hasattr(dam_resource, "resource")
+            if has_resource and hasattr(dam_resource.resource, "apidetails"):
+                formats.append(dam_resource.resource.apidetails.response_type)
+            if has_resource and hasattr(dam_resource.resource, "filedetails"):
+                formats.append(dam_resource.resource.filedetails.format)
+        return list(set(formats))
+
+    def resolve_usage(self: DatasetAccessModel, info):
+        try:
+            dam_requests = DatasetAccessModelRequest.objects.filter(
+                access_model_id=self.id
+            )
+            # dam_requests = self.datasetaccessmodelrequest_set.all()
+            print(
+                [
+                    x.datarequest_set.filter(status="FETCHED").count()
+                    for x in dam_requests
+                ]
+            )
+            return sum(
+                [
+                    x.datarequest_set.filter(status="FETCHED").count()
+                    for x in dam_requests
+                ]
+            )
+        except (DatasetAccessModelRequest.DoesNotExist, DataRequest.DoesNotExist) as e:
+            return 0
 
 
 class Query(graphene.ObjectType):

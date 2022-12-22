@@ -65,10 +65,10 @@ def get_agreement_resource_details(dataset_access_model: DatasetAccessModel):
         text = text + f"""
           <li>
             {resource.resource.title}, last updated on {resource.resource.modified}: """
-        if resource.fields.exists():
+        if not resource.fields.exists():
             text = text + """All data columns/fields"""
         else:
-            for field in resource.fields:
+            for field in resource.fields.all():
                 text = text + f""" [{field.key} ({field.id})]"""
         text = text + """</li>"""
     text = text + """</ol>"""
@@ -418,3 +418,4 @@ def update_provider_agreement(dataset: Dataset, username):
         dataset.accepted_agreement.save('agreement.pdf', ContentFile(rawdata))
 
     os.remove("./out.pdf")
+   

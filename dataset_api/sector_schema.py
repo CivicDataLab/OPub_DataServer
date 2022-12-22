@@ -51,10 +51,10 @@ class Query(graphene.ObjectType):
     sector_by_title = graphene.Field(SectorType, sector_title=graphene.String())
 
     def resolve_all_sector(self, info, **kwargs):
-        return Sector.objects.all().distinct()
+        return Sector.objects.all().order_by("name").distinct()
 
     def resolve_active_sector(self, info, **kwargs):
-        return Sector.objects.filter(dataset__status="PUBLISHED").distinct()
+        return Sector.objects.filter(dataset__status="PUBLISHED").order_by("name").distinct()
 
     def resolve_sector(self, info, sector_id):
         return Sector.objects.get(pk=sector_id)
@@ -68,6 +68,7 @@ class SectorInput(graphene.InputObjectType):
     name = graphene.String(required=True)
     description = graphene.String()
     highlights = graphene.List(of_type=graphene.String)
+    official_id = graphene.String(required=True)
     # organization = graphene.String()
 
 
@@ -83,6 +84,7 @@ class CreateSector(Output, graphene.Mutation):
             name=sector_data.name,
             description=sector_data.description,
             highlights=sector_data.highlights,
+            official_id=sector_data.official_id,
         )
         sector_instance.save()
         return CreateSector(sector=sector_instance)
@@ -96,15 +98,17 @@ class UpdateSector(Output, graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, sector_data=None):
-        sector_instance = Sector.objects.get(id=sector_data.id)
+        sector_instance = Sector.objects.get(official_id=sector_data.official_id)
         sector_instance.name = sector_data.name
         if sector_data.description:
             sector_instance.description = sector_data.description
         if sector_data.highlights:
             sector_instance.highlights = sector_data.highlights
+        if sector_data.official_id:
+            sector_instance.official_id = sector_data.official_id            
         sector_instance.save()
         return UpdateSector(sector=sector_instance)
-
+    
 
 class Mutation(graphene.ObjectType):
     create_sector = CreateSector.Field()

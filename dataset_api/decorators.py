@@ -3,7 +3,7 @@ import json
 import requests
 from graphql import GraphQLError
 
-from .models import Resource, OrganizationCreateRequest
+from .models import Resource, OrganizationCreateRequest, DatasetReviewRequest
 
 auth_url = settings.AUTH_URL
 
@@ -138,11 +138,17 @@ def auth_user_by_org(action):
         def inner(*args, **kwargs):
             org_id = args[1].context.META.get("HTTP_ORGANIZATION", "")
             user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+            dataset_id = ""
+            try:
+                review_id = kwargs['moderation_request']['ids'][0] # Only for address moderation request mutation.
+                dataset_id = DatasetReviewRequest.objects.get(pk=review_id).dataset_id
+            except Exception as e:
+                pass
             body = json.dumps(
                 {
                     "access_token": user_token,
                     "access_org_id": org_id,
-                    "access_data_id": "",
+                    "access_data_id": dataset_id,
                     "access_req": action,
                 }
             )
@@ -150,7 +156,7 @@ def auth_user_by_org(action):
             if not response_json["Success"]:
                 raise GraphQLError(response_json["error_description"])
             if response_json["access_allowed"]:
-                if action == "query":
+                if action == "query" or action == "list_review_request":
                     kwargs["role"] = response_json["role"]
                 return func(*args, **kwargs)
             else:
@@ -186,7 +192,7 @@ def modify_org_status(func):
         value = func(*args, **kwargs)
         org_list = [value.organization.id]
         org_status = value.organization.status.lower()
-        
+
         user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
         body = json.dumps(
             {
@@ -196,16 +202,17 @@ def modify_org_status(func):
             }
         )
         response_json_approve = request_to_server(body, "modify_org_status")
-        
-        rejected_list = value.rejected
-        body = json.dumps(
-            {
-                "access_token": user_token,
-                "org_list": rejected_list,
-                "org_status": "rejected",
-            }
-        )
-        response_json_rejected = request_to_server(body, "modify_org_status")
+
+        if value.rejected:
+            rejected_list = value.rejected
+            body = json.dumps(
+                {
+                    "access_token": user_token,
+                    "org_list": rejected_list,
+                    "org_status": "rejected",
+                }
+            )
+            response_json_rejected = request_to_server(body, "modify_org_status")
         if response_json_approve["Success"]:
             return value
         else:
@@ -255,6 +262,8 @@ def update_user_org(func):
             response_json = request_to_server(body, "update_user_role")
             if response_json["Success"]:
                 return value
+        else:
+            return value
 
     return inner
 

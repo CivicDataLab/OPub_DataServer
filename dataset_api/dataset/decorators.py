@@ -49,8 +49,15 @@ def map_user_dataset(func):
         # TODO: IF org doesn't exist, mutation returns an error. Not handled here.
         # if not value["success"]:
         #         raise GraphQLError(value["errors"]["id"][0]["message"])
-        dataset_id = value.dataset.id
+        print(value, hasattr(value, "dataset"))
+        dataset_id = value.dataset.id if hasattr(value, "dataset") else value.dataset_id
         user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+        print("dataset_id----", dataset_id)
+        print("token----", user_token)
+
+
+		#dataset_id = value.dataset.id
+        #user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
         body = json.dumps(
             {
                 "access_token": user_token,
@@ -111,3 +118,21 @@ def auth_query_dataset(action):
         return inner
 
     return accept_func
+
+
+def get_user_datasets(func):
+    def inner(*args, **kwargs):
+        user_token = args[1].context.META.get("HTTP_AUTHORIZATION", "")
+        body = json.dumps(
+            {
+                "access_token": user_token,
+            }
+        )
+        response_json = request_to_server(body, "get_user_datasets")
+        if not response_json["Success"]:
+            raise GraphQLError(response_json["error_description"])
+        else:
+            kwargs["dataset_list"] = response_json["datasets"]
+            return func(*args, **kwargs)
+
+    return inner

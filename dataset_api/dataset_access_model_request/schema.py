@@ -1,3 +1,4 @@
+import copy
 import datetime
 import redis
 
@@ -21,33 +22,10 @@ from .decorators import auth_query_dam_request
 from dataset_api.enums import SubscriptionUnits, ValidationUnits
 from ..constants import DATAREQUEST_SWAGGER_SPEC
 from ..data_request.token_handler import create_data_refresh_token, create_data_jwt_token
-from ..models import DatasetAccessModelResource, Resource
-from ..utils import get_client_ip, log_activity
+from ..models import DatasetAccessModelResource, Resource 
+from ..utils import get_client_ip, get_data_access_model_request_validity, log_activity
 
 r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
-
-
-def get_data_access_model_request_validity(data_access_model_request):
-    if data_access_model_request.status == "APPROVED":
-        validity = data_access_model_request.access_model.data_access_model.validation
-        validity_unit = data_access_model_request.access_model.data_access_model.validation_unit
-        approval_date = data_access_model_request.modified
-        validation_deadline = approval_date
-        if validity_unit == ValidationUnits.DAY:
-            validation_deadline = approval_date + datetime.timedelta(days=validity)
-        elif validity_unit == ValidationUnits.WEEK:
-            validation_deadline = approval_date + datetime.timedelta(weeks=validity)
-        elif validity_unit == ValidationUnits.MONTH:
-            validation_deadline = approval_date + datetime.timedelta(
-                days=(30 * validity)
-            )
-        elif validity_unit == ValidationUnits.YEAR:
-            validation_deadline = approval_date + datetime.timedelta(
-                days=(365 * validity)
-            )
-        return validation_deadline
-    else:
-        return None
 
 
 class DataAccessModelRequestType(DjangoObjectType):
@@ -66,11 +44,27 @@ class DataAccessModelRequestType(DjangoObjectType):
             return validity.strftime("%d-%m-%Y")
         return None
 
-    @validate_token_or_none
+    @validate_token
     def resolve_is_valid(self: DatasetAccessModelRequest, info, username=""):
         validity = get_data_access_model_request_validity(self)
+        dam_quota_unit = self.access_model.data_access_model.subscription_quota_unit
+        quota_limit = self.access_model.data_access_model.subscription_quota
+
         if validity:
-            return timezone.now() <= validity
+            if timezone.now() >= validity:
+                return False
+            else:
+                if dam_quota_unit == SubscriptionUnits.LIMITEDDOWNLOAD:
+                    used_quota = r.get(":1:rl||" + username + "||" + str(self.id) + "||" + "365d||quota")
+                    if used_quota:
+                        if quota_limit > int(used_quota.decode()):
+                            return True
+                        else:
+                            return False
+                    else:
+                        return None
+                else:
+                    return True
         return None
 
     @validate_token_or_none
@@ -189,7 +183,7 @@ class Query(graphene.ObjectType):
         dam_resource = DatasetAccessModelResource.objects.get(pk=dataset_access_model_resource_id)
         dataset_access_model = dam_resource.dataset_access_model
         is_open = dataset_access_model.data_access_model.type == "OPEN"
-        spec = DATAREQUEST_SWAGGER_SPEC.copy()
+        spec = copy.deepcopy(DATAREQUEST_SWAGGER_SPEC)
         if not username:
             username = get_client_ip(info)
         if dataset_access_model_request_id != "":
@@ -211,12 +205,12 @@ class Query(graphene.ObjectType):
         spec["paths"]["/get_dist_data"]["get"]["parameters"][0]["example"] = data_token
         parameters = []
         if resource_instance and resource_instance.dataset.dataset_type == "API":
-            parameters = resource_instance.apidetails.apiparameter_set.all()
+            parameters = resource_instance.apidetails.apiparameter_set.all().exclude(type="PREVIEW")
             for parameter in parameters:
                 param_input = {
                     "name": parameter.key,
                     "in": "query",
-                    "required": "true",
+                    "required": True,
                     "description": parameter.description,
                     "schema": {"type": parameter.format},
                     "example": parameter.default,
@@ -226,7 +220,7 @@ class Query(graphene.ObjectType):
                 param_input = {
                     "name": "format",
                     "in": "query",
-                    "required": "true",
+                    "required": True,
                     "description": "Return format of data",
                     "schema": {"type": "string", "enum": resource_instance.apidetails.supported_formats},
                     "example": resource_instance.apidetails.default_format,
@@ -237,12 +231,64 @@ class Query(graphene.ObjectType):
                 param_input = {
                     "name": "format",
                     "in": "query",
-                    "required": "true",
+                    "required": True,
                     "description": "Return format of data",
                     "schema": {"type": "string", "enum": ["CSV", "XML", "JSON"]},
                     "example": resource_instance.filedetails.format,
                 }
                 spec["paths"]["/get_dist_data"]["get"]["parameters"].append(param_input)
+                if resource_instance.filedetails.format in ["CSV"]:
+                    pagination_size_param = {
+                        "name": "size",
+                        "in": "query",
+                        "required": "true",
+                        "description": "number of records to return",
+                        "schema": {
+                            "type": "integer",
+                            "miniumum": 1
+                        },
+                        "example": 5
+                    }
+                    pagination_start_param = {
+                        "name": "from",
+                        "in": "query",
+                        "required": "true",
+                        "description": "start of records to return",
+                        "schema": {
+                            "type": "integer",
+                            "miniumum": 0
+                        },
+                        "example": 0
+                    }
+                    filter_params = {
+                        "name": "filters",
+                        "in": "query",
+                        "required": False,
+                        "description": "Filter data",
+                        "schema": {
+                            "type": "object",
+                        }
+                    }
+                    properties = {}
+                    spec["paths"]["/get_dist_data"]["get"]["parameters"].append(pagination_size_param)
+                    spec["paths"]["/get_dist_data"]["get"]["parameters"].append(pagination_start_param)
+                    for field in dam_resource.fields.all():
+                        filter_param = {
+                            "name": field.key,
+                            "in": "query",
+                            "required": False,
+                            "description": "Filter data by" + field.key,
+                            "schema": {
+                                "type": field.format,
+                            }
+                        }
+                        # properties[field.key] = {
+                        #     "type": field.format
+                        # }
+                        spec["paths"]["/get_dist_data"]["get"]["parameters"].append(filter_param)
+                    # filter_params["schema"]["properties"] = properties
+
+                    # spec["paths"]["/get_dist_data"]["get"]["parameters"].append(filter_params)
         spec["info"]["title"] = resource_instance.title
         spec["info"]["description"] = resource_instance.description
         return {"data_token": data_token, "spec": spec}
@@ -272,6 +318,23 @@ def create_dataset_access_model_request(
     user_email=None,
     id=None,
 ):
+    try:
+        data_access_model_request_instance = DatasetAccessModelRequest.objects.filter(
+            access_model=access_model, status=status, user=username
+        ).order_by('-modified')
+        print('--dam--req--', data_access_model_request_instance)
+        if data_access_model_request_instance.exists():
+            print('--dam--req--0--', data_access_model_request_instance[0])
+            validity = get_data_access_model_request_validity(data_access_model_request_instance[0])
+            if validity:
+                print('validity--', validity)
+                if timezone.now() <= validity:
+                    print('Request is valid')
+                    return data_access_model_request_instance[0]
+                else:
+                    pass
+    except DatasetAccessModelRequest.DoesNotExist as e:
+        pass
     if not id:
         data_access_model_request_instance = DatasetAccessModelRequest(
             access_model=access_model
