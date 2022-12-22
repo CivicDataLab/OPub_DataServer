@@ -135,9 +135,9 @@ class Query(graphene.ObjectType):
     data_access_model_request_org = graphene.List(
         DataAccessModelRequestType, org_id=graphene.Int()
     )
-    data_spec = graphene.JSONString(
-        resource_id=graphene.ID(), dataset_access_model_request_id=graphene.ID()
-    )
+    data_spec = graphene.JSONString(resource_id=graphene.Argument(graphene.ID, required=True),
+                                    dataset_access_model_request_id=graphene.Argument(graphene.ID, required=False),
+                                    dataset_access_model_resource_id=graphene.Argument(graphene.ID, required=True))
 
     # Access : PMU
     @auth_user_by_org(action="query")
@@ -178,7 +178,7 @@ class Query(graphene.ObjectType):
 
     @validate_token_or_none
     def resolve_data_spec(self, info, username, resource_id, dataset_access_model_resource_id,
-                          dataset_access_model_request_id=""):
+                         dataset_access_model_request_id=""):
         resource_instance = Resource.objects.get(pk=resource_id)
         dam_resource = DatasetAccessModelResource.objects.get(pk=dataset_access_model_resource_id)
         dataset_access_model = dam_resource.dataset_access_model
@@ -386,9 +386,10 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
             id=id,
         )
         log_activity(
-            target_obj=data_access_model_request_instance.status,
+            target_obj=data_access_model_request_instance,
             ip=get_client_ip(info),
             username=username,
+            target_group=data_access_model_request_instance.access_model.dataset.catalog.organization,
             verb="Created",
         )
         return DataAccessModelRequestMutation(
@@ -432,9 +433,10 @@ class ApproveRejectDataAccessModelRequest(graphene.Mutation, Output):
         data_access_model_request_instance.save()
 
         log_activity(
-            target_obj=data_access_model_request_instance.status,
+            target_obj=data_access_model_request_instance,
             ip=get_client_ip(info),
             username=username,
+            target_group=data_access_model_request_instance.access_model.dataset.catalog.organization,
             verb=data_access_model_request_instance.status,
         )
         return ApproveRejectDataAccessModelRequest(

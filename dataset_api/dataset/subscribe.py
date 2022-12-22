@@ -6,6 +6,7 @@ from graphql_auth.bases import Output
 from dataset_api.decorators import validate_token
 from dataset_api.enums import SubscriptionAction
 from dataset_api.models import Subscribe, Dataset
+from ..utils import get_client_ip, log_activity
 
 
 class SubscribeType(DjangoObjectType):
@@ -31,7 +32,9 @@ class Query(graphene.ObjectType):
         return Subscribe.objects.filter(username=username)
 
     @validate_token
-    def resolve_user_dataset_subscription(self, info, dataset_id, username="", **kwargs):
+    def resolve_user_dataset_subscription(
+        self, info, dataset_id, username="", **kwargs
+    ):
         dataset = Dataset.objects.get(id=dataset_id)
         return Subscribe.objects.get(Q(user=username), Q(dataset=dataset))
 
@@ -51,13 +54,30 @@ class SubscribeMutation(Output, graphene.Mutation):
     def mutate(root, info, subscribe_input: SubscribeInput = None, username=""):
         dataset = Dataset.objects.get(id=subscribe_input.dataset_id)
         try:
-            subscribe_instance = Subscribe.objects.get(Q(user=username), Q(dataset=dataset))
+            subscribe_instance = Subscribe.objects.get(
+                Q(user=username), Q(dataset=dataset)
+            )
             subscribe_instance.save()
         except Subscribe.DoesNotExist as e:
             subscribe_instance = Subscribe(dataset=dataset, user=username)
             subscribe_instance.save()
         if subscribe_input.action == SubscriptionAction.UNSUBSCRIBE:
+            log_activity(
+                target_obj=subscribe_instance,
+                ip=get_client_ip(info),
+                username=username,
+                target_group=dataset.catalog.organization,
+                verb="Unsubscribed",
+            )
             subscribe_instance.delete()
+
+        log_activity(
+            target_obj=subscribe_instance,
+            ip=get_client_ip(info),
+            username=username,
+            target_group=dataset.catalog.organization,
+            verb="Subscribed",
+        )
         return SubscribeMutation(success=True)
 
 

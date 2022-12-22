@@ -290,7 +290,8 @@ class OpenDataRequestMutation(graphene.Mutation, Output):
         #     target_obj=data_request_instance,
         #     ip=get_client_ip(info),
         #     username=username,
-        #     verb="Created",
+        #     target_group=dataset_access_model.dataset.catalog.organization
+        #     verb="Download",
         # )
         return OpenDataRequestMutation(data_request=data_request_instance)
 
@@ -369,6 +370,14 @@ class DataRequestUpdateMutation(graphene.Mutation, Output):
             data_request_instance.status = data_request.status
             data_request_instance.file = data_request.file
         data_request_instance.save()
+        
+        log_activity(
+            target_obj=data_request_instance,
+            ip=get_client_ip(info),
+            username=username,
+            target_group=data_request_instance.dataset_access_model_request.access_model.dataset.catalog.organization,
+            verb="Download",
+        )
         
         # update_data_request_index(data_request_instance)
         return DataRequestUpdateMutation(data_request=data_request_instance)

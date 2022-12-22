@@ -9,6 +9,7 @@ from activity_log.signal import activity
 from .constants import IMAGE_FORMAT_MAPPING
 from .decorators import (
     validate_token,
+    validate_token_or_none,
     create_user_org,
     auth_user_by_org,
     auth_request_org,
@@ -26,7 +27,7 @@ from .models import (
     Sector,
     DatasetAccessModelRequest,
 )
-from .utils import get_client_ip
+from .utils import get_client_ip, log_activity
 
 
 class CreateOrganizationType(DjangoObjectType):
@@ -230,6 +231,14 @@ class CreateOrganization(Output, graphene.Mutation):
             if not logo_format:
                 organization_additional_info_instance.delete()
                 raise GraphQLError("Unsupported Logo Format")
+
+            log_activity(
+                target_obj=organization_additional_info_instance,
+                ip=get_client_ip(info),
+                username=username,
+                target_group=organization_additional_info_instance,
+                verb=OrganizationCreationStatusType.REQUESTED.value,
+            )
             return CreateOrganization(
                 organization=organization_additional_info_instance
             )
@@ -242,8 +251,9 @@ class UpdateOrganization(Output, graphene.Mutation):
     organization = graphene.Field(CreateOrganizationType)
 
     @staticmethod
+    @validate_token_or_none
     @auth_user_by_org(action="update_organization")
-    def mutate(root, info, role, organization_data: OrganizationInput = None):
+    def mutate(root, info, role, username, organization_data: OrganizationInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_id = organization_data.id if organization_data.id else org_id
         try:
@@ -280,7 +290,16 @@ class UpdateOrganization(Output, graphene.Mutation):
             organization_data.upload_sample_data_file
         )
         organization_create_request_instance.save()
-        return CreateOrganization(organization=organization_create_request_instance)
+        
+        log_activity(
+                target_obj=organization_create_request_instance,
+                ip=get_client_ip(info),
+                username=username,
+                target_group=organization_create_request_instance,
+                verb="Updated",
+            )
+        
+        return UpdateOrganization(organization=organization_create_request_instance)
 
 
 class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
