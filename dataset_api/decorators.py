@@ -262,6 +262,8 @@ def update_user_org(func):
             response_json = request_to_server(body, "update_user_role")
             if response_json["Success"]:
                 return value
+        else:
+            return value
 
     return inner
 
