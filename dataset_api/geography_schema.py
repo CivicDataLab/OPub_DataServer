@@ -25,6 +25,7 @@ class Query(graphene.ObjectType):
 class GeographyInput(graphene.InputObjectType):
     id = graphene.ID()
     name = graphene.String()
+    official_id = graphene.String()
     # organization = graphene.String()
 
 
@@ -39,6 +40,7 @@ class CreateGeography(Output, graphene.Mutation):
         # organization = Organization.objects.get(id=geography_data.organization)
         geography_instance = Geography(
             name=geography_data.name,
+            official_id=geography_data.official_id,
         )
         geography_instance.save()
         return CreateGeography(geography=geography_instance)

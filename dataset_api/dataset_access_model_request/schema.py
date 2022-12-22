@@ -317,6 +317,21 @@ def create_dataset_access_model_request(
         user_email=None,
         id=None,
 ):
+    try:
+        data_access_model_request_instance = DatasetAccessModelRequest.objects.filter(
+            access_model=access_model, status=status, user=username
+        ).order_by('-modified')
+        print('--dam--req--', data_access_model_request_instance)
+        if data_access_model_request_instance.exists():
+            print('--dam--req--0--', data_access_model_request_instance[0])
+            validity = get_data_access_model_request_validity(data_access_model_request_instance[0])
+            if validity:
+                if timezone.now() >= validity:
+                    return data_access_model_request_instance[0]
+                else:
+                    pass
+    except DatasetAccessModelRequest.DoesNotExist as e:
+        pass
     if not id:
         data_access_model_request_instance = DatasetAccessModelRequest(
             access_model=access_model
