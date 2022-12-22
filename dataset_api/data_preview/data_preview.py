@@ -56,7 +56,7 @@ def preview(request):
     if hasattr(res_model, "filedetails") and res_model.filedetails != None:
         res_type = "file"
         
-    print('------------cols', cols)      
+    print('------------cols', cols, resource_id)      
     keep_cols = list(res_model.resourceschema_set.filter(id__in=cols).values_list('key', flat=True))
     keep_cols_path = list(res_model.resourceschema_set.filter(id__in=cols).values_list('path', flat=True))
     print('------------keepcols', keep_cols)
@@ -98,9 +98,11 @@ def preview(request):
     
     
     if resp["response_type"].lower() == "xml":
-        data = xmltodict.parse(resp["data"])
-        data = json_keep_column(data, keep_cols, keep_cols_path)
-        data = pd.json_normalize(data)
+        data = pd.read_xml(resp["data"])
+        data = data.loc[:, data.columns.isin(keep_cols)]
+        #data = xmltodict.parse(resp["data"])
+        #data = json_keep_column(data, keep_cols, keep_cols_path)
+        #data = pd.json_normalize(data)
         data = data if res_type == "api" else data.head(int(row_count) if row_count != None else 0)
         data = dicttoxml.dicttoxml(data.to_dict("records")).decode("utf-8") 
         context = {
