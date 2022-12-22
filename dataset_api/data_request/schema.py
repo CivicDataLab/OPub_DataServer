@@ -369,7 +369,7 @@ class DataRequestUpdateMutation(graphene.Mutation, Output):
             data_request_instance.status = data_request.status
             data_request_instance.file = data_request.file
         data_request_instance.save()
-        update_data_request_index(data_request_instance)
+        
         # update_data_request_index(data_request_instance)
         return DataRequestUpdateMutation(data_request=data_request_instance)
 
