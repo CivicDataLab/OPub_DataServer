@@ -6,9 +6,8 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('dataset_api', '0127_remove_datasetaccessmodel_sample_enabled_and_more'),
+        ('dataset_api', '0128_datasetaccessmodelresource_parameters'),
     ]
 
     operations = [
