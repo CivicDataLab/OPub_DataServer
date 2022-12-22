@@ -326,7 +326,9 @@ def create_dataset_access_model_request(
             print('--dam--req--0--', data_access_model_request_instance[0])
             validity = get_data_access_model_request_validity(data_access_model_request_instance[0])
             if validity:
-                if timezone.now() >= validity:
+                print('validity--', validity)
+                if timezone.now() <= validity:
+                    print('Request is valid')
                     return data_access_model_request_instance[0]
                 else:
                     pass
