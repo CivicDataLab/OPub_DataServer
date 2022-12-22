@@ -42,9 +42,10 @@ def preview(request):
             row_count = dam_resource.sample_rows
             resource_id = dam_resource.resource.id
             api_data_params_list = dam_resource.parameters 
-            api_data_params = {}
-            for each in api_data_params_list:
-                api_data_params[each['key']] = each['value']  
+            if api_data_params_list != None:
+                api_data_params = {}
+                for each in api_data_params_list:
+                    api_data_params[each['key']] = each['value']  
         except Exception as e:
             print ('-----error', str(e))
             raise e
@@ -55,7 +56,7 @@ def preview(request):
     if hasattr(res_model, "filedetails") and res_model.filedetails != None:
         res_type = "file"
         
-    print('------------cols', cols)      
+    print('------------cols', cols, resource_id)      
     keep_cols = list(res_model.resourceschema_set.filter(id__in=cols).values_list('key', flat=True))
     keep_cols_path = list(res_model.resourceschema_set.filter(id__in=cols).values_list('path', flat=True))
     print('------------keepcols', keep_cols)
@@ -69,7 +70,7 @@ def preview(request):
 
 
     if resp["response_type"].lower() == "json":
-        data = resp["data"] if isinstance(resp["data"], dict) else json.loads(resp["data"])  
+        data = resp["data"] if (isinstance(resp["data"], dict) or isinstance(resp["data"], list)) else json.loads(resp["data"])  
         data = json_keep_column(data, keep_cols, keep_cols_path)
         data = pd.json_normalize(data)
         data = data if res_type == "api" else data.head(int(row_count) if row_count != None else 0) 
@@ -84,20 +85,24 @@ def preview(request):
     if resp["response_type"].lower() == "csv":
         data = resp["data"]
         data = data.loc[:, data.columns.isin(keep_cols)]
-        data = data if res_type == "api" else data.head(int(row_count) if row_count != None else 0)      
-        data = data.to_string() if len(data.columns) > 0 and len(data) > 0 else ""
+        data = (data if len(data)<50 else data.head(50)) if res_type == "api" else data.head(int(row_count) if row_count != None else 0)   
+        data = data.to_dict("records") if len(data.columns) > 0 and len(data) > 0 else []
+        #data = data.to_csv(index=False).strip('\n').split('\n') if len(data.columns) > 0 and len(data) > 0 else ""
+        #data = '\r\n'.join(data) if data != "" else ""
         context = {
             "Success": True,
-            "data": data, #.to_dict("records"),
+            "data": data,
             "response_type": resp["response_type"],
         }
         return JsonResponse(context, safe=False)
     
     
     if resp["response_type"].lower() == "xml":
-        data = xmltodict.parse(resp["data"])
-        data = json_keep_column(data, keep_cols, keep_cols_path)
-        data = pd.json_normalize(data)
+        data = pd.read_xml(resp["data"])
+        data = data.loc[:, data.columns.isin(keep_cols)]
+        #data = xmltodict.parse(resp["data"])
+        #data = json_keep_column(data, keep_cols, keep_cols_path)
+        #data = pd.json_normalize(data)
         data = data if res_type == "api" else data.head(int(row_count) if row_count != None else 0)
         data = dicttoxml.dicttoxml(data.to_dict("records")).decode("utf-8") 
         context = {
