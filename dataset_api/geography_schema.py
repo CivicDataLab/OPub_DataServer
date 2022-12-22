@@ -25,7 +25,7 @@ class Query(graphene.ObjectType):
 class GeographyInput(graphene.InputObjectType):
     id = graphene.ID()
     name = graphene.String()
-    official_id = graphene.String()
+    official_id = graphene.String(required=True)
     # organization = graphene.String()
 
 
@@ -53,7 +53,7 @@ class UpdateGeography(Output, graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, geography_data=None):
-        geography_instance = Geography.objects.get(id=geography_data.official_id)
+        geography_instance = Geography.objects.get(official_id=geography_data.official_id)
         geography_instance.name = geography_data.name          
         geography_instance.save()
         return UpdateGeography(sector=geography_instance)    
