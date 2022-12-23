@@ -21,6 +21,7 @@ class Query(graphene.ObjectType):
     all_dataset_ratings = graphene.List(DatasetRatingType)
     dataset_rating = graphene.List(DatasetRatingType, dataset_id=graphene.Int())
     rating = graphene.Field(DatasetRatingType, dataset_rating_id=graphene.Int())
+    rating_by_org = graphene.List(DatasetRatingType)
 
     def resolve_all_dataset_ratings(self, info, **kwargs):
         return DatasetRatings.objects.all()
@@ -30,6 +31,12 @@ class Query(graphene.ObjectType):
 
     def resolve_rating(self, info, rating_id):
         return DatasetRatings.objects.get(pk=rating_id)
+    
+    def resolve_rating_by_org(self, info):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
+        dataset_ids = list(Dataset.objects.filter(catalog__organization=org_id).values_list('id', flat=True))
+        # print(dataset_ids)
+        return DatasetRatings.objects.filter(dataset__in=dataset_ids)
 
 
 class DatasetRatingInput(graphene.InputObjectType):
