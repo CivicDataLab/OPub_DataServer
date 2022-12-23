@@ -276,7 +276,7 @@ class Query(graphene.ObjectType):
                             "name": field.key,
                             "in": "query",
                             "required": False,
-                            "description": "Filter data by" + field.key,
+                            "description": "Filter data by " + field.key,
                             "schema": {
                                 "type": field.format,
                             }
