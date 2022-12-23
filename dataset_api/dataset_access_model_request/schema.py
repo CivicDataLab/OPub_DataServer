@@ -271,7 +271,7 @@ class Query(graphene.ObjectType):
                     properties = {}
                     spec["paths"]["/get_dist_data"]["get"]["parameters"].append(pagination_size_param)
                     spec["paths"]["/get_dist_data"]["get"]["parameters"].append(pagination_start_param)
-                    for field in dam_resource.fields.all():
+                    for field in dam_resource.fields.filter(filterable=True).all():
                         filter_param = {
                             "name": field.key,
                             "in": "query",
