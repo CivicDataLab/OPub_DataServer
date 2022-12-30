@@ -131,6 +131,7 @@ def filter_csv(request, csv_file, paginate_from, size):
     start = paginate_from
     end = len(csv_file) if start+size > len(csv_file) else start+size
     csv_file = csv_file[start:end]
+    csv_file = csv_file.applymap(str)
 
     # filter
     filters = dict(request.GET.items())
