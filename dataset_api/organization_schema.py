@@ -15,7 +15,7 @@ from .decorators import (
     modify_org_status,
     get_user_org,
 )
-from .enums import OrganizationTypes, OrganizationCreationStatusType
+from .enums import OrganizationTypes, OrganizationCreationStatusType, RatingStatus
 from .file_utils import file_validation
 from .models import (
     Organization,
@@ -26,7 +26,7 @@ from .models import (
     Sector,
     DatasetAccessModelRequest,
 )
-from .utils import get_client_ip
+from .utils import get_client_ip, get_average_rating
 
 
 class CreateOrganizationType(DjangoObjectType):
@@ -41,6 +41,7 @@ class OrganizationType(DjangoObjectType):
     dataset_count = graphene.Int()
     usecase_count = graphene.Int()
     user_count = graphene.Int()
+    average_rating = graphene.Float()
 
     class Meta:
         model = Organization
@@ -49,6 +50,17 @@ class OrganizationType(DjangoObjectType):
     @auth_request_org
     def resolve_username(self, info, username=""):
         return username
+
+    def resolve_average_rating(self, info):
+        pub_datasets = Dataset.objects.filter(
+            Q(status__exact="PUBLISHED"),
+            Q(catalog__organization=self.id),
+        )
+        count = pub_datasets.count()
+        rating = 0
+        for dataset in pub_datasets:
+            rating = rating + get_average_rating(dataset)
+        return rating / count if rating else 0
 
     def resolve_api_count(self, info):
         api = Resource.objects.filter(
@@ -78,9 +90,9 @@ class OrganizationType(DjangoObjectType):
                 Q(access_model_id__dataset_id__catalog__organization=self.id),
                 Q(access_model_id__dataset__status__exact="PUBLISHED"),
             )
-            .values_list("user")
-            .distinct()
-            .count()
+                .values_list("user")
+                .distinct()
+                .count()
         )
         return user_count
 
@@ -127,7 +139,7 @@ class Query(graphene.ObjectType):
     def resolve_organizations(self, info, **kwargs):
         return Organization.objects.filter(
             organizationcreaterequest__status=OrganizationCreationStatusType.APPROVED.value
-        )
+        ).order_by("-modified")
 
     # Access : PMU
     @auth_user_by_org(action="query")
@@ -295,10 +307,10 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     @auth_user_by_org(action="approve_organization")
     @modify_org_status
     def mutate(
-        root,
-        info,
-        username,
-        organization_data: ApproveRejectOrganizationApprovalInput = None,
+            root,
+            info,
+            username,
+            organization_data: ApproveRejectOrganizationApprovalInput = None,
     ):
         try:
             organization_create_request_instance = (
