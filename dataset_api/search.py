@@ -170,6 +170,8 @@ def facets(request):
             sort_mapping = {"org_title.keyword": {"order": sort_order}}
         elif sort_by == "recent":
             sort_mapping = {"last_updated": {"order": "desc"}}
+        elif sort_by == "relevance":
+            sort_mapping = {}
         else:
             sort_mapping = {"dataset_title.keyword": {"order": sort_order}}
     else:
