@@ -56,10 +56,13 @@ class OrganizationType(DjangoObjectType):
             Q(status__exact="PUBLISHED"),
             Q(catalog__organization=self.id),
         )
-        count = pub_datasets.count()
+        count = 0
         rating = 0
         for dataset in pub_datasets:
-            rating = rating + get_average_rating(dataset)
+            dataset_rating = get_average_rating(dataset)
+            if dataset_rating > 0:
+                count = count + 1
+                rating = rating + dataset_rating
         return rating / count if rating else 0
 
     def resolve_api_count(self, info):
