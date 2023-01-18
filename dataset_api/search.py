@@ -266,10 +266,20 @@ def facets(request):
                                     "query": query_string,
                                     "operator": "OR",
                                     "fuzziness": "AUTO",
+                                    "boost": "2",
                                 }
                             }
                         },
-                        {"match": {"tags": {"query": query_string}}},
+                        {"match": {"tags": {"query": query_string, "boost": "1"}}},
+                        {"match": {"geography": {"query": query_string, "boost": "1"}}},
+                        {
+                            "match": {
+                                "dataset_description": {
+                                    "query": query_string,
+                                    "boost": "0.5",
+                                }
+                            }
+                        },
                     ]
                 }
             }
