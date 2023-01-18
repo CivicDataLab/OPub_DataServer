@@ -9,7 +9,10 @@ auth_url = settings.AUTH_URL
 
 
 def request_to_server(body, server_url):
-    headers = {"Content-type": "application/json"}
+    bd = json.loads(body)
+    headers = {"Content-type": "application/json", "access-token": bd.get("access_token")}
+    bd.pop("access_token", None)
+    body = bd
     response = requests.request(
         "POST", auth_url + server_url, data=body, headers=headers
     )
