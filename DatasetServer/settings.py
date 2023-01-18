@@ -36,7 +36,7 @@ REFRESH_TOKEN_EXPIRY_DAYS = 7
 BASE_DOMAIN = env("BASE_DOMAIN")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['http://idpbe.civicdatalab.in', 'http://43.205.200.192', 'idp.civicdatalab.in',
                  'http://localhost:3000', '*', 'idpbe.civicdatalab.in']
@@ -85,6 +85,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'DatasetServer.middleware.SimpleMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -169,6 +170,17 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 GRAPHENE = {"SCHEMA": "DatasetServer.schema.schema"}
+
+
+# security headers 
+SECURE_BROWSER_XSS_FILTER = True  
+SECURE_HSTS_SECONDS = 31536000 
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') 
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/
