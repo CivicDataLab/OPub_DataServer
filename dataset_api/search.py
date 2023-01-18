@@ -170,6 +170,8 @@ def facets(request):
             sort_mapping = {"org_title.keyword": {"order": sort_order}}
         elif sort_by == "recent":
             sort_mapping = {"last_updated": {"order": "desc"}}
+        elif sort_by == "relevance":
+            sort_mapping = {}
         else:
             sort_mapping = {"dataset_title.keyword": {"order": sort_order}}
     else:
@@ -177,11 +179,24 @@ def facets(request):
 
     # Creating query for faceted search (filters).
     for value in facet:
-        if request.GET.get(value):
+        if value == "sector" and request.GET.get(value):
             filters.append(
-                {"match": {f"{value}": request.GET.get(value).replace("||", " ")}}
+                {
+                    "match": {
+                        f"{value}": {
+                            "query": request.GET.get(value).replace("||", " "),
+                            "operator": "AND",
+                        }
+                    }
+                }
             )
             selected_facets.append({f"{value}": request.GET.get(value).split("||")})
+        else:
+            if request.GET.get(value):
+                filters.append(
+                    {"match": {f"{value}": request.GET.get(value).replace("||", " ")}}
+                )
+                selected_facets.append({f"{value}": request.GET.get(value).split("||")})
 
     if dam_type:
         filters.append(
