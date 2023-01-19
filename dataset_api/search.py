@@ -266,17 +266,26 @@ def facets(request):
                                     "query": query_string,
                                     "operator": "OR",
                                     "fuzziness": "AUTO",
+                                    "boost": "2",
                                 }
                             }
                         },
-                        {"match": {"tags": {"query": query_string}}},
+                        {"match": {"tags": {"query": query_string, "boost": "1"}}},
+                        {"match": {"geography": {"query": query_string, "boost": "1"}}},
+                        {
+                            "match": {
+                                "dataset_description": {
+                                    "query": query_string,
+                                    "boost": "0.5",
+                                }
+                            }
+                        },
                     ]
                 }
             }
         )
         # filters.append({"match_phrase_prefix":{"dataset_title":{"query": query_string}}})
         query = {"bool": {"must": filters}}
-        print(query)
         resp = es_client.search(
             index="dataset",
             aggs=agg,
