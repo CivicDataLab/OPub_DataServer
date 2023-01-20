@@ -286,7 +286,6 @@ def facets(request):
         )
         # filters.append({"match_phrase_prefix":{"dataset_title":{"query": query_string}}})
         query = {"bool": {"must": filters}}
-        print(query)
         resp = es_client.search(
             index="dataset",
             aggs=agg,

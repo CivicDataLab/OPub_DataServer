@@ -483,7 +483,7 @@ def refresh_token(request):
     try:
         token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
-        return HttpResponse("Authentication failed", content_type="text/plain")
+        return HttpResponse("Authentication failed! Kindly Refresh", content_type="text/plain")
     except IndexError:
         return HttpResponse("Token prefix missing", content_type="text/plain")
     if token_payload:
@@ -502,7 +502,7 @@ def refresh_data_token(request):
     try:
         token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
-        return HttpResponse("Authentication failed", content_type="text/plain")
+        return HttpResponse("Authentication failed! Kindly Refresh", content_type="text/plain")
     except IndexError:
         return HttpResponse("Token prefix missing", content_type="text/plain")
     if token_payload:
@@ -909,7 +909,7 @@ def get_dist_data(request):
     try:
         token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
-        return HttpResponse("Authentication failed", content_type="text/plain")
+        return HttpResponse("Authentication failed! Kindly Refresh", content_type="text/plain")
     except IndexError:
         return HttpResponse("Token prefix missing", content_type="text/plain")
 
