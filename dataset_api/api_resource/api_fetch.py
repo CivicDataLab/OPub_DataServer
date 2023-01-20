@@ -102,7 +102,7 @@ def preview(request, resource_id):
     if resp["response_type"].lower() == "csv":
         context = {
             "Success": True,
-            "data": resp["data"].head(10).to_string(), #.to_dict("records"),
+            "data": resp["data"].head(10).to_dict("records") if len(resp["data"].columns) > 0 and len(resp["data"]) > 0 else [], #resp["data"].head(10).to_string(), #.to_dict("records"),
             "response_type": resp["response_type"],
         }
         return JsonResponse(context, safe=False)

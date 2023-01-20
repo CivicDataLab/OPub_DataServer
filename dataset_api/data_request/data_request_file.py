@@ -131,6 +131,7 @@ def filter_csv(request, csv_file, paginate_from, size):
     start = paginate_from
     end = len(csv_file) if start+size > len(csv_file) else start+size
     csv_file = csv_file[start:end]
+    csv_file = csv_file.applymap(str)
 
     # filter
     filters = dict(request.GET.items())
@@ -235,10 +236,11 @@ class FormatConverter:
     @classmethod
     def convert_xml_to_csv(cls, xml_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0,
                            request=None):
-        with open(xml_file_path) as xmlFile:
-            xml_contents = xmlFile.read()
-            data_dict = xmltodict.parse(xml_contents)
-            df = pd.DataFrame.from_dict(data_dict)
+        df = pd.read_xml(xml_file_path)
+        # with open(xml_file_path) as xmlFile:
+        #     xml_contents = xmlFile.read()
+        #     data_dict = xmltodict.parse(xml_contents)
+        #     df = pd.DataFrame.from_dict(data_dict)
         if return_type == "file":
             df.to_csv("file.csv", index=False)
 
@@ -481,7 +483,7 @@ def refresh_token(request):
     try:
         token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
-        return HttpResponse("Authentication failed", content_type="text/plain")
+        return HttpResponse("Authentication failed! Kindly Refresh", content_type="text/plain")
     except IndexError:
         return HttpResponse("Token prefix missing", content_type="text/plain")
     if token_payload:
@@ -500,7 +502,7 @@ def refresh_data_token(request):
     try:
         token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
-        return HttpResponse("Authentication failed", content_type="text/plain")
+        return HttpResponse("Authentication failed! Kindly Refresh", content_type="text/plain")
     except IndexError:
         return HttpResponse("Token prefix missing", content_type="text/plain")
     if token_payload:
@@ -907,7 +909,7 @@ def get_dist_data(request):
     try:
         token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
-        return HttpResponse("Authentication failed", content_type="text/plain")
+        return HttpResponse("Authentication failed! Kindly Refresh", content_type="text/plain")
     except IndexError:
         return HttpResponse("Token prefix missing", content_type="text/plain")
 
