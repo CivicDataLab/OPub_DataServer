@@ -58,6 +58,10 @@ class OrganizationTypes(models.TextChoices):
     PRIVATE_COMPANY = "PRIVATE COMPANY"
     PUBLIC_SECTOR_COMPANY = "PUBLIC SECTOR COMPANY"
     OTHERS = "OTHERS"
+    STARTUP = "STARTUP"
+    GOVERNMENT = "GOVERNMENT"
+    CORPORATIONS = "CORPORATIONS"
+    NGO = "NGO"
 
 
 class DataType(models.TextChoices):
