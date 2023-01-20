@@ -3,7 +3,7 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from django.db.models import Q, Sum
 
-from .models import Sector, Dataset, Catalog
+from .models import Sector, Dataset, Catalog, DatasetAccessModel
 
 
 class SectorType(DjangoObjectType):
@@ -11,6 +11,7 @@ class SectorType(DjangoObjectType):
     api_count = graphene.Int()
     organization_count = graphene.Int()
     downloads = graphene.Int()
+    dam_count = graphene.Int()
 
     class Meta:
         model = Sector
@@ -42,6 +43,14 @@ class SectorType(DjangoObjectType):
         return Dataset.objects.filter(sector__pk=self.id).aggregate(
             Sum("download_count")
         )
+
+    def resolve_dam_count(self, info):
+        dataset_obj = Dataset.objects.filter(sector__pk=self.id)
+        dam_count = 0
+        for datasets in dataset_obj:
+            per_data_count = DatasetAccessModel.objects.filter(dataset_id=datasets.id, dataset__status__exact="PUBLISHED").distinct("data_access_model").count()
+            dam_count = dam_count + per_data_count
+        return dam_count
 
 
 class Query(graphene.ObjectType):
