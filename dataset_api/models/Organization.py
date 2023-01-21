@@ -13,5 +13,5 @@ class Organization(models.Model):
     homepage = models.URLField(blank=True)
     contact_email = models.EmailField(blank=True)
     organization_types = models.CharField(
-        max_length=15, choices=OrganizationTypes.choices
+        max_length=50, choices=OrganizationTypes.choices
     )

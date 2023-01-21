@@ -25,6 +25,7 @@ from .models import (
     Dataset,
     Sector,
     DatasetAccessModelRequest,
+    DataAccessModel,
 )
 from .utils import get_client_ip, get_average_rating
 
@@ -42,6 +43,7 @@ class OrganizationType(DjangoObjectType):
     usecase_count = graphene.Int()
     user_count = graphene.Int()
     average_rating = graphene.Float()
+    dam_count = graphene.Int()
 
     class Meta:
         model = Organization
@@ -98,6 +100,11 @@ class OrganizationType(DjangoObjectType):
                 .count()
         )
         return user_count
+    
+    def resolve_dam_count(self, info):
+        dam_count = DataAccessModel.objects.filter(organization_id=self.id).count()
+        print(dam_count)
+        return dam_count
 
 
 class Query(graphene.ObjectType):

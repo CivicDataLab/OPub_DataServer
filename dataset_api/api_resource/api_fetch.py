@@ -13,7 +13,7 @@ from io import StringIO
 import genson
 import json
 import xmltodict
-
+import re
 
 def parse_schema(schema_dict, parent, schema, current_path):
     global count
@@ -100,6 +100,8 @@ def preview(request, resource_id):
         }
         return JsonResponse(context, safe=False)
     if resp["response_type"].lower() == "csv":
+        # Replacing Unnamed with blank space.(esp. Aggregrations)
+        resp["data"].rename(columns =lambda x: re.sub('^Unnamed: \d',' ',x), inplace=True)
         context = {
             "Success": True,
             "data": resp["data"].head(10).to_dict("records") if len(resp["data"].columns) > 0 and len(resp["data"]) > 0 else [], #resp["data"].head(10).to_string(), #.to_dict("records"),
