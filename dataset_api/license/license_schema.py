@@ -12,10 +12,12 @@ from dataset_api.models.LicenseAddition import LicenseAddition
 from dataset_api.models.License import License
 from dataset_api.decorators import auth_user_by_org
 from .decorators import check_license_role, auth_query_license
+from ..decorators import validate_token_or_none
 from .enums import LicenseStatus
 from ..license_addition.enums import LICENSEADDITIONSTATE
 from ..license_addition.license_addition_schema import LicenceAdditionInputType, _create_update_license_additions, \
     LicenseAdditionType
+from dataset_api.utils import get_client_ip, log_activity
 
 
 class LicenseType(DjangoObjectType):
@@ -80,8 +82,9 @@ class CreateLicense(graphene.Mutation, Output):
     license = graphene.Field(LicenseType)
 
     @staticmethod
+    @validate_token_or_none
     @check_license_role
-    def mutate(root, info, role, license_data: LicenseInput = None):
+    def mutate(root, info, role, username, license_data: LicenseInput = None):
 
         license_instance = License(
             title=license_data.title,
@@ -100,6 +103,13 @@ class CreateLicense(graphene.Mutation, Output):
             license_instance.status = LicenseStatus.PUBLISHED.value
 
         license_instance.save()
+        log_activity(
+            target_obj=license_instance,
+            ip=get_client_ip(info),
+            target_group=license_instance.created_organization,
+            username=username,
+            verb=license_instance.status,
+        )
         if license_data.license_additions:
             _create_update_license_additions(
                 license_instance, license_data.license_additions
@@ -114,8 +124,9 @@ class UpdateLicense(graphene.Mutation, Output):
     license = graphene.Field(LicenseType)
 
     @staticmethod
+    @validate_token_or_none
     @check_license_role
-    def mutate(root, info, role, license_data: LicenseInput = None):
+    def mutate(root, info, role, username, license_data: LicenseInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         try:
             license_instance = License.objects.get(id=license_data.id)
@@ -149,6 +160,13 @@ class UpdateLicense(graphene.Mutation, Output):
         if role == "PMU":
             license_instance.status = LicenseStatus.PUBLISHED.value
         license_instance.save()
+        log_activity(
+            target_obj=license_instance,
+            ip=get_client_ip(info),
+            target_group=license_instance.created_organization,
+            username=username,
+            verb="Updated",
+        )
         if license_data.license_additions:
             _create_update_license_additions(
                 license_instance, license_data.license_additions
@@ -163,8 +181,9 @@ class ApproveRejectLicense(graphene.Mutation, Output):
     license_requests = graphene.List(LicenseType)
 
     @staticmethod
+    @validate_token_or_none
     @auth_user_by_org(action="approve_license")
-    def mutate(root, info, license_data: LicenseApproveRejectInput = None):
+    def mutate(root, info, username, license_data: LicenseApproveRejectInput = None):
         errors = []
         license_requests = []
         for license_id in license_data.ids:
@@ -183,6 +202,13 @@ class ApproveRejectLicense(graphene.Mutation, Output):
                     addition.status = LICENSEADDITIONSTATE.PUBLISHED.value
                     addition.save()
             license_instance.save()
+            log_activity(
+                target_obj=license_instance,
+                ip=get_client_ip(info),
+                target_group=license_instance.created_organization,
+                username=username,
+                verb=license_instance.status,
+            )
             license_requests.append(license_instance)
         if errors:
             return {"success": False, "errors": {"ids": errors}}

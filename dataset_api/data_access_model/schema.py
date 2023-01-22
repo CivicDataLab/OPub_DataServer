@@ -16,7 +16,7 @@ from ..models.LicenseAddition import LicenseAddition
 from ..models.License import License
 from .contract import create_contract
 from .decorators import auth_user_action_dam, auth_query_dam
-
+from ..utils import get_client_ip, log_activity
 
 class DataAccessModelType(DjangoObjectType):
     active_users = graphene.Int()
@@ -163,13 +163,14 @@ class CreateDataAccessModel(Output, graphene.Mutation):
             validation=data_access_model_data.validation,
             validation_unit=data_access_model_data.validation_unit,
         )
-
         data_access_model_instance.save()
-        activity.send(
-            username,
-            verb="Created",
-            target=data_access_model_instance,
+
+        log_activity(
+            target_obj=data_access_model_instance,
+            ip=get_client_ip(info),
             target_group=org_instance,
+            username=username,
+            verb="Created",
         )
         try:
             _add_update_license_additions(
@@ -251,11 +252,12 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
             data_access_model_instance,
         )
 
-        activity.send(
-            username,
-            verb="Updated",
-            target=data_access_model_instance,
+        log_activity(
+            target_obj=data_access_model_instance,
+            ip=get_client_ip(info),
             target_group=org_instance,
+            username=username,
+            verb="Updated",
         )
         return UpdateDataAccessModel(data_access_model=data_access_model_instance)
 
@@ -275,11 +277,12 @@ class DeleteDataAccessModel(Output, graphene.Mutation):
             root, info, data_access_model_data: DeleteDataAccessModelInput, username=""
     ):
         dam_instance = DataAccessModel.objects.get(id=data_access_model_data.id)
-        activity.send(
-            username,
-            verb="Deleted",
-            target=dam_instance,
+        log_activity(
+            target_obj=dam_instance,
+            ip=get_client_ip(info),
             target_group=dam_instance.organization,
+            username=username,
+            verb="Deleted",
         )
         dam_instance.delete()
         return DeleteDataAccessModel(success=True)
@@ -300,11 +303,12 @@ class DisableDataAccessModel(Output, graphene.Mutation):
             root, info, data_access_model_data: DeleteDataAccessModelInput, username=""
     ):
         dam_instance = DataAccessModel.objects.get(id=data_access_model_data.id)
-        activity.send(
-            username,
-            verb="Disabled",
-            target=dam_instance,
+        log_activity(
+            target_obj=dam_instance,
+            ip=get_client_ip(info),
             target_group=dam_instance.organization,
+            username=username,
+            verb="Disabled",
         )
         dam_instance.status = DataAccessModelStatus.DISABLED
         dam_instance.save()
