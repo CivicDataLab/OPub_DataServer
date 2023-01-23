@@ -48,7 +48,7 @@ class OrganizationRequestInput(graphene.InputObjectType):
 
 class OrganizationRequestUpdateInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
-    username = graphene.String(required=True)
+    username = graphene.String(required=False)
     status = graphene.Enum.from_enum(OrganizationRequestStatusType)(required=True)
     remark = graphene.String(required=False)
 

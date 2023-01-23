@@ -275,10 +275,10 @@ def delete_user_org(func):
         user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
         if kwargs["delete_organization_request"].status == "DELETED":
             print(kwargs["delete_organization_request"])
-            org_instance = Organization.objects.get(id=kwargs["delete_organization_request"].id)
+            org_instance = Organization.objects.get(pk=kwargs["delete_organization_request"].id)
             # organization_request_instance = OrganizationRequest.objects.get(pk=kwargs["delete_organization_request"].id)
             org_title = org_instance.title
-            tgt_user = kwargs["delete_organization_request"].user
+            tgt_user = kwargs["delete_organization_request"].username
             org_id = kwargs["delete_organization_request"].id
             body = json.dumps(
                 {
