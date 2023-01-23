@@ -6,6 +6,7 @@ from graphql import GraphQLError
 from .decorators import validate_token
 from .enums import RatingStatus
 from .models import DatasetRatings, Dataset
+from .utils import get_client_ip, log_activity
 import datetime
 
 # from .search import update_rating
@@ -99,6 +100,14 @@ class CreateDatasetRating(Output, graphene.Mutation):
                 user=username,
             )
             rating_instance.save()
+
+            log_activity(
+                target_obj=rating_instance,
+                ip=get_client_ip(info),
+                username=username,
+                target_group=dataset.catalog.organization,
+                verb="Commented",
+            )
         # Update rating in elasticsearch
         # update_rating(rating_instance)
         return CreateDatasetRating(dataset_rating=rating_instance)
@@ -111,7 +120,8 @@ class ApproveRejectRating(graphene.Mutation, Output):
     dataset_rating = graphene.Field(DatasetRatingType)
 
     @staticmethod
-    def mutate(root, info, rating_data: DatasetRatingApproveRejectInput):
+    @validate_token_or_none
+    def mutate(root, info, username, rating_data: DatasetRatingApproveRejectInput):
         try:
             rating_instance = DatasetRatings.objects.get(id=rating_data.id)
         except DatasetRatings.DoesNotExist as e:
@@ -120,6 +130,13 @@ class ApproveRejectRating(graphene.Mutation, Output):
         rating_instance.save()
         # Update rating in elasticsearch
         # update_rating_index(rating_instance)
+        log_activity(
+            target_obj=rating_instance,
+            ip=get_client_ip(info),
+            username=username,
+            target_group=rating_instance.dataset.catalog.organization,
+            verb=rating_data.status,
+        )
         return ApproveRejectRating(dataset_rating=rating_instance)
 
 
