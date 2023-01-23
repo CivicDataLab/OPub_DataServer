@@ -284,9 +284,8 @@ def delete_user_org(func):
                     "org_id": org_id,
                     "org_title": org_title,
                     "tgt_user_name": tgt_user,
-                    "status": kwargs["delete_organization_request"].status,
                     "role_name": "DP",
-                    "action": "update",
+                    "action": "delete",
                 }
             )
             response_json = request_to_server(body, "update_user_role")
