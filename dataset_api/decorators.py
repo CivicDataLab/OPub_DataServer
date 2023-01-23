@@ -3,7 +3,7 @@ import json
 import requests
 from graphql import GraphQLError
 
-from .models import Resource, OrganizationCreateRequest, DatasetReviewRequest
+from .models import Resource, OrganizationCreateRequest, DatasetReviewRequest, OrganizationRequest
 
 auth_url = settings.AUTH_URL
 
@@ -267,6 +267,33 @@ def update_user_org(func):
                 return value
         else:
             return value
+
+    return inner
+
+def delete_user_org(func):
+    def inner(*args, **kwargs):
+        user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+        if kwargs["delete_organization_request"].status == "DELETED":
+            organization_request_instance = OrganizationRequest.objects.get(pk=kwargs["delete_organization_request"].id)
+            org_title = organization_request_instance.organization.title
+            tgt_user = organization_request_instance.user
+            org_id = organization_request_instance.organization_id
+            body = json.dumps(
+                {
+                    "access_token": user_token,
+                    "org_id": org_id,
+                    "org_title": org_title,
+                    "tgt_user_name": tgt_user,
+                    "status": kwargs["delete_organization_request"].status,
+                    "role_name": "DP",
+                    "action": "update",
+                }
+            )
+            response_json = request_to_server(body, "update_user_role")
+            if response_json["Success"]:
+                return func(*args, **kwargs)
+            else:
+                raise GraphQLError(response_json["error_description"])
 
     return inner
 
