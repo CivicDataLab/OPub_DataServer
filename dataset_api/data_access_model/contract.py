@@ -281,7 +281,7 @@ def extract_agreement_text(dataset_access_model: DatasetAccessModel, username, a
                   <li style="margin-bottom: 10px">{organization.title}</li>
                   <li style="margin-bottom: 10px">{dataset_access_model.issued}</li>
                   <li style="margin-bottom: 10px">
-                    https://{settings.BASE_DOMAIN}/datasets/{dataset_access_model.dataset.title.lower().replace(" ", "-") + "_" + dataset_access_model.dataset.id}
+                    https://{settings.BASE_DOMAIN}/datasets/{dataset_access_model.dataset.title.lower().replace(" ", "-") + "_" + str(dataset_access_model.dataset.id)}
                   </li>
                   <li style="margin-bottom: 10px">{dataset_access_model.data_access_model.license.title}</li>
                 </ol>
