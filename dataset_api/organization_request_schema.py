@@ -48,6 +48,7 @@ class OrganizationRequestInput(graphene.InputObjectType):
 
 class OrganizationRequestUpdateInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
+    username = graphene.String(required=True)
     status = graphene.Enum.from_enum(OrganizationRequestStatusType)(required=True)
     remark = graphene.String(required=False)
 
@@ -138,7 +139,7 @@ class DeleteOrganizationRequestMutation(graphene.Mutation, Output):
     ):
         try:
             organization_request_instance = OrganizationRequest.objects.get(
-                id=delete_organization_request.id
+                organization_id=delete_organization_request.id, user=delete_organization_request.username,
             )
         except OrganizationRequest.DoesNotExist as e:
             raise GraphQLError("Organization with given id not found")
