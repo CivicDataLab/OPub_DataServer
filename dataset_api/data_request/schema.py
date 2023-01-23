@@ -37,7 +37,7 @@ from dataset_api.models import (
 )
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
-from dataset_api.utils import skip_col, get_client_ip, log_activity
+from dataset_api.utils import get_client_ip, log_activity
 from dataset_api.utils import json_keep_column
 
 

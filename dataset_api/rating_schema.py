@@ -3,7 +3,7 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from graphql import GraphQLError
 
-from .decorators import validate_token
+from .decorators import validate_token, validate_token_or_none
 from .enums import RatingStatus
 from .models import DatasetRatings, Dataset
 from .utils import get_client_ip, log_activity
