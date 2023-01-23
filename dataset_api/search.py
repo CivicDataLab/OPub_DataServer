@@ -224,15 +224,15 @@ def facets(request):
 
     # Query for aggregations (facets).
     agg = {
-        "license": {"terms": {"field": "license.keyword"}},
-        "geography": {"terms": {"field": "geography.keyword"}},
-        "sector": {"terms": {"field": "sector.keyword"}},
-        "format": {"terms": {"field": "format.keyword"}},
-        "status": {"terms": {"field": "status.keyword"}},
-        "rating": {"terms": {"field": "rating.keyword"}},
+        "license": {"terms": {"field": "license.keyword", "size": 10000}},
+        "geography": {"terms": {"field": "geography.keyword", "size": 10000}},
+        "sector": {"terms": {"field": "sector.keyword", "size": 10000}},
+        "format": {"terms": {"field": "format.keyword", "size": 10000}},
+        "status": {"terms": {"field": "status.keyword", "size": 10000}},
+        "rating": {"terms": {"field": "rating.keyword", "size": 10000}},
         "organization": {
             "global": {},
-            "aggs": {"all": {"terms": {"field": "org_title.keyword"}}},
+            "aggs": {"all": {"terms": {"field": "org_title.keyword", "size": 10000}}},
         },
         "duration": {
             "global": {},
@@ -241,7 +241,7 @@ def facets(request):
                 "max": {"max": {"field": "period_to", "format": "yyyy-MM-dd"}},
             },
         },
-        "type": {"terms": {"field": "data_access_model_type.keyword"}},
+        "type": {"terms": {"field": "data_access_model_type.keyword", "size": 10000}},
     }
     if not query_string:
         # For filter search
