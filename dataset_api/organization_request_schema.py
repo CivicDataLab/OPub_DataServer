@@ -3,7 +3,7 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from graphql import GraphQLError
 
-from dataset_api.decorators import validate_token, update_user_org, auth_user_by_org
+from dataset_api.decorators import validate_token, update_user_org, auth_user_by_org, delete_user_org
 from dataset_api.enums import OrganizationRequestStatusType
 from dataset_api.models import Organization
 from dataset_api.models import OrganizationRequest
@@ -48,6 +48,7 @@ class OrganizationRequestInput(graphene.InputObjectType):
 
 class OrganizationRequestUpdateInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
+    username = graphene.String(required=False)
     status = graphene.Enum.from_enum(OrganizationRequestStatusType)(required=True)
     remark = graphene.String(required=False)
 
@@ -125,7 +126,27 @@ class ApproveRejectOrganizationRequest(graphene.Mutation, Output):
             organization_request=organization_request_instance
         )
 
+class DeleteOrganizationRequestMutation(graphene.Mutation, Output):
+    class Arguments:
+        delete_organization_request = OrganizationRequestUpdateInput()
+
+    success = graphene.String()
+
+    @staticmethod
+    @delete_user_org
+    def mutate(
+            root, info, delete_organization_request: OrganizationRequestUpdateInput = None
+    ):
+        try:
+            organization_request_instance = OrganizationRequest.objects.get(
+                organization_id=delete_organization_request.id, user=delete_organization_request.username,
+            )
+        except OrganizationRequest.DoesNotExist as e:
+            raise GraphQLError("Organization with given id not found")
+        organization_request_instance.delete()
+        return DeleteOrganizationRequestMutation(success=True)
 
 class Mutation(graphene.ObjectType):
     organization_request = OrganizationRequestMutation.Field()
     approve_reject_organization_request = ApproveRejectOrganizationRequest.Field()
+    delete_organization_request = DeleteOrganizationRequestMutation.Field()
