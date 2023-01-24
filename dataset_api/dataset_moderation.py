@@ -56,7 +56,7 @@ class Query(graphene.ObjectType):
     @auth_user_by_org(action="list_review_request")
     def resolve_review_request_user(self, info, username, role, **kwargs):
         if role == "DP":
-            return DatasetReviewRequest.objects.filter(user=username).order_by(
+            return DatasetReviewRequest.objects.filter(user=username).exclude(dataset__status="PUBLISHED").order_by(
                 "-modified_date"
             )
         elif role == "DPA" or role == "PMU":
