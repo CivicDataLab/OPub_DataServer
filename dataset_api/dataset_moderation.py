@@ -56,12 +56,12 @@ class Query(graphene.ObjectType):
     @auth_user_by_org(action="list_review_request")
     def resolve_review_request_user(self, info, username, role, **kwargs):
         if role == "DP":
-            return DatasetReviewRequest.objects.filter(user=username).order_by(
+            return DatasetReviewRequest.objects.filter(user=username).exclude(dataset__status="DISABLED").order_by(
                 "-modified_date"
             )
         elif role == "DPA" or role == "PMU":
             org_id = info.context.META.get("HTTP_ORGANIZATION")
-            return DatasetReviewRequest.objects.filter(dataset__catalog__organization_id=org_id).order_by(
+            return DatasetReviewRequest.objects.filter(dataset__catalog__organization_id=org_id).exclude(dataset__status="DISABLED").order_by(
                 "-modified_date"
             )
 
