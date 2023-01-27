@@ -120,9 +120,11 @@ class DataAccessModelRequestStatusType(graphene.Enum):
 
 
 class PurposeType(graphene.Enum):
-    EDUCATION = "EDUCATION"
-    RESEARCH = "RESEARCH"
-    PERSONAL = "PERSONAL"
+    ACADEMIA = "ACADEMIA"
+    BUSINESS = "BUSINESS"
+    JOURNALISM = "JOURNALISM"
+    GOVERNMENT_USE = "GOVERNMENT USE"
+    R_D = "R&D"
     OTHERS = "OTHERS"
 
 

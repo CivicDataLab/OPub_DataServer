@@ -11,6 +11,6 @@ class AdditionalInfo(models.Model):
     modified = models.DateTimeField(auto_now=True)
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
     remote_url = models.URLField(blank=True)
-    format = models.CharField(max_length=15)
-    type = models.CharField(max_length=50)
+    format = models.CharField(max_length=15, blank=True, null=True)
+    type = models.CharField(max_length=50, blank=True, null=True)
     file = models.FileField(upload_to=_info_directory_path, blank=True)

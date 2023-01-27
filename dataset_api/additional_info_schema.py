@@ -42,7 +42,7 @@ class AdditionalInfoInput(graphene.InputObjectType):
     dataset = graphene.String(required=True)
     format = graphene.String(required=False)
     remote_url = graphene.String(required=False)
-    type = InfoType()
+    type = InfoType(required=False)
 
 
 class CreateAdditionInfo(graphene.Mutation, Output):

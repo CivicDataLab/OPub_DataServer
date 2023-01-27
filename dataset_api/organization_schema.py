@@ -26,6 +26,7 @@ from .models import (
     Dataset,
     Sector,
     DatasetAccessModelRequest,
+    DatasetAccessModel,
     DataAccessModel,
 )
 
@@ -104,8 +105,8 @@ class OrganizationType(DjangoObjectType):
         return user_count
     
     def resolve_dam_count(self, info):
-        dam_count = DataAccessModel.objects.filter(organization_id=self.id).count()
-        print(dam_count)
+        org_datasets = Dataset.objects.filter(catalog__organization=self.id, status="PUBLISHED")
+        dam_count = DatasetAccessModel.objects.filter(dataset__in=org_datasets).count()
         return dam_count
 
 
