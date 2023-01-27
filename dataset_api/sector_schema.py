@@ -46,10 +46,7 @@ class SectorType(DjangoObjectType):
 
     def resolve_dam_count(self, info):
         dataset_obj = Dataset.objects.filter(sector__pk=self.id)
-        dam_count = 0
-        for datasets in dataset_obj:
-            per_data_count = DatasetAccessModel.objects.filter(dataset_id=datasets.id, dataset__status__exact="PUBLISHED").distinct("data_access_model").count()
-            dam_count = dam_count + per_data_count
+        dam_count = DatasetAccessModel.objects.filter(dataset_id__in=dataset_obj, dataset__status__exact="PUBLISHED").count()
         return dam_count
 
 
