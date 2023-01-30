@@ -423,6 +423,7 @@ def extract_provider_agreement(dataset: Dataset, username):
         }}
         .footer{{
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
         }}
         body span {{
@@ -474,14 +475,14 @@ def extract_provider_agreement(dataset: Dataset, username):
                 The Data shared by the Data Provider, to be made available on IDP, through this Agreement signed on Date includes the following
                 distributions and additional information (if any):
               </p>
-              <ol type="a" class="childlisting">
+              <ol type="a" class="childlisting"
                 <li style="margin-bottom: 10px"><b>Distributions (Data/APIs)</b></li>
                 <ol>
                 <li style="margin-bottom: 10px">{get_dataset_resource_details(dataset)}</li>
                 </ol>
                 <li style="margin-bottom: 10px"><b>Additional Information</b></li>
                 <ol>
-                <li style="margin-bottom: 10px">{TBD(dataset)}</li>
+                <li style="margin-bottom: 10px">Additional Information Document Name including extension/ URL 1 or “None” if none is provided</li>
                 </ol>
               </ol>
     
