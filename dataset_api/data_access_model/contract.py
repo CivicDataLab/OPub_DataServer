@@ -89,20 +89,22 @@ def get_dataset_resource_details(dataset: Dataset):
             {resource.title}, last updated on {standardize_date(resource.modified)} """
         text = text + """</li>"""
     text = text + """</ol>"""
-    print(text)
     return text
 
 def get_dataset_additional_info(dataset: Dataset):
   text = """<ol>"""
   dataset_add_info = AdditionalInfo.objects.filter(dataset=dataset)
-  for info in dataset_add_info:
-    text = text + f"""
-      <li style="margin-bottom: 10px">
-        {info.title} """
-    text = text + """</li>"""
-  text = text + """</ol>"""
-  print(text)
-  return text
+  if dataset_add_info.exists():
+    for info in dataset_add_info:
+      text = text + f"""
+        <li style="margin-bottom: 10px">
+          {info.title} """
+      text = text + """</li>"""
+    text = text + """</ol>"""
+    print(text)
+    return text
+  else:
+    return None
 
 
 def get_additional_conditions_text(dataset_access_model: DatasetAccessModel):
@@ -495,9 +497,7 @@ def extract_provider_agreement(dataset: Dataset, username):
                 <li style="margin-bottom: 10px"><b>Distributions (Data/APIs)</b></li>
                 {get_dataset_resource_details(dataset)}
                 <li style="margin-bottom: 10px"><b>Additional Information</b></li>
-                <ol>
-                <li style="margin-bottom: 10px">Additional Information Document Name including extension/ URL 1 or “None” if none is provided</li>
-                </ol>
+                {get_dataset_additional_info(dataset)}
               </ol>
     
                 <li style="font-weight: bold">Terms and Conditions for the Data Provider</li>
