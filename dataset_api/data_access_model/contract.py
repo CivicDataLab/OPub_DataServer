@@ -21,6 +21,8 @@ pdf_options = {
     'quiet': ''
 }
 
+def standardize_date(date_instance=datetime.datetime.now()):
+    return date_instance.strftime("%d %B, %Y")
 
 def create_contract(model_license: License, additions: Iterable, data_access_model: DataAccessModel):
     if not additions:
@@ -65,7 +67,7 @@ def get_agreement_resource_details(dataset_access_model: DatasetAccessModel):
     for resource in dataset_access_model.datasetaccessmodelresource_set.all():
         text = text + f"""
           <li style="margin-bottom: 10px">
-            {resource.resource.title}, last updated on {resource.resource.modified}: """
+            {resource.resource.title}, last updated on {standardize_date(resource.resource.modified)}: """
         if not resource.fields.exists():
             text = text + """All data columns/fields"""
         else:
@@ -81,7 +83,7 @@ def get_dataset_resource_details(dataset: Dataset):
     for resource in dataset.resource_set.all():
         text = text + f"""
           <li style="margin-bottom: 10px">
-            {resource.title}, last updated on {resource.modified}: """
+            {resource.title}, last updated on {standardize_date(resource.modified)}: """
         text = text + """</li>"""
     text = text + """</ol>"""
     return text
@@ -153,8 +155,8 @@ def extract_agreement_text(dataset_access_model: DatasetAccessModel, username, a
           </div>
           <div class="content">
             <p>
-              This DATA ACCESS AGREEMENT (hereinafter the “Agreement”), effective as of {datetime.datetime.now()}, is entered into by and between
-              <a href="{organization.homepage}">{organization.title}</a>, a {organization.organization_types} (hereinafter the “Data
+              This DATA ACCESS AGREEMENT (hereinafter the “Agreement”), effective as of {standardize_date()}, is entered into by and between
+              <a href="{organization.homepage}" target="_blank">{organization.title}</a>, a {organization.organization_types} (hereinafter the “Data
               Provider”), and {username}, Individual (hereinafter the “Data Consumer”).
             </p>
             <p>
@@ -348,14 +350,14 @@ def extract_agreement_text(dataset_access_model: DatasetAccessModel, username, a
               <p>First Name & Last Name of Authorised Signatory]</p>
               <p>Name of Authorised Signatory]</p>
               <p{organization.contact_email}</p>
-              <p>{datetime.datetime.now()}</p>
+              <p>{standardize_date()}</p>
             </div>
             <div>
               <p>On behalf of India Data Platform</p>
               <p>[Box for digital signature - Implement later]</p>
               <p>[First Name & Last Name of Authorised Signatory]</p>
               <p>[E-mail address]</p>
-              <p>{datetime.datetime.now()}</p>
+              <p>{standardize_date()}</p>
             </div>
           </div>
           <p>India Data Platform – Data Access Agreement – {agreement_model.id}</p>
@@ -440,9 +442,9 @@ def extract_provider_agreement(dataset: Dataset, username):
           </div>
           <div class="content">
             <p>
-              This DATA SHARING AGREEMENT (hereinafter the “Agreement”), effective as of {datetime.datetime.now()}, is entered into by and between
-              <a href="{organization.homepage}">{organization.title}</a>, a {organization.organization_types} (hereinafter the “Data
-              Provider”), and <a href="https://{settings.BASE_DOMAIN}">India Data Platform</a> (hereinafter the “IDP”) managed by National Informatics
+              This DATA SHARING AGREEMENT (hereinafter the “Agreement”), effective as of {standardize_date()}, is entered into by and between
+              <a href="{organization.homepage}" target="_blank">{organization.title}</a>, a {organization.organization_types} (hereinafter the “Data
+              Provider”), and <a href="https://{settings.BASE_DOMAIN}" target="_blank">India Data Platform</a> (hereinafter the “IDP”) managed by National Informatics
               Centre, with its main office located in A-Block, Lodhi Road, CGO Complex, New Delhi, 110003, India.
             </p>
             <p>
@@ -639,14 +641,14 @@ def extract_provider_agreement(dataset: Dataset, username):
               <p>First Name & Last Name of Authorised Signatory]</p>
               <p>Name of Authorised Signatory]</p>
               <p{organization.contact_email}</p>
-              <p>{datetime.datetime.now()}</p>
+              <p>{standardize_date()}</p>
             </div>
             <div>
               <p>On behalf of India Data Platform</p>
               <p>[Box for digital signature - Implement later]</p>
               <p>[First Name & Last Name of Authorised Signatory]</p>
               <p>[E-mail address]</p>
-              <p>{datetime.datetime.now()}</p>
+              <p>{standardize_date()}</p>
             </div>
           </div>
           <p>India Data Platform – Data Sharing Agreement {organization.id}-{dataset.id}</p>
