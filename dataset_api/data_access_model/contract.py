@@ -476,7 +476,14 @@ def extract_provider_agreement(dataset: Dataset, username):
               </p>
               <ol type="a" class="childlisting">
                 <li style="margin-bottom: 10px"><b>Distributions (Data/APIs)</b></li>
-                {get_dataset_resource_details(dataset)}
+                <ol>
+                <li style="margin-bottom: 10px">{get_dataset_resource_details(dataset)}</li>
+                </ol>
+                <li style="margin-bottom: 10px"><b>Additional Information</b></li>
+                <ol>
+                <li style="margin-bottom: 10px">{TBD(dataset)}</li>
+                </ol>
+              </ol>
     
                 <li style="font-weight: bold">Terms and Conditions for the Data Provider</li>
               <ol type="a" class="childlisting">
