@@ -70,7 +70,7 @@ def get_agreement_resource_details(dataset_access_model: DatasetAccessModel):
     for resource in dataset_access_model.datasetaccessmodelresource_set.all():
         text = text + f"""
           <li style="margin-bottom: 10px">
-            {resource.resource.title}, last updated on {standardize_date(resource.resource.modified)}: """
+            {resource.resource.title}, last updated on {standardize_date(resource.resource.modified)}. """
         if not resource.fields.exists():
             text = text + """All data columns/fields"""
         else:
@@ -86,7 +86,7 @@ def get_dataset_resource_details(dataset: Dataset):
     for resource in dataset.resource_set.all():
         text = text + f"""
           <li style="margin-bottom: 10px">
-            {resource.title}, last updated on {standardize_date(resource.modified)} """
+            {resource.title}, last updated on {standardize_date(resource.modified)}. """
         text = text + """</li>"""
     text = text + """</ol>"""
     return text
@@ -174,7 +174,7 @@ def extract_agreement_text(dataset_access_model: DatasetAccessModel, username, a
           <div class="content">
             <p>
               This DATA ACCESS AGREEMENT (hereinafter the “Agreement”), effective as of {standardize_date()}, is entered into by and between
-              <a href="{organization.homepage}" target="_blank">{organization.title}</a>, a {organization.organization_types} (hereinafter the “Data
+              <a href="{organization.homepage}" target="_blank" rel="noopener noreferrer">{organization.title}</a>, a {organization.organization_types} (hereinafter the “Data
               Provider”), and {username}, Individual (hereinafter the “Data Consumer”).
             </p>
             <p>
@@ -462,8 +462,8 @@ def extract_provider_agreement(dataset: Dataset, username):
           <div class="content">
             <p>
               This DATA SHARING AGREEMENT (hereinafter the “Agreement”), effective as of {standardize_date()}, is entered into by and between
-              <a href="{organization.homepage}" target="_blank">{organization.title}</a>, a {organization.organization_types} (hereinafter the “Data
-              Provider”), and <a href="https://{settings.BASE_DOMAIN}" target="_blank">India Data Platform</a> (hereinafter the “IDP”) managed by National Informatics
+              <a href="{organization.homepage}" target="_blank" rel="noopener noreferrer">{organization.title}</a>, a {organization.organization_types} (hereinafter the “Data
+              Provider”), and <a href="https://{settings.BASE_DOMAIN} target="_blank" rel="noopener noreferrer">India Data Platform</a> (hereinafter the “IDP”) managed by National Informatics
               Centre, with its main office located in A-Block, Lodhi Road, CGO Complex, New Delhi, 110003, India.
             </p>
             <p>
