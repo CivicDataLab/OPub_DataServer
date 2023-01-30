@@ -6,7 +6,7 @@ import pdfkit
 from django.core.files.base import ContentFile
 
 from DatasetServer import settings
-from dataset_api.models import DatasetAccessModel, Agreement, Dataset
+from dataset_api.models import DatasetAccessModel, Agreement, Dataset, AdditionalInfo
 from dataset_api.models.DataAccessModel import DataAccessModel
 from dataset_api.models.License import License
 from dataset_api.models.LicenseAddition import LicenseAddition
@@ -23,6 +23,9 @@ pdf_options = {
 
 def standardize_date(date_instance=datetime.datetime.now()):
     return date_instance.strftime("%d %B, %Y")
+
+def standardize_datetime(date_instance=datetime.datetime.now()):
+    return date_instance.strftime("%H:%M %p, %d %B %Y")
 
 def create_contract(model_license: License, additions: Iterable, data_access_model: DataAccessModel):
     if not additions:
@@ -83,10 +86,23 @@ def get_dataset_resource_details(dataset: Dataset):
     for resource in dataset.resource_set.all():
         text = text + f"""
           <li style="margin-bottom: 10px">
-            {resource.title}, last updated on {standardize_date(resource.modified)}: """
+            {resource.title}, last updated on {standardize_date(resource.modified)} """
         text = text + """</li>"""
     text = text + """</ol>"""
+    print(text)
     return text
+
+def get_dataset_additional_info(dataset: Dataset):
+  text = """<ol>"""
+  dataset_add_info = AdditionalInfo.objects.filter(dataset=dataset)
+  for info in dataset_add_info:
+    text = text + f"""
+      <li style="margin-bottom: 10px">
+        {info.title} """
+    text = text + """</li>"""
+  text = text + """</ol>"""
+  print(text)
+  return text
 
 
 def get_additional_conditions_text(dataset_access_model: DatasetAccessModel):
@@ -350,14 +366,14 @@ def extract_agreement_text(dataset_access_model: DatasetAccessModel, username, a
               <p>First Name & Last Name of Authorised Signatory]</p>
               <p>Name of Authorised Signatory]</p>
               <p{organization.contact_email}</p>
-              <p>{standardize_date()}</p>
+              <p>{standardize_datetime()}</p>
             </div>
             <div>
               <p>On behalf of India Data Platform</p>
               <p>[Box for digital signature - Implement later]</p>
               <p>[First Name & Last Name of Authorised Signatory]</p>
               <p>[E-mail address]</p>
-              <p>{standardize_date()}</p>
+              <p>{standardize_datetime()}</p>
             </div>
           </div>
           <p>India Data Platform – Data Access Agreement – {agreement_model.id}</p>
@@ -475,11 +491,9 @@ def extract_provider_agreement(dataset: Dataset, username):
                 The Data shared by the Data Provider, to be made available on IDP, through this Agreement signed on Date includes the following
                 distributions and additional information (if any):
               </p>
-              <ol type="a" class="childlisting"
+              <ol type="a" class="childlisting">
                 <li style="margin-bottom: 10px"><b>Distributions (Data/APIs)</b></li>
-                <ol>
-                <li style="margin-bottom: 10px">{get_dataset_resource_details(dataset)}</li>
-                </ol>
+                {get_dataset_resource_details(dataset)}
                 <li style="margin-bottom: 10px"><b>Additional Information</b></li>
                 <ol>
                 <li style="margin-bottom: 10px">Additional Information Document Name including extension/ URL 1 or “None” if none is provided</li>
@@ -649,14 +663,14 @@ def extract_provider_agreement(dataset: Dataset, username):
               <p>First Name & Last Name of Authorised Signatory]</p>
               <p>Name of Authorised Signatory]</p>
               <p{organization.contact_email}</p>
-              <p>{standardize_date()}</p>
+              <p>{standardize_datetime()}</p>
             </div>
             <div>
               <p>On behalf of India Data Platform</p>
               <p>[Box for digital signature - Implement later]</p>
               <p>[First Name & Last Name of Authorised Signatory]</p>
               <p>[E-mail address]</p>
-              <p>{standardize_date()}</p>
+              <p>{standardize_datetime()}</p>
             </div>
           </div>
           <p>India Data Platform – Data Sharing Agreement {organization.id}-{dataset.id}</p>
