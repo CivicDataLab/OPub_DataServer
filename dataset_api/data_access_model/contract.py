@@ -6,7 +6,7 @@ import pdfkit
 from django.core.files.base import ContentFile
 
 from DatasetServer import settings
-from dataset_api.models import DatasetAccessModel, Agreement, Dataset
+from dataset_api.models import DatasetAccessModel, Agreement, Dataset, AdditionalInfo
 from dataset_api.models.DataAccessModel import DataAccessModel
 from dataset_api.models.License import License
 from dataset_api.models.LicenseAddition import LicenseAddition
@@ -21,6 +21,11 @@ pdf_options = {
     'quiet': ''
 }
 
+def standardize_date(date_instance=datetime.datetime.now()):
+    return date_instance.strftime("%d %B, %Y")
+
+def standardize_datetime(date_instance=datetime.datetime.now()):
+    return date_instance.strftime("%H:%M %p, %d %B %Y")
 
 def create_contract(model_license: License, additions: Iterable, data_access_model: DataAccessModel):
     if not additions:
@@ -65,7 +70,7 @@ def get_agreement_resource_details(dataset_access_model: DatasetAccessModel):
     for resource in dataset_access_model.datasetaccessmodelresource_set.all():
         text = text + f"""
           <li style="margin-bottom: 10px">
-            {resource.resource.title}, last updated on {resource.resource.modified}: """
+            {resource.resource.title}, last updated on {standardize_date(resource.resource.modified)}. """
         if not resource.fields.exists():
             text = text + """All data columns/fields"""
         else:
@@ -81,10 +86,25 @@ def get_dataset_resource_details(dataset: Dataset):
     for resource in dataset.resource_set.all():
         text = text + f"""
           <li style="margin-bottom: 10px">
-            {resource.title}, last updated on {resource.modified}: """
+            {resource.title}, last updated on {standardize_date(resource.modified)}. """
         text = text + """</li>"""
     text = text + """</ol>"""
     return text
+
+def get_dataset_additional_info(dataset: Dataset):
+  text = """<ol>"""
+  dataset_add_info = AdditionalInfo.objects.filter(dataset=dataset)
+  if dataset_add_info.exists():
+    for info in dataset_add_info:
+      text = text + f"""
+        <li style="margin-bottom: 10px">
+          {info.title} """
+      text = text + """</li>"""
+    text = text + """</ol>"""
+    print(text)
+    return text
+  else:
+    return None
 
 
 def get_additional_conditions_text(dataset_access_model: DatasetAccessModel):
@@ -153,8 +173,8 @@ def extract_agreement_text(dataset_access_model: DatasetAccessModel, username, a
           </div>
           <div class="content">
             <p>
-              This DATA ACCESS AGREEMENT (hereinafter the “Agreement”), effective as of {datetime.datetime.now()}, is entered into by and between
-              <a href="{organization.homepage}">{organization.title}</a>, a {organization.organization_types} (hereinafter the “Data
+              This DATA ACCESS AGREEMENT (hereinafter the “Agreement”), effective as of {standardize_date()}, is entered into by and between
+              <a href="{organization.homepage}" target="_blank" rel="noopener noreferrer">{organization.title}</a>, a {organization.organization_types} (hereinafter the “Data
               Provider”), and {username}, Individual (hereinafter the “Data Consumer”).
             </p>
             <p>
@@ -348,14 +368,14 @@ def extract_agreement_text(dataset_access_model: DatasetAccessModel, username, a
               <p>First Name & Last Name of Authorised Signatory]</p>
               <p>Name of Authorised Signatory]</p>
               <p{organization.contact_email}</p>
-              <p>{datetime.datetime.now()}</p>
+              <p>{standardize_datetime()}</p>
             </div>
             <div>
               <p>On behalf of India Data Platform</p>
               <p>[Box for digital signature - Implement later]</p>
               <p>[First Name & Last Name of Authorised Signatory]</p>
               <p>[E-mail address]</p>
-              <p>{datetime.datetime.now()}</p>
+              <p>{standardize_datetime()}</p>
             </div>
           </div>
           <p>India Data Platform – Data Access Agreement – {agreement_model.id}</p>
@@ -421,6 +441,7 @@ def extract_provider_agreement(dataset: Dataset, username):
         }}
         .footer{{
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
         }}
         body span {{
@@ -440,9 +461,9 @@ def extract_provider_agreement(dataset: Dataset, username):
           </div>
           <div class="content">
             <p>
-              This DATA SHARING AGREEMENT (hereinafter the “Agreement”), effective as of {datetime.datetime.now()}, is entered into by and between
-              <a href="{organization.homepage}">{organization.title}</a>, a {organization.organization_types} (hereinafter the “Data
-              Provider”), and <a href="https://{settings.BASE_DOMAIN}">India Data Platform</a> (hereinafter the “IDP”) managed by National Informatics
+              This DATA SHARING AGREEMENT (hereinafter the “Agreement”), effective as of {standardize_date()}, is entered into by and between
+              <a href="{organization.homepage}" target="_blank" rel="noopener noreferrer">{organization.title}</a>, a {organization.organization_types} (hereinafter the “Data
+              Provider”), and <a href="https://{settings.BASE_DOMAIN} target="_blank" rel="noopener noreferrer">India Data Platform</a> (hereinafter the “IDP”) managed by National Informatics
               Centre, with its main office located in A-Block, Lodhi Road, CGO Complex, New Delhi, 110003, India.
             </p>
             <p>
@@ -475,6 +496,9 @@ def extract_provider_agreement(dataset: Dataset, username):
               <ol type="a" class="childlisting">
                 <li style="margin-bottom: 10px"><b>Distributions (Data/APIs)</b></li>
                 {get_dataset_resource_details(dataset)}
+                <li style="margin-bottom: 10px"><b>Additional Information</b></li>
+                {get_dataset_additional_info(dataset)}
+              </ol>
     
                 <li style="font-weight: bold">Terms and Conditions for the Data Provider</li>
               <ol type="a" class="childlisting">
@@ -639,14 +663,14 @@ def extract_provider_agreement(dataset: Dataset, username):
               <p>First Name & Last Name of Authorised Signatory]</p>
               <p>Name of Authorised Signatory]</p>
               <p{organization.contact_email}</p>
-              <p>{datetime.datetime.now()}</p>
+              <p>{standardize_datetime()}</p>
             </div>
             <div>
               <p>On behalf of India Data Platform</p>
               <p>[Box for digital signature - Implement later]</p>
               <p>[First Name & Last Name of Authorised Signatory]</p>
               <p>[E-mail address]</p>
-              <p>{datetime.datetime.now()}</p>
+              <p>{standardize_datetime()}</p>
             </div>
           </div>
           <p>India Data Platform – Data Sharing Agreement {organization.id}-{dataset.id}</p>
