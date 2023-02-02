@@ -8,15 +8,30 @@ from graphql import GraphQLError
 
 from dataset_api.decorators import validate_token, auth_user_by_org
 from dataset_api.enums import DataType
-from dataset_api.models import Dataset, Catalog, Tag, Geography, Sector, Organization, DataRequest, Agreement, \
-    DatasetAccessModelRequest, DatasetAccessModel
+from dataset_api.models import (
+    Dataset,
+    Catalog,
+    Tag,
+    Geography,
+    Sector,
+    Organization,
+    DataRequest,
+    Agreement,
+    DatasetAccessModelRequest,
+    DatasetAccessModel,
+)
 from dataset_api.utils import (
     get_client_ip,
     dataset_slug,
     log_activity,
     get_average_rating,
 )
-from .decorators import auth_user_action_dataset, map_user_dataset, auth_query_dataset, get_user_datasets
+from .decorators import (
+    auth_user_action_dataset,
+    map_user_dataset,
+    auth_query_dataset,
+    get_user_datasets,
+)
 from ..data_access_model.contract import update_provider_agreement
 
 
@@ -47,7 +62,7 @@ class DatasetStatus(graphene.Enum):
 
 
 def _add_update_attributes_to_dataset(
-        dataset_instance, object_field, attribute_list, attribute_type
+    dataset_instance, object_field, attribute_list, attribute_type
 ):
     if not attribute_list:
         return
@@ -77,36 +92,61 @@ class Query(graphene.ObjectType):
 
     @validate_token
     def resolve_all_datasets(self, info, username, **kwargs):
-        prefetch_agreements = Prefetch("agreements", queryset=Agreement.objects.filter(username=username).distinct())
+        prefetch_agreements = Prefetch(
+            "agreements",
+            queryset=Agreement.objects.filter(username=username).distinct(),
+        )
 
-        prefetch_data_requests = Prefetch("datarequest_set",
-                                          queryset=DataRequest.objects.filter(default=True, user=username))
-        prefetch_dam_requests = Prefetch("datasetaccessmodelrequest_set",
-                                         queryset=DatasetAccessModelRequest.objects.filter(
-                                             user=username).order_by("-modified").prefetch_related(
-                                             prefetch_data_requests).distinct())
-        prefetch_dataset_am = Prefetch("datasetaccessmodel_set", queryset=DatasetAccessModel.objects.filter(
-            datasetaccessmodelrequest__user=username,
-            datasetaccessmodelrequest__status="APPROVED")
-                                       .prefetch_related(prefetch_agreements, prefetch_dam_requests).distinct())
-        return Dataset.objects.filter(
-            Q(datasetaccessmodel__datasetaccessmodelrequest__user=username),
-            Q(datasetaccessmodel__datasetaccessmodelrequest__status="APPROVED"),
-        ).prefetch_related(prefetch_dataset_am).distinct()
+        prefetch_data_requests = Prefetch(
+            "datarequest_set",
+            queryset=DataRequest.objects.filter(default=True, user=username),
+        )
+        prefetch_dam_requests = Prefetch(
+            "datasetaccessmodelrequest_set",
+            queryset=DatasetAccessModelRequest.objects.filter(user=username)
+            .order_by("-modified")
+            .prefetch_related(prefetch_data_requests)
+            .distinct(),
+        )
+        prefetch_dataset_am = Prefetch(
+            "datasetaccessmodel_set",
+            queryset=DatasetAccessModel.objects.filter(
+                datasetaccessmodelrequest__user=username,
+            )
+            .prefetch_related(prefetch_agreements, prefetch_dam_requests)
+            .distinct(),
+        )
+        return (
+            Dataset.objects.filter(
+                Q(datasetaccessmodel__datasetaccessmodelrequest__user=username),
+            )
+            .prefetch_related(prefetch_dataset_am)
+            .distinct()
+        )
 
     # Access : PMU / DPA
     @auth_user_by_org(action="query")
     @validate_token
     @get_user_datasets
     def resolve_org_datasets(
-            self, info, role, dataset_list, first=None, skip=None, status: DatasetStatus = None, username="", **kwargs
+        self,
+        info,
+        role,
+        dataset_list,
+        first=None,
+        skip=None,
+        status: DatasetStatus = None,
+        username="",
+        **kwargs
     ):
         if role == "PMU" or role == "DPA" or role == "DP":
             org_id = info.context.META.get("HTTP_ORGANIZATION")
             organization = Organization.objects.get(id=org_id)
             if status:
                 query = Dataset.objects.filter(
-                    catalog__organization=organization, status=status, id__in=dataset_list
+                    catalog__organization=organization,
+                    status=status,
+                    id__in=dataset_list,
                 ).order_by("-modified")
             else:
                 query = Dataset.objects.filter(
@@ -220,10 +260,10 @@ class CreateDataset(Output, graphene.Mutation):
     @auth_user_action_dataset(action="create_dataset")
     @map_user_dataset
     def mutate(
-            root,
-            info,
-            username,
-            dataset_data: CreateDatasetInput = None,
+        root,
+        info,
+        username,
+        dataset_data: CreateDatasetInput = None,
     ):
         try:
             org_id = info.context.META.get("HTTP_ORGANIZATION")
