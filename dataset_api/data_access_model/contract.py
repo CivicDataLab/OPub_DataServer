@@ -208,6 +208,7 @@ def extract_agreement_text(dataset_access_model: DatasetAccessModel, username, a
               <ol type="a" class="childlisting">
                 <li style="margin-bottom: 10px"><b>Distributions (Data/APIs)</b></li>
                 {get_agreement_resource_details(dataset_access_model)}
+              </ol>
     
               <li style="font-weight: bold">Data Access Model</li>
               <p>
@@ -462,7 +463,8 @@ def extract_provider_agreement(dataset: Dataset, username):
           <div class="content">
             <p>
               This DATA SHARING AGREEMENT (hereinafter the “Agreement”), effective as of {standardize_date()}, is entered into by and between
-              <a href="{organization.homepage}" target="_blank" rel="noopener noreferrer">{organization.title}</a>, a {organization.organization_types} (hereinafter the “Data
+              <a href="{organization.homepage}" onclick="return confirm('You are being redirected to "{organization.homepage}"')" target="_blank">
+              {organization.title}</a>, a {organization.organization_types} (hereinafter the “Data
               Provider”), and <a href="https://{settings.BASE_DOMAIN} target="_blank" rel="noopener noreferrer">India Data Platform</a> (hereinafter the “IDP”) managed by National Informatics
               Centre, with its main office located in A-Block, Lodhi Road, CGO Complex, New Delhi, 110003, India.
             </p>
