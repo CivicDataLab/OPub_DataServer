@@ -25,4 +25,4 @@ class DataAccessModel(models.Model):
     validation_unit = models.CharField(null=True, blank=True, choices=ValidationUnits.choices, max_length=50)
     status = models.CharField(blank=False, choices=DataAccessModelStatus.choices, max_length=50,
                               default=DataAccessModelStatus.ACTIVE.value)
-    is_global = models.BooleanField(default=False)
+    is_global = models.BooleanField(default=True)

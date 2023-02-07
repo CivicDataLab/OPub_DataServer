@@ -97,7 +97,7 @@ class DataAccessModelInput(graphene.InputObjectType):
     additions: Iterable = graphene.List(of_type=graphene.ID, required=False, default=[])
     validation = graphene.Int(required=False)
     validation_unit = graphene.Enum.from_enum(ValidationUnits)(required=False)
-    is_global = graphene.Boolean(required=True, default=False)
+    is_global = graphene.Boolean(required=False, default=False)
 
 
 class DeleteDataAccessModelInput(graphene.InputObjectType):
@@ -166,6 +166,7 @@ class CreateDataAccessModel(Output, graphene.Mutation):
             rate_limit_unit=data_access_model_data.rate_limit_unit,
             validation=data_access_model_data.validation,
             validation_unit=data_access_model_data.validation_unit,
+            is_global=data_access_model_data.is_global if data_access_model_data.is_global else False,
         )
         data_access_model_instance.save()
 
