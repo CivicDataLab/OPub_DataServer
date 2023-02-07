@@ -97,6 +97,7 @@ class DataAccessModelInput(graphene.InputObjectType):
     additions: Iterable = graphene.List(of_type=graphene.ID, required=False, default=[])
     validation = graphene.Int(required=False)
     validation_unit = graphene.Enum.from_enum(ValidationUnits)(required=False)
+    is_global = graphene.Boolean(required=True, default=False)
 
 
 class DeleteDataAccessModelInput(graphene.InputObjectType):
@@ -144,7 +145,10 @@ class CreateDataAccessModel(Output, graphene.Mutation):
     @auth_user_action_dam(action="create_dam")
     def mutate(root, info, username, data_access_model_data: DataAccessModelInput):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
-        org_instance = Organization.objects.get(id=org_id)
+        if org_id:
+            org_instance = Organization.objects.get(id=org_id)
+        else:
+            org_instance = None
         try:
             dam_license = License.objects.get(id=data_access_model_data.license)
         except License.DoesNotExist:
@@ -212,7 +216,10 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
             data_access_model_instance = DataAccessModel.objects.get(
                 id=data_access_model_data.id
             )
-            org_instance = Organization.objects.get(id=org_id)
+            if org_id:
+                org_instance = Organization.objects.get(id=org_id)
+            else:
+                org_instance = None
             dam_license = License.objects.get(id=data_access_model_data.license)
         except (
                 DataAccessModel.DoesNotExist,
