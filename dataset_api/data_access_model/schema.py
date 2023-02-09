@@ -97,6 +97,7 @@ class DataAccessModelInput(graphene.InputObjectType):
     additions: Iterable = graphene.List(of_type=graphene.ID, required=False, default=[])
     validation = graphene.Int(required=False)
     validation_unit = graphene.Enum.from_enum(ValidationUnits)(required=False)
+    is_global = graphene.Boolean(required=False, default=False)
 
 
 class DeleteDataAccessModelInput(graphene.InputObjectType):
@@ -144,7 +145,10 @@ class CreateDataAccessModel(Output, graphene.Mutation):
     @auth_user_action_dam(action="create_dam")
     def mutate(root, info, username, data_access_model_data: DataAccessModelInput):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
-        org_instance = Organization.objects.get(id=org_id)
+        if org_id:
+            org_instance = Organization.objects.get(id=org_id)
+        else:
+            org_instance = None
         try:
             dam_license = License.objects.get(id=data_access_model_data.license)
         except License.DoesNotExist:
@@ -162,6 +166,7 @@ class CreateDataAccessModel(Output, graphene.Mutation):
             rate_limit_unit=data_access_model_data.rate_limit_unit,
             validation=data_access_model_data.validation,
             validation_unit=data_access_model_data.validation_unit,
+            is_global=data_access_model_data.is_global if data_access_model_data.is_global else False,
         )
         data_access_model_instance.save()
 
@@ -180,12 +185,14 @@ class CreateDataAccessModel(Output, graphene.Mutation):
             )
         except InvalidAddition as e:
             return {"success": False, "errors": {"id": [{str(e)}]}}
-
-        create_contract(
-            dam_license,
-            data_access_model_data.additions,
-            data_access_model_instance,
-        )
+        
+        #NOTE: Temporary fix for DAM creation/updation in PMU.
+        if not data_access_model_data.is_global:
+            create_contract(
+                dam_license,
+                data_access_model_data.additions,
+                data_access_model_instance,
+            )
         return CreateDataAccessModel(data_access_model=data_access_model_instance)
 
 
@@ -212,7 +219,10 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
             data_access_model_instance = DataAccessModel.objects.get(
                 id=data_access_model_data.id
             )
-            org_instance = Organization.objects.get(id=org_id)
+            if org_id:
+                org_instance = Organization.objects.get(id=org_id)
+            else:
+                org_instance = None
             dam_license = License.objects.get(id=data_access_model_data.license)
         except (
                 DataAccessModel.DoesNotExist,
@@ -246,11 +256,14 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
             )
         except InvalidAddition as e:
             return {"success": False, "errors": {"id": [{str(e)}]}}
-        create_contract(
-            dam_license,
-            data_access_model_data.additions,
-            data_access_model_instance,
-        )
+        
+        #NOTE: Temporary fix for DAM creation/updation in PMU.
+        if not data_access_model_instance.is_global:
+            create_contract(
+                dam_license,
+                data_access_model_data.additions,
+                data_access_model_instance,
+            )
 
         log_activity(
             target_obj=data_access_model_instance,

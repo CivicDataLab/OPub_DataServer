@@ -13,7 +13,7 @@ class DataAccessModel(models.Model):
     description = models.CharField(max_length=500)
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, default="")
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, default="", null=True, blank=True)
     contract = models.FileField(upload_to=_contract_directory_path, blank=True, max_length=300)
     license = models.ForeignKey(License, on_delete=models.CASCADE, blank=False, null=False)
     subscription_quota = models.IntegerField(null=True, blank=True)
@@ -25,3 +25,4 @@ class DataAccessModel(models.Model):
     validation_unit = models.CharField(null=True, blank=True, choices=ValidationUnits.choices, max_length=50)
     status = models.CharField(blank=False, choices=DataAccessModelStatus.choices, max_length=50,
                               default=DataAccessModelStatus.ACTIVE.value)
+    is_global = models.BooleanField(default=True)
