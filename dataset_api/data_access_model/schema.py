@@ -185,12 +185,14 @@ class CreateDataAccessModel(Output, graphene.Mutation):
             )
         except InvalidAddition as e:
             return {"success": False, "errors": {"id": [{str(e)}]}}
-
-        create_contract(
-            dam_license,
-            data_access_model_data.additions,
-            data_access_model_instance,
-        )
+        
+        #NOTE: Temporary fix for DAM creation/updation in PMU.
+        if not data_access_model_data.is_global:
+            create_contract(
+                dam_license,
+                data_access_model_data.additions,
+                data_access_model_instance,
+            )
         return CreateDataAccessModel(data_access_model=data_access_model_instance)
 
 
@@ -254,11 +256,14 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
             )
         except InvalidAddition as e:
             return {"success": False, "errors": {"id": [{str(e)}]}}
-        create_contract(
-            dam_license,
-            data_access_model_data.additions,
-            data_access_model_instance,
-        )
+        
+        #NOTE: Temporary fix for DAM creation/updation in PMU.
+        if not data_access_model_instance.is_global:
+            create_contract(
+                dam_license,
+                data_access_model_data.additions,
+                data_access_model_instance,
+            )
 
         log_activity(
             target_obj=data_access_model_instance,
