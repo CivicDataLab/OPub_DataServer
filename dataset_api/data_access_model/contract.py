@@ -53,7 +53,7 @@ def extract_text(additions, model_license, data_access_model: DataAccessModel):
         <meta name="pdfkit-page-size" content="Legal"/>
         <meta name="pdfkit-orientation" content="Portrait"/>
       </head>
-      <h1>Agreement</h1>
+      <h1>Licence</h1>
       <h2>{model_license.title} </h2>
       <p>This document acts as license condition set for the Data Access Model {data_access_model.title} <p>
       <br/>
