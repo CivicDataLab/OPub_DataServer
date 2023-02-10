@@ -6,7 +6,7 @@ from dataset_api.models.Organization import Organization
 
 
 class OrganizationCreateRequest(Organization):
-    data_description = models.CharField(max_length=500)
+    data_description = models.CharField(max_length=500, null=True, blank=True)
     upload_sample_data_file = models.FileField(
         upload_to=_organization_file_directory_path, blank=True
     )
