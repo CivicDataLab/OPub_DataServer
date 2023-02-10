@@ -243,10 +243,11 @@ class UpdateDatasetInput(graphene.InputObjectType):
 
 class PatchDatasetInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
-    title = graphene.String(required=True)
-    description = graphene.String(required=True)
+    title = graphene.String(required=False)
+    description = graphene.String(required=False)
     funnel = graphene.String(default=None)
     status = graphene.String(default=None)
+    hvd_rating = graphene.Float(required=False)
 
 
 class CreateDataset(Output, graphene.Mutation):
@@ -375,6 +376,8 @@ class PatchDataset(Output, graphene.Mutation):
             dataset_instance.title = dataset_data.title
         if dataset_data.description:
             dataset_instance.description = dataset_data.description
+        if dataset_data.hvd_rating:
+            dataset_instance.hvd_rating = dataset_data.hvd_rating 
         dataset_instance.save()
         log_activity(
             target_obj=dataset_instance,

@@ -1,4 +1,5 @@
 from django.contrib.postgres.fields import ArrayField
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 from dataset_api.enums import DataType
@@ -44,3 +45,4 @@ class Dataset(models.Model):
     source = models.CharField(max_length=100, blank=True)
     last_updated = models.DateTimeField(null=True, blank=True)
     published_date = models.DateTimeField(null=True, blank=True)
+    hvd_rating = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(10.0)])
