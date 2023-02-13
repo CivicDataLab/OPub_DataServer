@@ -185,7 +185,7 @@ class OrganizationInput(graphene.InputObjectType):
     upload_sample_data_file = Upload(required=False)
     sample_data_url = graphene.String(required=False)
     dpa_email = graphene.String(required=False)
-
+    parent_id = graphene.ID(required=False)
 
 class OrganizationPatchInput(graphene.InputObjectType):
     id = graphene.ID()
@@ -238,7 +238,8 @@ class CreateOrganization(Output, graphene.Mutation):
                 sample_data_url=organization_data.sample_data_url,
                 status=OrganizationCreationStatusType.APPROVED.value,
                 username=username,
-                dpa_email=organization_data.dpa_email
+                dpa_email=organization_data.dpa_email,
+                parent_id=organization_data.parent_id if organization_data.parent_id else None,
             )
             organization_additional_info_instance.save()
             
