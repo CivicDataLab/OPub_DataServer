@@ -267,12 +267,14 @@ def update_user_org(func):
             org_parent = value.organization_request.organization.parent_id
             user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
             org_id = args[1].context.META.get("HTTP_ORGANIZATION")
+            tgt_user_email = value.organization_request.user_email
             body = json.dumps(
                 {
                     "access_token": user_token,
                     "org_id": org_id,
                     "org_title": org_title,
                     "tgt_user_name": tgt_user,
+                    "tgt_user_email": tgt_user_email,
                     "org_parent_id": org_parent if org_parent else "",
                     "role_name": "DP",
                     "action": "update",
