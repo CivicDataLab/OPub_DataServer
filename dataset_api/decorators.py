@@ -175,15 +175,27 @@ def create_user_org(func):
         value = func(*args, **kwargs)
         org_id = value.organization.id
         org_title = value.organization.title
-        user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+        user_token = args[1].context.headers.get("HTTP_AUTHORIZATION")
+        # body = json.dumps(
+        #     {
+        #         "access_token": user_token,
+        #         "org_id": org_id,
+        #         "org_title": org_title,
+        #     }
+        # )
+        # response_json = request_to_server(body, "create_user_role")
+        tgt_user_email = value.organization.dpa_email
         body = json.dumps(
             {
                 "access_token": user_token,
                 "org_id": org_id,
                 "org_title": org_title,
+                "tgt_user_email": tgt_user_email,
+                "role_name": "DPA",
+                "action": "update",
             }
         )
-        response_json = request_to_server(body, "create_user_role")
+        response_json = request_to_server(body, "update_user_role")
         if response_json["Success"]:
             return value
 
