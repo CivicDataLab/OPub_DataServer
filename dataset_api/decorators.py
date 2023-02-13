@@ -175,15 +175,29 @@ def create_user_org(func):
         value = func(*args, **kwargs)
         org_id = value.organization.id
         org_title = value.organization.title
+        org_parent = value.organization.parent_id
         user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+        # body = json.dumps(
+        #     {
+        #         "access_token": user_token,
+        #         "org_id": org_id,
+        #         "org_title": org_title,
+        #     }
+        # )
+        # response_json = request_to_server(body, "create_user_role")
+        tgt_user_email = value.organization.dpa_email
         body = json.dumps(
             {
                 "access_token": user_token,
                 "org_id": org_id,
                 "org_title": org_title,
+                "tgt_user_email": tgt_user_email,
+                "org_parent_id": org_parent if org_parent else "",
+                "role_name": "DPA",
+                "action": "update",
             }
         )
-        response_json = request_to_server(body, "create_user_role")
+        response_json = request_to_server(body, "update_user_role")
         if response_json["Success"]:
             return value
 
@@ -250,14 +264,18 @@ def update_user_org(func):
         if value.organization_request.status == "APPROVED":
             org_title = value.organization_request.organization.title
             tgt_user = value.organization_request.user
+            org_parent = value.organization_request.organization.parent_id
             user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
             org_id = args[1].context.META.get("HTTP_ORGANIZATION")
+            tgt_user_email = value.organization_request.user_email
             body = json.dumps(
                 {
                     "access_token": user_token,
                     "org_id": org_id,
                     "org_title": org_title,
                     "tgt_user_name": tgt_user,
+                    "tgt_user_email": tgt_user_email,
+                    "org_parent_id": org_parent if org_parent else "",
                     "role_name": "DP",
                     "action": "update",
                 }

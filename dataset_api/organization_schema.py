@@ -181,10 +181,11 @@ class OrganizationInput(graphene.InputObjectType):
     homepage = graphene.String(required=False)
     contact = graphene.String(required=False)
     organization_types = graphene.Enum.from_enum(OrganizationTypes)(required=True)
-    data_description = graphene.String(required=True)
+    data_description = graphene.String(required=False)
     upload_sample_data_file = Upload(required=False)
     sample_data_url = graphene.String(required=False)
-
+    dpa_email = graphene.String(required=False)
+    parent_id = graphene.ID(required=False)
 
 class OrganizationPatchInput(graphene.InputObjectType):
     id = graphene.ID()
@@ -235,10 +236,21 @@ class CreateOrganization(Output, graphene.Mutation):
                 upload_sample_data_file=organization_data.upload_sample_data_file,
                 data_description=organization_data.data_description,
                 sample_data_url=organization_data.sample_data_url,
-                status=OrganizationCreationStatusType.REQUESTED.value,
+                status=OrganizationCreationStatusType.APPROVED.value,
                 username=username,
+                dpa_email=organization_data.dpa_email,
+                parent_id=organization_data.parent_id if organization_data.parent_id else None,
             )
             organization_additional_info_instance.save()
+            
+            # Create catalog.
+            catalog_instance = Catalog(
+                title=organization_additional_info_instance.title,
+                description=organization_additional_info_instance.description,
+                organization=organization_additional_info_instance,
+            )
+            catalog_instance.save()
+            
             mime_type = file_validation(
                 organization_additional_info_instance.logo,
                 organization_additional_info_instance.logo,
@@ -261,7 +273,7 @@ class CreateOrganization(Output, graphene.Mutation):
                 ip=get_client_ip(info),
                 username=username,
                 target_group=organization_additional_info_instance,
-                verb=OrganizationCreationStatusType.REQUESTED.value,
+                verb=OrganizationCreationStatusType.APPROVED.value,
             )
             return CreateOrganization(
                 organization=organization_additional_info_instance

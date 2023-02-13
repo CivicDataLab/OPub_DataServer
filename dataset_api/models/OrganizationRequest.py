@@ -14,5 +14,6 @@ class OrganizationRequest(models.Model):
         max_length=20, choices=OrganizationRequestStatusType.choices, blank=False
     )
     modified = models.DateTimeField(auto_now=True)
-    user = models.CharField(max_length=50, blank=False, null=False)
+    user = models.CharField(max_length=50, blank=True, null=True)
+    user_email = models.CharField(default="", max_length=50, blank=False, null=False)
     remark = models.CharField(max_length=500, blank=True, null=True)

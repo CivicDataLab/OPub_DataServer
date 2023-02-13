@@ -6,7 +6,7 @@ from dataset_api.models.Organization import Organization
 
 
 class OrganizationCreateRequest(Organization):
-    data_description = models.CharField(max_length=500)
+    data_description = models.CharField(max_length=500, null=True, blank=True)
     upload_sample_data_file = models.FileField(
         upload_to=_organization_file_directory_path, blank=True
     )
@@ -15,4 +15,5 @@ class OrganizationCreateRequest(Organization):
         max_length=20, choices=OrganizationRequestStatusType.choices, blank=False
     )
     username = models.CharField(default="", blank=False, null=False, max_length=200)
+    dpa_email = models.EmailField(default="", blank=False, null=False, max_length=100)
     remark = models.CharField(max_length=500, blank=True, null=True)
