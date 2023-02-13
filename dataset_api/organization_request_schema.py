@@ -42,8 +42,9 @@ class Query(graphene.ObjectType):
 
 class OrganizationRequestInput(graphene.InputObjectType):
     id = graphene.ID()
-    description = graphene.String(required=True)
+    description = graphene.String(required=False)
     organization = graphene.ID(required=True)
+    user_email = graphene.String(required=True)
 
 
 class OrganizationRequestUpdateInput(graphene.InputObjectType):
@@ -60,7 +61,8 @@ class OrganizationRequestMutation(graphene.Mutation, Output):
     organization_request = graphene.Field(OrganizationRequestType)
 
     @staticmethod
-    @validate_token
+    # @validate_token
+    @update_user_org
     def mutate(
             root, info, organization_request: OrganizationRequestInput = None, username=""
     ):
@@ -81,9 +83,10 @@ class OrganizationRequestMutation(graphene.Mutation, Output):
                 },
             }
         organization_request_instance = OrganizationRequest(
-            status=OrganizationRequestStatusType.REQUESTED.value,
+            status=OrganizationRequestStatusType.APPROVED.value,
             description=organization_request.description,
             user=username,
+            user_email=organization_request.user_email,
             organization=organization,
         )
         organization_request_instance.save()
