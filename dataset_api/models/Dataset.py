@@ -45,4 +45,4 @@ class Dataset(models.Model):
     source = models.CharField(max_length=100, blank=True)
     last_updated = models.DateTimeField(null=True, blank=True)
     published_date = models.DateTimeField(null=True, blank=True)
-    hvd_rating = models.DecimalField(max_digits=4, decimal_places=2)
+    hvd_rating = models.DecimalField(max_digits=4, decimal_places=2, default=0)
