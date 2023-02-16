@@ -186,6 +186,7 @@ class OrganizationInput(graphene.InputObjectType):
     sample_data_url = graphene.String(required=False)
     dpa_email = graphene.String(required=False)
     parent_id = graphene.ID(required=False)
+    address = graphene.String(required=False)
 
 class OrganizationPatchInput(graphene.InputObjectType):
     id = graphene.ID()
@@ -194,6 +195,7 @@ class OrganizationPatchInput(graphene.InputObjectType):
     logo = Upload(required=False, description="Logo for the Company.")
     homepage = graphene.String(required=False)
     contact = graphene.String(required=False)
+    address = graphene.String(required=False)
 
 
 class ApproveRejectOrganizationApprovalInput(graphene.InputObjectType):
@@ -230,7 +232,7 @@ class CreateOrganization(Output, graphene.Mutation):
                 title=organization_data.title,
                 description=organization_data.description,
                 logo=organization_data.logo,
-                contact_email=organization_data.contact,
+                contact_email=organization_data.contact if organization_data.contact else None,
                 homepage=organization_data.homepage,
                 organization_types=organization_data.organization_types,
                 upload_sample_data_file=organization_data.upload_sample_data_file,
@@ -238,8 +240,9 @@ class CreateOrganization(Output, graphene.Mutation):
                 sample_data_url=organization_data.sample_data_url,
                 status=OrganizationCreationStatusType.APPROVED.value,
                 username=username,
-                dpa_email=organization_data.dpa_email,
+                dpa_email=organization_data.dpa_email if organization_data.dpa_email else None,
                 parent_id=organization_data.parent_id if organization_data.parent_id else None,
+                address=organization_data.address if organization_data.address else None,
             )
             organization_additional_info_instance.save()
             
@@ -313,6 +316,7 @@ class UpdateOrganization(Output, graphene.Mutation):
         organization_create_request_instance.logo = organization_data.logo
         organization_create_request_instance.contact_email = organization_data.contact
         organization_create_request_instance.homepage = organization_data.homepage
+        organization_create_request_instance.address = organization_data.address
         organization_create_request_instance.organization_types = (
             organization_data.organization_types
         )
