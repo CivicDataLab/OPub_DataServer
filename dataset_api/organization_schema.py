@@ -15,6 +15,7 @@ from .decorators import (
     auth_request_org,
     modify_org_status,
     get_user_org,
+    get_child_orgs_dpa,
 )
 from .enums import OrganizationTypes, OrganizationCreationStatusType, RatingStatus
 from .file_utils import file_validation
@@ -122,6 +123,9 @@ class Query(graphene.ObjectType):
 
     requested_rejected_organizations = graphene.List(OrganizationType)
     organizations_by_user = graphene.List(OrganizationType)
+    organization_without_dpa = graphene.Field(
+        OrganizationType, organization_id=graphene.Int()
+    )
 
     # TODO: Allow all org list for PMU? Current State -- YES
     @auth_user_by_org(action="query")
@@ -136,6 +140,15 @@ class Query(graphene.ObjectType):
     def resolve_organization_by_id(self, info, role, organization_id):
         if role == "DPA" or role == "PMU" or role == "DP":
             return Organization.objects.get(pk=organization_id)
+        else:
+            raise GraphQLError("Access Denied")
+    
+    # Access : PMU or DPA of that org.
+    @auth_user_by_org(action="query")
+    @get_child_orgs_dpa
+    def resolve_organization_without_dpa(self, info, role, organization_id, **kwargs):
+        if role == "DPA" or role == "PMU":
+            return Organization.objects.get(pk__in=kwargs["org_without_dpa"])
         else:
             raise GraphQLError("Access Denied")
 
@@ -232,7 +245,7 @@ class CreateOrganization(Output, graphene.Mutation):
                 title=organization_data.title,
                 description=organization_data.description,
                 logo=organization_data.logo,
-                contact_email=organization_data.contact if organization_data.contact else None,
+                contact_email=organization_data.contact,
                 homepage=organization_data.homepage,
                 organization_types=organization_data.organization_types,
                 upload_sample_data_file=organization_data.upload_sample_data_file,
@@ -240,9 +253,9 @@ class CreateOrganization(Output, graphene.Mutation):
                 sample_data_url=organization_data.sample_data_url,
                 status=OrganizationCreationStatusType.APPROVED.value,
                 username=username,
-                dpa_email=organization_data.dpa_email if organization_data.dpa_email else None,
-                parent_id=organization_data.parent_id if organization_data.parent_id else None,
-                address=organization_data.address if organization_data.address else None,
+                dpa_email=organization_data.dpa_email,
+                parent_id=organization_data.parent_id,
+                address=organization_data.address,
             )
             organization_additional_info_instance.save()
             

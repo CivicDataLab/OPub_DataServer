@@ -4,6 +4,7 @@ import requests
 from graphql import GraphQLError
 
 from .models import Resource, DatasetReviewRequest, Organization
+from .utils import get_child_orgs
 
 auth_url = settings.AUTH_URL
 
@@ -330,4 +331,22 @@ def get_user_org(func):
             kwargs["org_ids"] = response_json["orgs"]
             return func(*args, **kwargs)
 
+    return inner
+
+
+def get_child_orgs_dpa(func):
+    def inner(*args, **kwargs):
+        # user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+        # Get all child ids.
+        child_orgs = get_child_orgs(kwargs['organization_id'])
+        print("child orgs fron db --", child_orgs)
+        body = json.dumps(
+            {
+                "org_list": child_orgs,
+            }
+        )
+        response_json = request_to_server(body, "filter_orgs_without_dpa")
+        if response_json["Success"]:
+            kwargs["org_without_dpa"] = response_json["org_without_dpa"]
+            return func(*args, **kwargs)
     return inner
