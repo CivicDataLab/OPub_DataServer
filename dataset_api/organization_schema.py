@@ -123,7 +123,7 @@ class Query(graphene.ObjectType):
 
     requested_rejected_organizations = graphene.List(OrganizationType)
     organizations_by_user = graphene.List(OrganizationType)
-    organization_without_dpa = graphene.Field(
+    organization_without_dpa = graphene.List(
         OrganizationType, organization_id=graphene.Int()
     )
 
@@ -148,7 +148,7 @@ class Query(graphene.ObjectType):
     @get_child_orgs_dpa
     def resolve_organization_without_dpa(self, info, role, organization_id, **kwargs):
         if role == "DPA" or role == "PMU":
-            return Organization.objects.get(pk__in=kwargs["org_without_dpa"])
+            return Organization.objects.filter(pk__in=kwargs["org_without_dpa"])
         else:
             raise GraphQLError("Access Denied")
 

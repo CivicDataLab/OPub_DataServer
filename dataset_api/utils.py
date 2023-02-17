@@ -310,6 +310,8 @@ def get_child_orgs(org_id: int):
             return get_all_child(working_list)
         else:
             return
-    # get_all_child(working_list)
+    
+    # Recursion call.
+    get_all_child(working_list)
     # print(all_ids)
     return all_ids 
