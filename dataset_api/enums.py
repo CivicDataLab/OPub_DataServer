@@ -36,6 +36,7 @@ class OrganizationRequestStatusType(models.TextChoices):
     REQUESTED = "REQUESTED"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    DELETED = "DELETED"
 
 
 class OrganizationCreationStatusType(models.TextChoices):

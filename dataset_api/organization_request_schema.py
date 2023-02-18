@@ -142,7 +142,7 @@ class DeleteOrganizationRequestMutation(graphene.Mutation, Output):
     ):
         try:
             organization_request_instance = OrganizationRequest.objects.get(
-                organization_id=delete_organization_request.id, user=delete_organization_request.username,
+                organization_id=delete_organization_request.id, user_email=delete_organization_request.username,
             )
         except OrganizationRequest.DoesNotExist as e:
             raise GraphQLError("Organization with given id not found")

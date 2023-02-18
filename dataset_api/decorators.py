@@ -263,11 +263,13 @@ def update_user_org(func):
     def inner(*args, **kwargs):
         value = func(*args, **kwargs)
         if value.organization_request.status == "APPROVED":
+            print(kwargs)
             org_title = value.organization_request.organization.title
             tgt_user = value.organization_request.user
             org_parent = value.organization_request.organization.parent_id
             user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
-            org_id = args[1].context.META.get("HTTP_ORGANIZATION")
+            #org_id = args[1].context.META.get("HTTP_ORGANIZATION")
+            org_id = value.organization_request.organization.pk
             tgt_user_email = value.organization_request.user_email
             body = json.dumps(
                 {
