@@ -263,7 +263,7 @@ def fetchapi(resource_id, api_data_params):
         #         "response_type": response_type,
         #     }
         #     return context
-            url = f"{settings.PIPELINE_URL}api_source_query"
+            url = f"{settings.PIPELINE_URL}api_res_run_transform"
             payload = json.dumps(
                 {
                     "api_source_id": resource_id, 
@@ -281,5 +281,6 @@ def fetchapi(resource_id, api_data_params):
             return context                 
 
         except Exception as e:
+            raise
             context = {"Success": False, "error": str(e)}
             return context
