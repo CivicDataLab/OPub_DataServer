@@ -15,5 +15,6 @@ class OrganizationCreateRequest(Organization):
         max_length=20, choices=OrganizationRequestStatusType.choices, blank=False
     )
     username = models.CharField(default="", blank=False, null=False, max_length=200)
-    dpa_email = models.EmailField(default="", blank=False, null=False, max_length=100)
+    dpa_email = models.EmailField(default="", blank=True, null=True, max_length=100)
     remark = models.CharField(max_length=500, blank=True, null=True)
+    address = models.CharField(default="", blank=True, null=True, max_length=500)

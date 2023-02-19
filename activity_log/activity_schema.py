@@ -4,7 +4,7 @@ from graphene_django import DjangoObjectType
 from activity_log.models import Activity
 from dataset_api.models import Organization
 from dataset_api.utils import dataset_slug
-
+from datetime import datetime, timezone
 
 class FieldTypes(graphene.Enum):
     ip = "ip"
@@ -23,6 +23,7 @@ class ActivityType(DjangoObjectType):
     target_type = graphene.String()
     slug = graphene.String()
     target_title = graphene.String()
+    dtf_passed_time = graphene.String()
 
     class Meta:
         model = Activity
@@ -43,6 +44,11 @@ class ActivityType(DjangoObjectType):
     def resolve_target_title(self: Activity, info):
         if hasattr(self.target, "title"):
             return self.target.title
+    
+    def resolve_dtf_passed_time(self: Activity, info):
+        # dtf = datetime.now(timezone.utc) - self.issued
+        dtf = self.issued.strftime("%H:%M %p, %d %b %Y ")
+        return dtf
 
 
 def add_pagination_filters(first, query, skip):

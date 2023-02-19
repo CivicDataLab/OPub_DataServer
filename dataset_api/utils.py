@@ -5,7 +5,7 @@ from numpy.compat import unicode
 
 from activity_log.signal import activity
 from dataset_api.enums import RatingStatus
-from dataset_api.models import Dataset, DataAccessModel
+from dataset_api.models import Dataset, DataAccessModel, Organization
 from dataset_api.enums import ValidationUnits
 import datetime
 
@@ -286,3 +286,32 @@ def get_data_access_model_request_validity(data_access_model_request):
             return datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRY_DAYS)
     else:
         return None
+
+
+
+def get_child_orgs(org_id: int):
+    all_ids = []
+    working_list = []
+    initial_parents = list(Organization.objects.filter(parent_id=org_id).values_list('id', flat=True))
+    # print(initial_parents)
+    for x in initial_parents:
+        working_list.append(x)
+    # print(working_list)
+    def get_all_child(items: list):
+        if items:
+            # print(items[0])
+            for item in items:
+                # print(item)
+                child_items = list(Organization.objects.filter(parent_id=item).values_list('id', flat=True))
+                all_ids.append(item)
+                working_list.remove(item)
+                for x in child_items:
+                    working_list.append(x)
+            return get_all_child(working_list)
+        else:
+            return
+    
+    # Recursion call.
+    get_all_child(working_list)
+    # print(all_ids)
+    return all_ids 

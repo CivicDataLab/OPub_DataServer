@@ -15,6 +15,7 @@ from .decorators import (
     auth_request_org,
     modify_org_status,
     get_user_org,
+    get_child_orgs_dpa,
 )
 from .enums import OrganizationTypes, OrganizationCreationStatusType, RatingStatus
 from .file_utils import file_validation
@@ -122,6 +123,9 @@ class Query(graphene.ObjectType):
 
     requested_rejected_organizations = graphene.List(OrganizationType)
     organizations_by_user = graphene.List(OrganizationType)
+    organization_without_dpa = graphene.List(
+        OrganizationType, organization_id=graphene.Int()
+    )
 
     # TODO: Allow all org list for PMU? Current State -- YES
     @auth_user_by_org(action="query")
@@ -136,6 +140,15 @@ class Query(graphene.ObjectType):
     def resolve_organization_by_id(self, info, role, organization_id):
         if role == "DPA" or role == "PMU" or role == "DP":
             return Organization.objects.get(pk=organization_id)
+        else:
+            raise GraphQLError("Access Denied")
+    
+    # Access : PMU or DPA of that org.
+    @auth_user_by_org(action="query")
+    @get_child_orgs_dpa
+    def resolve_organization_without_dpa(self, info, role, organization_id, **kwargs):
+        if role == "DPA" or role == "PMU":
+            return Organization.objects.filter(pk__in=kwargs["org_without_dpa"])
         else:
             raise GraphQLError("Access Denied")
 
@@ -186,6 +199,7 @@ class OrganizationInput(graphene.InputObjectType):
     sample_data_url = graphene.String(required=False)
     dpa_email = graphene.String(required=False)
     parent_id = graphene.ID(required=False)
+    address = graphene.String(required=False)
 
 class OrganizationPatchInput(graphene.InputObjectType):
     id = graphene.ID()
@@ -194,6 +208,7 @@ class OrganizationPatchInput(graphene.InputObjectType):
     logo = Upload(required=False, description="Logo for the Company.")
     homepage = graphene.String(required=False)
     contact = graphene.String(required=False)
+    address = graphene.String(required=False)
 
 
 class ApproveRejectOrganizationApprovalInput(graphene.InputObjectType):
@@ -239,7 +254,8 @@ class CreateOrganization(Output, graphene.Mutation):
                 status=OrganizationCreationStatusType.APPROVED.value,
                 username=username,
                 dpa_email=organization_data.dpa_email,
-                parent_id=organization_data.parent_id if organization_data.parent_id else None,
+                parent_id=organization_data.parent_id,
+                address=organization_data.address,
             )
             organization_additional_info_instance.save()
             
@@ -313,6 +329,7 @@ class UpdateOrganization(Output, graphene.Mutation):
         organization_create_request_instance.logo = organization_data.logo
         organization_create_request_instance.contact_email = organization_data.contact
         organization_create_request_instance.homepage = organization_data.homepage
+        organization_create_request_instance.address = organization_data.address
         organization_create_request_instance.organization_types = (
             organization_data.organization_types
         )

@@ -1,4 +1,5 @@
 import datetime
+from pytz import timezone
 import os
 from typing import Iterable
 
@@ -21,11 +22,13 @@ pdf_options = {
     'quiet': ''
 }
 
+tz_ist = timezone("Asia/Kolkata")
+
 def standardize_date(date_instance=datetime.datetime.now()):
-    return date_instance.strftime("%d %B, %Y")
+    return date_instance.astimezone(tz_ist).strftime("%d %B, %Y %Z")
 
 def standardize_datetime(date_instance=datetime.datetime.now()):
-    return date_instance.strftime("%H:%M %p, %d %B %Y")
+    return date_instance.astimezone(tz_ist).strftime("%H:%M %p, %d %B %Y %Z")
 
 def create_contract(model_license: License, additions: Iterable, data_access_model: DataAccessModel):
     if not additions:
