@@ -16,6 +16,7 @@ import genson
 import json
 import xmltodict
 import dicttoxml
+from DatasetServer import settings
 
 
 
@@ -158,110 +159,126 @@ def fetchapi(resource_id, api_data_params):
     if  res_type == "api":
         
         try:
-            res_model = Resource.objects.get(pk=resource_id)
+        #     res_model = Resource.objects.get(pk=resource_id)
 
-            base_url = res_model.apidetails.api_source.base_url
-            url_path = res_model.apidetails.url_path
-            headers = res_model.apidetails.api_source.headers
-            auth_loc = res_model.apidetails.api_source.auth_loc
-            auth_type = res_model.apidetails.api_source.auth_type
-            response_type = res_model.apidetails.response_type
-            request_type = res_model.apidetails.request_type
-            print(res_model.apidetails.apiparameter_set.all())
-            api_params = res_model.apidetails.apiparameter_set.all()
+        #     base_url = res_model.apidetails.api_source.base_url
+        #     url_path = res_model.apidetails.url_path
+        #     headers = res_model.apidetails.api_source.headers
+        #     auth_loc = res_model.apidetails.api_source.auth_loc
+        #     auth_type = res_model.apidetails.api_source.auth_type
+        #     response_type = res_model.apidetails.response_type
+        #     request_type = res_model.apidetails.request_type
+        #     print(res_model.apidetails.apiparameter_set.all())
+        #     api_params = res_model.apidetails.apiparameter_set.all()
 
-            format_loc = res_model.apidetails.format_loc
-            format_key = res_model.apidetails.format_key
-            target_format = res_model.apidetails.default_format
+        #     format_loc = res_model.apidetails.format_loc
+        #     format_key = res_model.apidetails.format_key
+        #     target_format = res_model.apidetails.default_format
 
-            param = {}
-            header = {}
-            if auth_loc == "HEADER":
-                if auth_type == "TOKEN":
-                    auth_token = res_model.apidetails.api_source.auth_token
-                    auth_token_key = res_model.apidetails.api_source.auth_token_key
-                    header = {auth_token_key: auth_token}
-                elif auth_type == "CREDENTIAL":
-                    # [{key:username,value:dc, description:desc},{key:password,value:pass, description:desc}]
-                    auth_credentials = res_model.apidetails.api_source.auth_credentials
-                    uname_key = auth_credentials[0]["key"]
-                    uname = auth_credentials[0]["value"]
-                    pwd_key = auth_credentials[1]["key"]
-                    pwd = auth_credentials[1]["value"]
-                    header = {uname_key: uname, pwd_key: pwd}
-            if auth_loc == "PARAM":
-                if auth_type == "TOKEN":
-                    auth_token = res_model.apidetails.api_source.auth_token
-                    auth_token_key = res_model.apidetails.api_source.auth_token_key
-                    param = {auth_token_key: auth_token}
-                elif auth_type == "CREDENTIAL":
-                    auth_credentials = res_model.apidetails.api_source.auth_credentials
-                    uname_key = auth_credentials[0]["key"]
-                    uname = auth_credentials[0]["value"]
-                    pwd_key = auth_credentials[1]["key"]
-                    pwd = auth_credentials[1]["value"]
-                    param = {uname_key: uname, pwd_key: pwd}
+        #     param = {}
+        #     header = {}
+        #     if auth_loc == "HEADER":
+        #         if auth_type == "TOKEN":
+        #             auth_token = res_model.apidetails.api_source.auth_token
+        #             auth_token_key = res_model.apidetails.api_source.auth_token_key
+        #             header = {auth_token_key: auth_token}
+        #         elif auth_type == "CREDENTIAL":
+        #             # [{key:username,value:dc, description:desc},{key:password,value:pass, description:desc}]
+        #             auth_credentials = res_model.apidetails.api_source.auth_credentials
+        #             uname_key = auth_credentials[0]["key"]
+        #             uname = auth_credentials[0]["value"]
+        #             pwd_key = auth_credentials[1]["key"]
+        #             pwd = auth_credentials[1]["value"]
+        #             header = {uname_key: uname, pwd_key: pwd}
+        #     if auth_loc == "PARAM":
+        #         if auth_type == "TOKEN":
+        #             auth_token = res_model.apidetails.api_source.auth_token
+        #             auth_token_key = res_model.apidetails.api_source.auth_token_key
+        #             param = {auth_token_key: auth_token}
+        #         elif auth_type == "CREDENTIAL":
+        #             auth_credentials = res_model.apidetails.api_source.auth_credentials
+        #             uname_key = auth_credentials[0]["key"]
+        #             uname = auth_credentials[0]["value"]
+        #             pwd_key = auth_credentials[1]["key"]
+        #             pwd = auth_credentials[1]["value"]
+        #             param = {uname_key: uname, pwd_key: pwd}
 
-            if format_key and format_key != "":
-                if format_loc == "HEADER":
-                    header.update({format_key: target_format})
-                if format_loc == "PARAM":
-                    param.update({format_key: target_format})
+        #     if format_key and format_key != "":
+        #         if format_loc == "HEADER":
+        #             header.update({format_key: target_format})
+        #         if format_loc == "PARAM":
+        #             param.update({format_key: target_format})
 
-            print("-----apiparams", api_params)
-            for each in api_params:
-                print("---each", each)
-                param.update({each.key: each.default})    
-            param.update(api_data_params)
+        #     print("-----apiparams", api_params)
+        #     for each in api_params:
+        #         print("---each", each)
+        #         param.update({each.key: each.default})    
+        #     param.update(api_data_params)
 
-            base_url = base_url.strip()
-            url_path = url_path.strip()
-            print(
-                "----fetch", header, param, base_url, url_path, response_type, target_format
-            )
-            if request_type == "GET":
-                try:
-                    api_request = requests.get(
-                        base_url + url_path, headers=header, params=param, verify=True
-                    )
-                except:
-                    api_request = requests.get(
-                        base_url + url_path, headers=header, params=param, verify=False
-                    )
-            elif request_type == "POST":
-                api_request = requests.post(
-                    base_url + url_path, headers=header, params=param, body={}, verify=False
-                )
-            elif request_type == "PUT":
-                api_request = requests.put(
-                    base_url + url_path, headers=header, params=param, verify=False
-                )
+        #     base_url = base_url.strip()
+        #     url_path = url_path.strip()
+        #     print(
+        #         "----fetch", header, param, base_url, url_path, response_type, target_format
+        #     )
+        #     if request_type == "GET":
+        #         try:
+        #             api_request = requests.get(
+        #                 base_url + url_path, headers=header, params=param, verify=True
+        #             )
+        #         except:
+        #             api_request = requests.get(
+        #                 base_url + url_path, headers=header, params=param, verify=False
+        #             )
+        #     elif request_type == "POST":
+        #         api_request = requests.post(
+        #             base_url + url_path, headers=header, params=param, body={}, verify=False
+        #         )
+        #     elif request_type == "PUT":
+        #         api_request = requests.put(
+        #             base_url + url_path, headers=header, params=param, verify=False
+        #         )
 
-            api_response = api_request.text
-            response_type = (
-                target_format if target_format and target_format != "" else response_type
-            )
+        #     api_response = api_request.text
+        #     response_type = (
+        #         target_format if target_format and target_format != "" else response_type
+        #     )
 
-            if response_type.lower() in ["json", "xml"]:
-                context = {
-                    "Success": True,
-                    "data": api_response,
-                    "response_type": response_type,
+        #     if response_type.lower() in ["json", "xml"]:
+        #         context = {
+        #             "Success": True,
+        #             "data": api_response,
+        #             "response_type": response_type,
+        #         }
+        #         return context
+        #     if response_type.lower() == "csv":
+        #         csv_data = StringIO(api_response)
+        #         data = pd.read_csv(csv_data, sep=",")
+        #         context = {"Success": True, "data": data, "response_type": response_type}
+        #         return context
+
+        #     print(response_type, "----", api_response)
+        #     context = {
+        #         "Success": True,
+        #         "data": api_response,
+        #         "response_type": response_type,
+        #     }
+        #     return context
+            url = f"{settings.PIPELINE_URL}api_source_query"
+            payload = json.dumps(
+                {
+                    "api_source_id": resource_id, 
+                    "api_data_params": api_data_params,
                 }
-                return context
-            if response_type.lower() == "csv":
-                csv_data = StringIO(api_response)
-                data = pd.read_csv(csv_data, sep=",")
-                context = {"Success": True, "data": data, "response_type": response_type}
-                return context
-
-            print(response_type, "----", api_response)
+            )
+            headers = {}
+            response = requests.request("POST", url, headers=headers, data=payload)   
+            response = response.json()
             context = {
                 "Success": True,
-                "data": api_response,
-                "response_type": response_type,
+                "data": response["data"],
+                "response_type": response["response_type"]
             }
-            return context
+            return context                 
 
         except Exception as e:
             context = {"Success": False, "error": str(e)}
