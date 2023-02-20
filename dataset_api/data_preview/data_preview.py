@@ -273,9 +273,10 @@ def fetchapi(resource_id, api_data_params):
             headers = {}
             response = requests.request("POST", url, headers=headers, data=payload)   
             response = response.json()
+            #print (response["data"])
             context = {
                 "Success": True,
-                "data": response["data"],
+                "data": response["data"] if response["response_type"].lower() != "csv" else pd.DataFrame(response["data"]), #pd.read_csv(StringIO(response["data"]) ),
                 "response_type": response["response_type"]
             }
             return context                 
