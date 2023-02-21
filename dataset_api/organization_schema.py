@@ -17,7 +17,12 @@ from .decorators import (
     get_user_org,
     get_child_orgs_dpa,
 )
-from .enums import OrganizationTypes, OrganizationCreationStatusType, RatingStatus
+from .enums import (
+    OrganizationTypes,
+    OrganizationCreationStatusType,
+    RatingStatus,
+    OrganizationSubTypes,
+)
 from .file_utils import file_validation
 from .models import (
     Organization,
@@ -29,6 +34,7 @@ from .models import (
     DatasetAccessModelRequest,
     DatasetAccessModel,
     DataAccessModel,
+    Geography,
 )
 
 from .utils import get_client_ip, get_average_rating, log_activity
@@ -128,6 +134,10 @@ class Query(graphene.ObjectType):
     organization_without_dpa = graphene.List(
         OrganizationType, organization_id=graphene.Int()
     )
+    ministries_by_state = graphene.List(OrganizationType, state=graphene.String())
+    dept_by_ministry = graphene.List(
+        OrganizationType, state=graphene.String(), organization_id=graphene.Int()
+    )
 
     # TODO: Allow all org list for PMU? Current State -- YES
     @auth_user_by_org(action="query")
@@ -187,6 +197,20 @@ class Query(graphene.ObjectType):
             organizationcreaterequest__organization_ptr_id__in=org_ids
         ).order_by("-modified")
 
+    def resolve_ministries_by_state(self, info, state):
+        state_obj = Geography.objects.get(name=state)
+        return Organization.objects.filter(
+            organizationcreaterequest__organization_subtypes="MINISTRY",
+            organizationcreaterequest__state=state_obj,
+        )
+
+    def resolve_dept_by_ministry(self, info, state, organization_id):
+        state_obj = Geography.objects.get(name=state)
+        return Organization.objects.filter(
+            parent_id=organization_id,
+            organizationcreaterequest__state=state_obj,
+        )
+
 
 class OrganizationInput(graphene.InputObjectType):
     id = graphene.ID()
@@ -202,6 +226,8 @@ class OrganizationInput(graphene.InputObjectType):
     dpa_email = graphene.String(required=False)
     parent_id = graphene.ID(required=False)
     address = graphene.String(required=False)
+    state = graphene.String(required=False)
+    gov_sub_type = graphene.Enum.from_enum(OrganizationSubTypes)(required=True)
 
 
 class OrganizationPatchInput(graphene.InputObjectType):
@@ -229,7 +255,9 @@ class CreateOrganization(Output, graphene.Mutation):
     @staticmethod
     @validate_token
     @create_user_org
-    def mutate(root, info, username, organization_data: OrganizationInput = None):
+    def mutate(
+        root, info, username, organization_data: OrganizationInput = None
+    ):
         # try:
         #     OrganizationCreateRequest.objects.get(
         #         Q(organization_ptr_id__title__iexact=organization_data.title),
@@ -237,13 +265,20 @@ class CreateOrganization(Output, graphene.Mutation):
         #     )
         #     raise GraphQLError("Organization with given name already exists.")
         # except Organization.DoesNotExist:
-            # try:
-            #     OrganizationCreateRequest.objects.get(
-            #         Q(organization_ptr_id__title__iexact=organization_data.title),
-            #         Q(username=username),
-            #     )
-            #     raise GraphQLError("You have already requested for this Organization.")
-            # except Organization.DoesNotExist:
+        # try:
+        #     OrganizationCreateRequest.objects.get(
+        #         Q(organization_ptr_id__title__iexact=organization_data.title),
+        #         Q(username=username),
+        #     )
+        #     raise GraphQLError("You have already requested for this Organization.")
+        # except Organization.DoesNotExist:
+        geography_obj = None
+        if organization_data.state:
+            try:
+                geography_obj = Geography.objects.get(name=organization_data.state)
+            except Geography.DoesNotExist:
+                raise GraphQLError("Given location doesn't exists!")
+
         organization_additional_info_instance = OrganizationCreateRequest(
             title=organization_data.title,
             description=organization_data.description,
@@ -259,6 +294,8 @@ class CreateOrganization(Output, graphene.Mutation):
             dpa_email=organization_data.dpa_email,
             parent_id=organization_data.parent_id,
             address=organization_data.address,
+            state=geography_obj,
+            organization_subtypes=organization_data.gov_sub_type,
         )
         organization_additional_info_instance.save()
 
@@ -296,9 +333,7 @@ class CreateOrganization(Output, graphene.Mutation):
             target_group=organization_additional_info_instance,
             verb=OrganizationCreationStatusType.APPROVED.value,
         )
-        return CreateOrganization(
-            organization=organization_additional_info_instance
-        )
+        return CreateOrganization(organization=organization_additional_info_instance)
 
 
 class UpdateOrganization(Output, graphene.Mutation):

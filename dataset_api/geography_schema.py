@@ -3,7 +3,7 @@ from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 
 from .models import Organization, Geography
-
+from .enums import GeoTypes
 
 class GeographyType(DjangoObjectType):
     class Meta:
@@ -26,6 +26,7 @@ class GeographyInput(graphene.InputObjectType):
     id = graphene.ID()
     name = graphene.String()
     official_id = graphene.String(required=True)
+    geo_type = graphene.Enum.from_enum(GeoTypes)(required=True)
     # organization = graphene.String()
 
 
@@ -41,6 +42,7 @@ class CreateGeography(Output, graphene.Mutation):
         geography_instance = Geography(
             name=geography_data.name,
             official_id=geography_data.official_id,
+            geo_type=geography_data.geo_type,
         )
         geography_instance.save()
         return CreateGeography(geography=geography_instance)
