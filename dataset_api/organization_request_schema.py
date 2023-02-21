@@ -61,7 +61,7 @@ class OrganizationRequestMutation(graphene.Mutation, Output):
     organization_request = graphene.Field(OrganizationRequestType)
 
     @staticmethod
-    # @validate_token
+    @validate_token
     @update_user_org
     def mutate(
             root, info, organization_request: OrganizationRequestInput = None, username=""
