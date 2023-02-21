@@ -1,8 +1,9 @@
 from django.db import models
 
-from dataset_api.enums import OrganizationRequestStatusType
+from dataset_api.enums import OrganizationRequestStatusType, OrganizationSubTypes
 from dataset_api.file_paths import _organization_file_directory_path
 from dataset_api.models.Organization import Organization
+from dataset_api.models.Geography import Geography
 
 
 class OrganizationCreateRequest(Organization):
@@ -18,3 +19,5 @@ class OrganizationCreateRequest(Organization):
     dpa_email = models.EmailField(default="", blank=True, null=True, max_length=100)
     remark = models.CharField(max_length=500, blank=True, null=True)
     address = models.CharField(default="", blank=True, null=True, max_length=500)
+    state = models.ForeignKey(Geography, on_delete=models.PROTECT, default='')
+    organization_subtypes = models.CharField(max_length=20, choices=OrganizationSubTypes.choices, blank=True, null=True, default='')

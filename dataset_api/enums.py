@@ -64,6 +64,15 @@ class OrganizationTypes(models.TextChoices):
     CORPORATIONS = "CORPORATIONS"
     NGO = "NGO"
 
+class OrganizationSubTypes(models.TextChoices):
+    MINISTRY = "MINISTRY"
+    DEPARTMENT = "DEPARTMENT"
+    ORGANISATION = "ORGANISATION"
+
+class GeoTypes(models.TextChoices):
+    DISTRICT = "DISTRICT"
+    STATE = "STATE"
+    COUNTRY = "COUNTRY"
 
 class DataType(models.TextChoices):
     API = "API"
