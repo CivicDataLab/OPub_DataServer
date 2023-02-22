@@ -23,6 +23,15 @@ def _organization_file_directory_path(org, filename):
     _, extension = os.path.splitext(filename)
     return f"files/resources/{org_name}/sample_data/{extension[1:]}/{filename}"
 
+def _cdo_notification_directory_path(org, filename):
+    """
+    Create a directory path to upload the notifications file by CDO.
+
+    """
+
+    org_name = org.title
+    _, extension = os.path.splitext(filename)
+    return f"files/public/organizations/{org_name}/notifications/{extension[1:]}/{filename}"
 
 def _resource_directory_path(file_details, filename):
     """
