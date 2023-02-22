@@ -297,6 +297,7 @@ class CreateOrganization(Output, graphene.Mutation):
             address=organization_data.address,
             state=geography_obj,
             organization_subtypes=organization_data.gov_sub_type,
+            cdo_notification=organization_data.cdo_notification,
         )
         organization_additional_info_instance.save()
 
