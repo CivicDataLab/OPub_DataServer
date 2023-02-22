@@ -73,6 +73,7 @@ class GeoTypes(models.TextChoices):
     DISTRICT = "DISTRICT"
     STATE = "STATE"
     COUNTRY = "COUNTRY"
+    UT      = "UT"
 
 class DataType(models.TextChoices):
     API = "API"
