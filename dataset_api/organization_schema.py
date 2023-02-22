@@ -17,7 +17,12 @@ from .decorators import (
     get_user_org,
     get_child_orgs_dpa,
 )
-from .enums import OrganizationTypes, OrganizationCreationStatusType, RatingStatus
+from .enums import (
+    OrganizationTypes,
+    OrganizationCreationStatusType,
+    RatingStatus,
+    OrganizationSubTypes,
+)
 from .file_utils import file_validation
 from .models import (
     Organization,
@@ -29,6 +34,7 @@ from .models import (
     DatasetAccessModelRequest,
     DatasetAccessModel,
     DataAccessModel,
+    Geography,
 )
 
 from .utils import get_client_ip, get_average_rating, log_activity
@@ -99,14 +105,16 @@ class OrganizationType(DjangoObjectType):
                 Q(access_model_id__dataset_id__catalog__organization=self.id),
                 Q(access_model_id__dataset__status__exact="PUBLISHED"),
             )
-                .values_list("user")
-                .distinct()
-                .count()
+            .values_list("user")
+            .distinct()
+            .count()
         )
         return user_count
-    
+
     def resolve_dam_count(self, info):
-        org_datasets = Dataset.objects.filter(catalog__organization=self.id, status="PUBLISHED")
+        org_datasets = Dataset.objects.filter(
+            catalog__organization=self.id, status="PUBLISHED"
+        )
         dam_count = DatasetAccessModel.objects.filter(dataset__in=org_datasets).count()
         return dam_count
 
@@ -126,6 +134,10 @@ class Query(graphene.ObjectType):
     organization_without_dpa = graphene.List(
         OrganizationType, organization_id=graphene.Int()
     )
+    ministries_by_state = graphene.List(OrganizationType, state=graphene.String())
+    dept_by_ministry = graphene.List(
+        OrganizationType, state=graphene.String(), organization_id=graphene.Int()
+    )
 
     # TODO: Allow all org list for PMU? Current State -- YES
     @auth_user_by_org(action="query")
@@ -142,7 +154,7 @@ class Query(graphene.ObjectType):
             return Organization.objects.get(pk=organization_id)
         else:
             raise GraphQLError("Access Denied")
-    
+
     # Access : PMU or DPA of that org.
     @auth_user_by_org(action="query")
     @get_child_orgs_dpa
@@ -185,6 +197,20 @@ class Query(graphene.ObjectType):
             organizationcreaterequest__organization_ptr_id__in=org_ids
         ).order_by("-modified")
 
+    def resolve_ministries_by_state(self, info, state):
+        state_obj = Geography.objects.get(name=state)
+        return Organization.objects.filter(
+            organizationcreaterequest__organization_subtypes="MINISTRY",
+            organizationcreaterequest__state=state_obj,
+        )
+
+    def resolve_dept_by_ministry(self, info, state, organization_id):
+        state_obj = Geography.objects.get(name=state)
+        return Organization.objects.filter(
+            parent_id=organization_id,
+            organizationcreaterequest__state=state_obj,
+        )
+
 
 class OrganizationInput(graphene.InputObjectType):
     id = graphene.ID()
@@ -200,6 +226,10 @@ class OrganizationInput(graphene.InputObjectType):
     dpa_email = graphene.String(required=False)
     parent_id = graphene.ID(required=False)
     address = graphene.String(required=False)
+    state = graphene.String(required=False)
+    gov_sub_type = graphene.Enum.from_enum(OrganizationSubTypes)(required=True)
+    cdo_notification = Upload(required=False)
+
 
 class OrganizationPatchInput(graphene.InputObjectType):
     id = graphene.ID()
@@ -226,47 +256,60 @@ class CreateOrganization(Output, graphene.Mutation):
     @staticmethod
     @validate_token
     @create_user_org
-    def mutate(root, info, username, organization_data: OrganizationInput = None):
-        try:
-            OrganizationCreateRequest.objects.get(
-                Q(organization_ptr_id__title__iexact=organization_data.title),
-                Q(status="APPROVED"),
-            )
-            raise GraphQLError("Organization with given name already exists.")
-        except Organization.DoesNotExist:
-            # try:
-            #     OrganizationCreateRequest.objects.get(
-            #         Q(organization_ptr_id__title__iexact=organization_data.title),
-            #         Q(username=username),
-            #     )
-            #     raise GraphQLError("You have already requested for this Organization.")
-            # except Organization.DoesNotExist:
-            organization_additional_info_instance = OrganizationCreateRequest(
-                title=organization_data.title,
-                description=organization_data.description,
-                logo=organization_data.logo,
-                contact_email=organization_data.contact,
-                homepage=organization_data.homepage,
-                organization_types=organization_data.organization_types,
-                upload_sample_data_file=organization_data.upload_sample_data_file,
-                data_description=organization_data.data_description,
-                sample_data_url=organization_data.sample_data_url,
-                status=OrganizationCreationStatusType.APPROVED.value,
-                username=username,
-                dpa_email=organization_data.dpa_email,
-                parent_id=organization_data.parent_id,
-                address=organization_data.address,
-            )
-            organization_additional_info_instance.save()
-            
-            # Create catalog.
-            catalog_instance = Catalog(
-                title=organization_additional_info_instance.title,
-                description=organization_additional_info_instance.description,
-                organization=organization_additional_info_instance,
-            )
-            catalog_instance.save()
-            
+    def mutate(
+        root, info, username, organization_data: OrganizationInput = None
+    ):
+        # try:
+        #     OrganizationCreateRequest.objects.get(
+        #         Q(organization_ptr_id__title__iexact=organization_data.title),
+        #         Q(status="APPROVED"),
+        #     )
+        #     raise GraphQLError("Organization with given name already exists.")
+        # except Organization.DoesNotExist:
+        # try:
+        #     OrganizationCreateRequest.objects.get(
+        #         Q(organization_ptr_id__title__iexact=organization_data.title),
+        #         Q(username=username),
+        #     )
+        #     raise GraphQLError("You have already requested for this Organization.")
+        # except Organization.DoesNotExist:
+        geography_obj = None
+        if organization_data.state:
+            try:
+                geography_obj = Geography.objects.get(name=organization_data.state)
+            except Geography.DoesNotExist:
+                raise GraphQLError("Given location doesn't exists!")
+
+        organization_additional_info_instance = OrganizationCreateRequest(
+            title=organization_data.title,
+            description=organization_data.description,
+            logo=organization_data.logo,
+            contact_email=organization_data.contact,
+            homepage=organization_data.homepage,
+            organization_types=organization_data.organization_types,
+            upload_sample_data_file=organization_data.upload_sample_data_file,
+            data_description=organization_data.data_description,
+            sample_data_url=organization_data.sample_data_url,
+            status=OrganizationCreationStatusType.APPROVED.value,
+            username=username,
+            dpa_email=organization_data.dpa_email,
+            parent_id=organization_data.parent_id,
+            address=organization_data.address,
+            state=geography_obj,
+            organization_subtypes=organization_data.gov_sub_type,
+            cdo_notification=organization_data.cdo_notification,
+        )
+        organization_additional_info_instance.save()
+
+        # Create catalog.
+        catalog_instance = Catalog(
+            title=organization_additional_info_instance.title,
+            description=organization_additional_info_instance.description,
+            organization=organization_additional_info_instance,
+        )
+        catalog_instance.save()
+
+        if organization_data.logo:
             mime_type = file_validation(
                 organization_additional_info_instance.logo,
                 organization_additional_info_instance.logo,
@@ -275,25 +318,24 @@ class CreateOrganization(Output, graphene.Mutation):
             if not mime_type:
                 organization_additional_info_instance.delete()
                 raise GraphQLError("Unsupported Logo Format")
-            # mime_type = magic.from_file(organization_additional_info_instance.logo.path, mime=True)
-            # mime_type = mimetypes.guess_type(
-            #     organization_additional_info_instance.logo.path
-            # )
-            logo_format = IMAGE_FORMAT_MAPPING.get(mime_type.lower())
-            if not logo_format:
-                organization_additional_info_instance.delete()
-                raise GraphQLError("Unsupported Logo Format")
+            else:
+                logo_format = IMAGE_FORMAT_MAPPING.get(mime_type.lower())
+                if not logo_format:
+                    organization_additional_info_instance.delete()
+                    raise GraphQLError("Unsupported Logo Format")
+        # mime_type = magic.from_file(organization_additional_info_instance.logo.path, mime=True)
+        # mime_type = mimetypes.guess_type(
+        #     organization_additional_info_instance.logo.path
+        # )
 
-            log_activity(
-                target_obj=organization_additional_info_instance,
-                ip=get_client_ip(info),
-                username=username,
-                target_group=organization_additional_info_instance,
-                verb=OrganizationCreationStatusType.APPROVED.value,
-            )
-            return CreateOrganization(
-                organization=organization_additional_info_instance
-            )
+        log_activity(
+            target_obj=organization_additional_info_instance,
+            ip=get_client_ip(info),
+            username=username,
+            target_group=organization_additional_info_instance,
+            verb=OrganizationCreationStatusType.APPROVED.value,
+        )
+        return CreateOrganization(organization=organization_additional_info_instance)
 
 
 class UpdateOrganization(Output, graphene.Mutation):
@@ -343,15 +385,15 @@ class UpdateOrganization(Output, graphene.Mutation):
             organization_data.upload_sample_data_file
         )
         organization_create_request_instance.save()
-        
+
         log_activity(
-                target_obj=organization_create_request_instance,
-                ip=get_client_ip(info),
-                username=username,
-                target_group=organization_create_request_instance,
-                verb="Updated",
-            )
-        
+            target_obj=organization_create_request_instance,
+            ip=get_client_ip(info),
+            username=username,
+            target_group=organization_create_request_instance,
+            verb="Updated",
+        )
+
         return UpdateOrganization(organization=organization_create_request_instance)
 
 
@@ -367,10 +409,10 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     @auth_user_by_org(action="approve_organization")
     @modify_org_status
     def mutate(
-            root,
-            info,
-            username,
-            organization_data: ApproveRejectOrganizationApprovalInput = None,
+        root,
+        info,
+        username,
+        organization_data: ApproveRejectOrganizationApprovalInput = None,
     ):
         try:
             organization_create_request_instance = (
