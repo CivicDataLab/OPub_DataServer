@@ -45,6 +45,7 @@ def index_data(dataset_obj):
         "highlights": dataset_obj.highlights or [],
         "download_count": dataset_obj.download_count,
         "average_rating": get_average_rating(dataset_obj),
+        "hvd_rating": dataset_obj.hvd_rating,
     }
 
     geography = dataset_obj.geography.all()
