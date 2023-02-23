@@ -68,6 +68,7 @@ class OrganizationSubTypes(models.TextChoices):
     MINISTRY = "MINISTRY"
     DEPARTMENT = "DEPARTMENT"
     ORGANISATION = "ORGANISATION"
+    OTHER  = "OTHER"
 
 class GeoTypes(models.TextChoices):
     DISTRICT = "DISTRICT"
