@@ -227,7 +227,7 @@ class OrganizationInput(graphene.InputObjectType):
     parent_id = graphene.ID(required=False)
     address = graphene.String(required=False)
     state = graphene.String(required=False)
-    gov_sub_type = graphene.Enum.from_enum(OrganizationSubTypes)(required=True)
+    gov_sub_type = graphene.Enum.from_enum(OrganizationSubTypes)(required=False)
     cdo_notification = Upload(required=False)
 
 

@@ -22,6 +22,7 @@ import dataset_api.aggrements.schema
 import dataset_api.license_addition.license_addition_schema
 import dataset_api.dataset.subscribe
 import dataset_api.dataset.dataset_edit
+import dataset_api.policy.schema
 import activity_log.activity_schema
 
 
@@ -38,6 +39,7 @@ class Query(dataset_api.dataset.schema.Query, dataset_api.organization_schema.Qu
             activity_log.activity_schema.Query,
             dataset_api.license_addition.license_addition_schema.Query,
             dataset_api.dataset.subscribe.Query,
+            dataset_api.policy.schema.Query,
             graphene.ObjectType):
     pass
 
@@ -55,6 +57,7 @@ class Mutation(dataset_api.dataset.schema.Mutation, dataset_api.organization_sch
                dataset_api.license_addition.license_addition_schema.Mutation,
                dataset_api.dataset.subscribe.Mutation,
                dataset_api.dataset.dataset_edit.Mutation,
+               dataset_api.policy.schema.Mutation,
                graphene.ObjectType):
     pass
 
