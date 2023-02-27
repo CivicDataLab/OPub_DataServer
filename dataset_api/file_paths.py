@@ -77,6 +77,14 @@ def _license_directory_path(license, filename):
     _, extension = os.path.splitext(filename)
     return f"files/info/{license_name}/{extension[1:]}/{filename}"
 
+def _policy_directory_path(policy, filename):
+    """
+    Create a directory path to upload license files.
+
+    """
+    policy_name = policy.title
+    _, extension = os.path.splitext(filename)
+    return f"files/info/{policy_name}/{extension[1:]}/{filename}"
 
 def _data_request_directory_path(request, filename):
     """

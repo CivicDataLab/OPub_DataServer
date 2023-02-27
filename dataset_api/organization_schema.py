@@ -227,7 +227,7 @@ class OrganizationInput(graphene.InputObjectType):
     parent_id = graphene.ID(required=False)
     address = graphene.String(required=False)
     state = graphene.String(required=False)
-    gov_sub_type = graphene.Enum.from_enum(OrganizationSubTypes)(required=True)
+    gov_sub_type = graphene.Enum.from_enum(OrganizationSubTypes)(required=False)
     cdo_notification = Upload(required=False)
 
 
@@ -372,6 +372,8 @@ class UpdateOrganization(Output, graphene.Mutation):
         organization_create_request_instance.contact_email = organization_data.contact
         organization_create_request_instance.homepage = organization_data.homepage
         organization_create_request_instance.address = organization_data.address
+        organization_create_request_instance.cdo_notification = organization_data.cdo_notification
+        organization_create_request_instance.dpa_email = organization_data.dpa_email
         organization_create_request_instance.organization_types = (
             organization_data.organization_types
         )

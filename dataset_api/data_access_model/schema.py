@@ -11,7 +11,7 @@ from activity_log.signal import activity
 from ..decorators import validate_token
 from ..models.DataAccessModel import DataAccessModel
 from dataset_api.enums import SubscriptionUnits, ValidationUnits, DataAccessModelStatus
-from dataset_api.models import Organization, Agreement, Dataset
+from dataset_api.models import Organization, Agreement, Dataset, Policy
 from ..models.LicenseAddition import LicenseAddition
 from ..models.License import License
 from .contract import create_contract
@@ -90,6 +90,7 @@ class DataAccessModelInput(graphene.InputObjectType):
     description = graphene.String(required=True)
     contract = Upload(required=False)
     license = graphene.ID(required=True)
+    policy = graphene.ID(required=False)
     subscription_quota = graphene.Int(required=False)
     subscription_quota_unit = graphene.Enum.from_enum(SubscriptionUnits)(required=False)
     rate_limit = graphene.Int(required=True)
@@ -152,7 +153,10 @@ class CreateDataAccessModel(Output, graphene.Mutation):
         try:
             dam_license = License.objects.get(id=data_access_model_data.license)
         except License.DoesNotExist:
-            return {"success": False,"errors": {"id": [{"message": "License not found", "code": "404"}]},}
+            raise GraphQLError("License with given id does not exist.")
+        if data_access_model_data.policy:
+            policy_obj = Policy.objects.get(pk=data_access_model_data.policy)
+        
         data_access_model_instance = DataAccessModel(
             title=data_access_model_data.title,
             type=data_access_model_data.type,
@@ -160,6 +164,7 @@ class CreateDataAccessModel(Output, graphene.Mutation):
             organization=org_instance,
             contract=data_access_model_data.contract,
             license=dam_license,
+            policy=policy_obj if policy_obj else None,
             subscription_quota=data_access_model_data.subscription_quota,
             subscription_quota_unit=data_access_model_data.subscription_quota_unit,
             rate_limit=data_access_model_data.rate_limit,
@@ -233,6 +238,9 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
                 "success": False,
                 "errors": {"id": [{"message": str(e), "code": "404"}]},
             }
+        
+        if data_access_model_data.policy:
+            policy_obj = Policy.objects.get(pk=data_access_model_data.policy)
 
         data_access_model_instance.title = data_access_model_data.title
         data_access_model_instance.type = data_access_model_data.type
@@ -240,6 +248,7 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
         data_access_model_instance.organization = org_instance
         data_access_model_instance.contract = data_access_model_data.contract
         data_access_model_instance.license = dam_license
+        data_access_model_instance.policy=policy_obj if policy_obj else None
         data_access_model_instance.subscription_quota = data_access_model_data.subscription_quota
         data_access_model_instance.subscription_quota_unit = data_access_model_data.subscription_quota_unit
         data_access_model_instance.rate_limit = data_access_model_data.rate_limit
