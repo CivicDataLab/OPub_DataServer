@@ -40,7 +40,7 @@ class Query(graphene.ObjectType):
     def resolve_policy_by_org(self, info, **kwargs):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         organization = Organization.objects.get(id=org_id)
-        return Policy.objects.filter(data_access_model__organization=organization).order_by("-modified")
+        return Policy.objects.filter(organization=organization).order_by("-modified")
 
 
 class PolicyApproveRejectInput(graphene.InputObjectType):
