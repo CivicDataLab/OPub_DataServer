@@ -2,7 +2,7 @@ from django.db import models
 
 from dataset_api.file_paths import _policy_directory_path
 from dataset_api.policy.enums import PolicyStatus
-from dataset_api.models import Organization
+from dataset_api.models.Organization import Organization
 
 
 class Policy(models.Model):
