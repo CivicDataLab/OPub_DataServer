@@ -6,7 +6,7 @@ from graphql_auth.bases import Output
 from graphql import GraphQLError
 
 from dataset_api.models.Policy import Policy
-from dataset_api.models import DataAccessModel
+from dataset_api.models import DataAccessModel, Organization
 from .enums import PolicyStatus
 from dataset_api.utils import get_client_ip, log_activity
 from dataset_api.decorators import validate_token
@@ -22,7 +22,8 @@ class Query(graphene.ObjectType):
     approved_policy = graphene.List(PolicyType)
     policy_by_dam = graphene.List(PolicyType, dam_id=graphene.Int())
     policy_by_id = graphene.Field(PolicyType, policy_id=graphene.Int())
-
+    policy_by_org = graphene.List(PolicyType)
+    
     def resolve_all_policy(self, info, **kwargs):
         return Policy.objects.all().order_by("-modified")
 
@@ -35,6 +36,11 @@ class Query(graphene.ObjectType):
 
     def resolve_policy_by_id(self, info, policy_id):
         return Policy.objects.get(pk=policy_id)
+
+    def resolve_policy_by_org(self, info, **kwargs):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
+        organization = Organization.objects.get(id=org_id)
+        return Policy.objects.filter(data_access_model__organization=organization).order_by("-modified")
 
 
 class PolicyApproveRejectInput(graphene.InputObjectType):
@@ -82,7 +88,7 @@ class CreatePolicy(graphene.Mutation, Output):
         #     license_instance.created_organization_id = org_id
         # if role == "PMU":
         #     license_instance.status = LicenseStatus.PUBLISHED.value
-        policy_instance.status = PolicyStatus.CREATED.value
+        policy_instance.status = PolicyStatus.REQUESTED.value
         policy_instance.save()
         
         log_activity(

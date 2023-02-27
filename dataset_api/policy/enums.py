@@ -2,7 +2,7 @@ from django.db import models
 
 
 class PolicyStatus(models.TextChoices):
-    CREATED = "CREATED"
+    REQUESTED = "REQUESTED"
     REJECTED = "REJECTED"
     PUBLISHED = "PUBLISHED"
 
