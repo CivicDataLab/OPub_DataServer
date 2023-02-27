@@ -20,7 +20,7 @@ class PolicyType(DjangoObjectType):
 class Query(graphene.ObjectType):
     all_policy = graphene.List(PolicyType)
     approved_policy = graphene.List(PolicyType)
-    policy_by_dam = graphene.List(PolicyType, dam_id=graphene.Int())
+    # policy_by_dam = graphene.List(PolicyType, dam_id=graphene.Int())
     policy_by_id = graphene.Field(PolicyType, policy_id=graphene.Int())
     policy_by_org = graphene.List(PolicyType)
     
@@ -30,9 +30,9 @@ class Query(graphene.ObjectType):
     def resolve_approved_policy(self, info, **kwargs):
         return Policy.objects.filter(status=PolicyStatus.PUBLISHED.value).order_by("-modified")
 
-    def resolve_policy_by_dam(self, info, dam_id, **kwargs):
-        dam_object = DataAccessModel.objects.get(id=dam_id)
-        return Policy.objects.filter(Q(data_access_model=dam_object), Q(status=PolicyStatus.PUBLISHED.value)).order_by("-modified")
+    # def resolve_policy_by_dam(self, info, dam_id, **kwargs):
+    #     dam_object = DataAccessModel.objects.get(id=dam_id)
+    #     return Policy.objects.filter(Q(data_access_model=dam_object), Q(status=PolicyStatus.PUBLISHED.value)).order_by("-modified")
 
     def resolve_policy_by_id(self, info, policy_id):
         return Policy.objects.get(pk=policy_id)
@@ -51,7 +51,6 @@ class PolicyApproveRejectInput(graphene.InputObjectType):
 
 class PolicyInput(graphene.InputObjectType):
     id = graphene.ID(required=False)
-    dam_id = graphene.ID(required=False)
     title = graphene.String(required=True)
     description = graphene.String(required=True)
     file = Upload(required=False)
@@ -68,14 +67,16 @@ class CreatePolicy(graphene.Mutation, Output):
     @validate_token
     # @check_license_role
     def mutate(root, info, username, policy_data: PolicyInput = None):
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
         try:
-            dam_obj = DataAccessModel.objects.get(pk=policy_data.dam_id)
-        except DataAccessModel.DoesNotExist as e:
-            raise GraphQLError("Data access model with given id does not exist.")
+            organization = Organization.objects.get(id=org_id)
+        except Organization.DoesNotExist as e:
+            raise GraphQLError("Organization with given id does not exist.")
+        
         policy_instance = Policy(
             title=policy_data.title,
             description=policy_data.description,
-            data_access_model=dam_obj,
+            organization=organization,
         )
         if policy_data.file:
             policy_instance.file = policy_data.file
@@ -94,7 +95,7 @@ class CreatePolicy(graphene.Mutation, Output):
         log_activity(
             target_obj=policy_instance,
             ip=get_client_ip(info),
-            target_group=dam_obj.organization,
+            target_group=policy_instance.organization,
             username=username,
             verb=policy_instance.status,
         )
@@ -132,7 +133,7 @@ class UpdatePolicy(graphene.Mutation, Output):
         log_activity(
             target_obj=policy_instance,
             ip=get_client_ip(info),
-            target_group=policy_instance.data_access_model.organization,
+            target_group=policy_instance.organization,
             username=username,
             verb="Updated",
         )
@@ -163,7 +164,7 @@ class ApproveRejectPolicy(graphene.Mutation, Output):
         log_activity(
             target_obj=policy_instance,
             ip=get_client_ip(info),
-            target_group=policy_instance.data_access_model.organization,
+            target_group=policy_instance.organization,
             username=username,
             verb=policy_instance.status,
         )

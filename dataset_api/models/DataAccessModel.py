@@ -5,6 +5,7 @@ from dataset_api.file_paths import _contract_directory_path
 from dataset_api.models.LicenseAddition import LicenseAddition
 from dataset_api.models.License import License
 from dataset_api.models.Organization import Organization
+from dataset_api.models.Policy import Policy
 
 
 class DataAccessModel(models.Model):
@@ -26,3 +27,4 @@ class DataAccessModel(models.Model):
     status = models.CharField(blank=False, choices=DataAccessModelStatus.choices, max_length=50,
                               default=DataAccessModelStatus.ACTIVE.value)
     is_global = models.BooleanField(default=True)
+    policy = models.ForeignKey(Policy, on_delete=models.CASCADE, blank=True, null=True)
