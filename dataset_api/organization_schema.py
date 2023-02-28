@@ -138,7 +138,7 @@ class Query(graphene.ObjectType):
     dept_by_ministry = graphene.List(
         OrganizationType, state=graphene.String(), organization_id=graphene.Int()
     )
-    all_organizations_hierarchy = graphene.List()
+    all_organizations_hierarchy = graphene.List(graphene.String)
     
     # TODO: Allow all org list for PMU? Current State -- YES
     @auth_user_by_org(action="query")
@@ -212,21 +212,21 @@ class Query(graphene.ObjectType):
             organizationcreaterequest__state=state_obj,
         )
 
-    @auth_user_by_org(action="query")
-    def resolve_all_organizations_hierarchy(self, info, role, **kwargs):
+    #@auth_user_by_org(action="query")
+    def resolve_all_organizations_hierarchy(self, info, role="PMU", **kwargs):
         if role == "PMU":
             org_list = []
-            organizations = Organization.objects.all().order_by("-modified")
+            organizations = OrganizationCreateRequest.objects.all().order_by("-modified")
             for org in organizations:
                 if org.organization_subtypes in ["OTHER", "MINISTRY"]:
                     org_list.append({"id": org.id, "title": org.title, "parent": []})
                 if org.organization_subtypes in ["DEPARTMENT"]:
-                    org_list.append({"id": org.id, "title": org.title, "parent": [org.state, org.parent.title]})
-                if org.organization_subtypes in ["ORGANIZATION"]:
-                    temp_parent = [org.state, org.parent.parent.title if org.parent.parent else "", org.parent.title]
+                    org_list.append({"id": org.id, "title": org.title, "parent": [org.state.name, org.parent.title if org.parent  else ""]})
+                if org.organization_subtypes in ["ORGANISATION"]:
+                    temp_parent = [org.state.name, org.parent.parent.title if org.parent.parent else "", org.parent.title if org.parent else ""]
                     temp_org = {"id": org.id, "title": org.title, "parent": temp_parent}
                     org_list.append(temp_org)
-            print(org_list)
+            #print(org_list)
             return org_list
         else:
             raise GraphQLError("Access Denied")
