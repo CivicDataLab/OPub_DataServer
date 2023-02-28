@@ -10,7 +10,7 @@ from dataset_api.models import DataAccessModel, Organization
 from .enums import PolicyStatus
 from dataset_api.utils import get_client_ip, log_activity
 from dataset_api.decorators import validate_token
-from license.decorators import check_license_role
+from dataset_api.license.decorators import check_license_role
 
 class PolicyType(DjangoObjectType):
     class Meta:
