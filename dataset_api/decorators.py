@@ -174,32 +174,37 @@ def auth_user_by_org(action):
 def create_user_org(func):
     def inner(*args, **kwargs):
         value = func(*args, **kwargs)
-        org_id = value.organization.id
-        org_title = value.organization.title
-        org_parent = value.organization.parent_id
-        user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
-        # body = json.dumps(
-        #     {
-        #         "access_token": user_token,
-        #         "org_id": org_id,
-        #         "org_title": org_title,
-        #     }
-        # )
-        # response_json = request_to_server(body, "create_user_role")
-        tgt_user_email = value.organization.dpa_email
-        body = json.dumps(
-            {
-                "access_token": user_token,
-                "org_id": org_id,
-                "org_title": org_title,
-                "tgt_user_email": tgt_user_email,
-                "org_parent_id": org_parent if org_parent else "",
-                "role_name": "DPA",
-                "action": "update",
-            }
-        )
-        response_json = request_to_server(body, "update_user_role")
-        if response_json["Success"]:
+        if value.organization.dpa_email:
+            org_id = value.organization.id
+            org_title = value.organization.title
+            org_parent = value.organization.parent_id
+            user_token = args[1].context.META.get("HTTP_AUTHORIZATION")
+            # body = json.dumps(
+            #     {
+            #         "access_token": user_token,
+            #         "org_id": org_id,
+            #         "org_title": org_title,
+            #     }
+            # )
+            # response_json = request_to_server(body, "create_user_role")
+            tgt_user_email = value.organization.dpa_email
+            body = json.dumps(
+                {
+                    "access_token": user_token,
+                    "org_id": org_id,
+                    "org_title": org_title,
+                    "tgt_user_email": tgt_user_email,
+                    "org_parent_id": org_parent if org_parent else "",
+                    "role_name": "DPA",
+                    "action": "update",
+                }
+            )
+            response_json = request_to_server(body, "update_user_role")
+            if response_json["Success"]:
+                return value
+            else:
+                return GraphQLError(response_json["error_description"])
+        else:
             return value
 
     return inner

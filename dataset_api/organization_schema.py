@@ -138,7 +138,8 @@ class Query(graphene.ObjectType):
     dept_by_ministry = graphene.List(
         OrganizationType, state=graphene.String(), organization_id=graphene.Int()
     )
-
+    all_organizations_hierarchy = graphene.List()
+    
     # TODO: Allow all org list for PMU? Current State -- YES
     @auth_user_by_org(action="query")
     def resolve_all_organizations(self, info, role, **kwargs):
@@ -211,6 +212,24 @@ class Query(graphene.ObjectType):
             organizationcreaterequest__state=state_obj,
         )
 
+    @auth_user_by_org(action="query")
+    def resolve_all_organizations_hierarchy(self, info, role, **kwargs):
+        if role == "PMU":
+            org_list = []
+            organizations = Organization.objects.all().order_by("-modified")
+            for org in organizations:
+                if org.organization_subtypes in ["OTHER", "MINISTRY"]:
+                    org_list.append({"id": org.id, "title": org.title, "parent": []})
+                if org.organization_subtypes in ["DEPARTMENT"]:
+                    org_list.append({"id": org.id, "title": org.title, "parent": [org.state, org.parent.title]})
+                if org.organization_subtypes in ["ORGANIZATION"]:
+                    temp_parent = [org.state, org.parent.parent.title if org.parent.parent else "", org.parent.title]
+                    temp_org = {"id": org.id, "title": org.title, "parent": temp_parent}
+                    org_list.append(temp_org)
+            print(org_list)
+            return org_list
+        else:
+            raise GraphQLError("Access Denied")
 
 class OrganizationInput(graphene.InputObjectType):
     id = graphene.ID()
@@ -239,7 +258,10 @@ class OrganizationPatchInput(graphene.InputObjectType):
     homepage = graphene.String(required=False)
     contact = graphene.String(required=False)
     address = graphene.String(required=False)
-
+    cdo_notification = Upload(required=False)
+    dpa_email = graphene.String(required=False)
+    dpa_designation = graphene.String(required=False)
+    dpa_phone = graphene.String(required=False)
 
 class ApproveRejectOrganizationApprovalInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
@@ -510,6 +532,7 @@ class PatchOrganization(Output, graphene.Mutation):
 
     @staticmethod
     @auth_user_by_org(action="update_organization")
+    @create_user_org
     def mutate(root, info, organization_data: OrganizationPatchInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_id = organization_data.id if organization_data.id else org_id
@@ -525,6 +548,14 @@ class PatchOrganization(Output, graphene.Mutation):
             organization_instance.homepage = organization_data.homepage
         if organization_data.logo:
             organization_instance.logo = organization_data.logo
+        if organization_data.dpa_email:
+            organization_instance.dpa_email = organization_data.dpa_email
+        if organization_data.cdo_notification:
+            organization_instance.cdo_notification = organization_data.cdo_notification
+        if organization_data.dpa_designation:
+            organization_instance.dpa_designation = organization_data.dpa_designation
+        if organization_data.dpa_phone:
+            organization_instance.dpa_phone = organization_data.dpa_phone
         organization_instance.save()
 
         return PatchOrganization(organization=organization_instance)
