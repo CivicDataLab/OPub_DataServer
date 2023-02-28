@@ -241,6 +241,8 @@ class OrganizationPatchInput(graphene.InputObjectType):
     address = graphene.String(required=False)
     cdo_notification = Upload(required=False)
     dpa_email = graphene.String(required=False)
+    dpa_designation = graphene.String(required=False)
+    dpa_phone = graphene.String(required=False)
 
 class ApproveRejectOrganizationApprovalInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
@@ -531,6 +533,10 @@ class PatchOrganization(Output, graphene.Mutation):
             organization_instance.dpa_email = organization_data.dpa_email
         if organization_data.cdo_notification:
             organization_instance.cdo_notification = organization_data.cdo_notification
+        if organization_data.dpa_designation:
+            organization_instance.dpa_designation = organization_data.dpa_designation
+        if organization_data.dpa_phone:
+            organization_instance.dpa_phone = organization_data.dpa_phone
         organization_instance.save()
 
         return PatchOrganization(organization=organization_instance)
