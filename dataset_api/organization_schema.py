@@ -138,7 +138,8 @@ class Query(graphene.ObjectType):
     dept_by_ministry = graphene.List(
         OrganizationType, state=graphene.String(), organization_id=graphene.Int()
     )
-
+    all_organizations_hierarchy = graphene.List()
+    
     # TODO: Allow all org list for PMU? Current State -- YES
     @auth_user_by_org(action="query")
     def resolve_all_organizations(self, info, role, **kwargs):
@@ -211,6 +212,24 @@ class Query(graphene.ObjectType):
             organizationcreaterequest__state=state_obj,
         )
 
+    @auth_user_by_org(action="query")
+    def resolve_all_organizations_hierarchy(self, info, role, **kwargs):
+        if role == "PMU":
+            org_list = []
+            organizations = Organization.objects.all().order_by("-modified")
+            for org in organizations:
+                if org.organization_subtypes in ["OTHER", "MINISTRY"]:
+                    org_list.append({"id": org.id, "title": org.title, "parent": []})
+                if org.organization_subtypes in ["DEPARTMENT"]:
+                    org_list.append({"id": org.id, "title": org.title, "parent": [org.state, org.parent.title]})
+                if org.organization_subtypes in ["ORGANIZATION"]:
+                    temp_parent = [org.state, org.parent.parent.title if org.parent.parent else "", org.parent.title]
+                    temp_org = {"id": org.id, "title": org.title, "parent": temp_parent}
+                    org_list.append(temp_org)
+            print(org_list)
+            return org_list
+        else:
+            raise GraphQLError("Access Denied")
 
 class OrganizationInput(graphene.InputObjectType):
     id = graphene.ID()
