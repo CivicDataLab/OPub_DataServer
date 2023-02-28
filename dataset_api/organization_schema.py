@@ -239,7 +239,8 @@ class OrganizationPatchInput(graphene.InputObjectType):
     homepage = graphene.String(required=False)
     contact = graphene.String(required=False)
     address = graphene.String(required=False)
-
+    cdo_notification = Upload(required=False)
+    dpa_email = graphene.String(required=False)
 
 class ApproveRejectOrganizationApprovalInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
@@ -510,6 +511,7 @@ class PatchOrganization(Output, graphene.Mutation):
 
     @staticmethod
     @auth_user_by_org(action="update_organization")
+    @create_user_org
     def mutate(root, info, organization_data: OrganizationPatchInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_id = organization_data.id if organization_data.id else org_id
@@ -525,6 +527,10 @@ class PatchOrganization(Output, graphene.Mutation):
             organization_instance.homepage = organization_data.homepage
         if organization_data.logo:
             organization_instance.logo = organization_data.logo
+        if organization_data.dpa_email:
+            organization_instance.dpa_email = organization_data.dpa_email
+        if organization_data.cdo_notification:
+            organization_instance.cdo_notification = organization_data.cdo_notification
         organization_instance.save()
 
         return PatchOrganization(organization=organization_instance)
