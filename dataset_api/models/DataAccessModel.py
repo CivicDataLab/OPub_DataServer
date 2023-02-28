@@ -27,4 +27,3 @@ class DataAccessModel(models.Model):
     status = models.CharField(blank=False, choices=DataAccessModelStatus.choices, max_length=50,
                               default=DataAccessModelStatus.ACTIVE.value)
     is_global = models.BooleanField(default=True)
-    policy = models.ForeignKey(Policy, on_delete=models.CASCADE, blank=True, null=True)
