@@ -227,8 +227,8 @@ class Query(graphene.ObjectType):
             organizationcreaterequest__state=state_obj,
         )
 
-    #@auth_user_by_org(action="query")
-    def resolve_all_organizations_hierarchy(self, info, role="PMU", **kwargs):
+    @auth_user_by_org(action="query")
+    def resolve_all_organizations_hierarchy(self, info, role, **kwargs):
         if role == "PMU":
             org_list = []
             organizations = OrganizationCreateRequest.objects.all().order_by("-modified")
@@ -275,6 +275,7 @@ class OrganizationPatchInput(graphene.InputObjectType):
     address = graphene.String(required=False)
     cdo_notification = Upload(required=False)
     dpa_email = graphene.String(required=False)
+    dpa_name = graphene.String(required=False)
     dpa_designation = graphene.String(required=False)
     dpa_phone = graphene.String(required=False)
 
@@ -571,6 +572,8 @@ class PatchOrganization(Output, graphene.Mutation):
             organization_instance.dpa_designation = organization_data.dpa_designation
         if organization_data.dpa_phone:
             organization_instance.dpa_phone = organization_data.dpa_phone
+        if organization_data.dpa_name:
+            organization_instance.dpa_name = organization_data.dpa_name
         organization_instance.save()
 
         return PatchOrganization(organization=organization_instance)
