@@ -118,6 +118,10 @@ class OrganizationType(DjangoObjectType):
         dam_count = DatasetAccessModel.objects.filter(dataset__in=org_datasets).count()
         return dam_count
 
+class OrgItem(graphene.ObjectType):
+    org_id    = graphene.String()
+    title     = graphene.String()
+    parent    = graphene.List(graphene.String)
 
 class Query(graphene.ObjectType):
     all_organizations = graphene.List(OrganizationType)
@@ -139,7 +143,7 @@ class Query(graphene.ObjectType):
     dept_by_ministry = graphene.List(
         OrganizationType, state=graphene.String(), organization_id=graphene.Int()
     )
-    all_organizations_hierarchy = graphene.List(graphene.String)
+    all_organizations_hierarchy = graphene.List(OrgItem)
     
     # TODO: Allow all org list for PMU? Current State -- YES
     @auth_user_by_org(action="query")
@@ -234,14 +238,13 @@ class Query(graphene.ObjectType):
             organizations = OrganizationCreateRequest.objects.all().order_by("-modified")
             for org in organizations:
                 if org.organization_subtypes in ["OTHER", "MINISTRY"]:
-                    org_list.append({"id": org.id, "title": org.title, "parent": ["", "", ""]})
+                    org_list.append(OrgItem(org.id, org.title, ["", "", ""]))
                 if org.organization_subtypes in ["DEPARTMENT"]:
-                    org_list.append({"id": org.id, "title": org.title, "parent": [org.state.name if org.state else "", "", org.parent.title if org.parent  else ""]})
+                    org_list.append(OrgItem(org.id, org.title, [org.state.name if org.state else "", "", org.parent.title if org.parent  else ""]))
                 if org.organization_subtypes in ["ORGANISATION"]:
                     temp_parent = [org.state.name if org.state else "", org.parent.parent.title if org.parent.parent else "", org.parent.title if org.parent else ""]
-                    temp_org = {"id": org.id, "title": org.title, "parent": temp_parent}
+                    temp_org = OrgItem(org.id, org.title, temp_parent)
                     org_list.append(temp_org)
-            #print(org_list)
             return org_list
         else:
             raise GraphQLError("Access Denied")
