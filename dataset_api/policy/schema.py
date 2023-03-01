@@ -10,6 +10,7 @@ from dataset_api.models import DataAccessModel, Organization
 from .enums import PolicyStatus
 from dataset_api.utils import get_client_ip, log_activity
 from dataset_api.decorators import validate_token
+from dataset_api.license.decorators import check_license_role
 
 class PolicyType(DjangoObjectType):
     class Meta:
@@ -65,31 +66,35 @@ class CreatePolicy(graphene.Mutation, Output):
 
     @staticmethod
     @validate_token
-    # @check_license_role
-    def mutate(root, info, username, policy_data: PolicyInput = None):
-        org_id = info.context.META.get("HTTP_ORGANIZATION")
-        try:
-            organization = Organization.objects.get(id=org_id)
-        except Organization.DoesNotExist as e:
-            raise GraphQLError("Organization with given id does not exist.")
+    @check_license_role(action="create_policy")
+    def mutate(root, info, role, username, policy_data: PolicyInput = None):
+        # org_id = info.context.META.get("HTTP_ORGANIZATION")
+        # try:
+        #     organization = Organization.objects.get(id=org_id)
+        # except Organization.DoesNotExist as e:
+        #     raise GraphQLError("Organization with given id does not exist.")
         
         policy_instance = Policy(
             title=policy_data.title,
             description=policy_data.description,
-            organization=organization,
         )
         if policy_data.file:
             policy_instance.file = policy_data.file
         if policy_data.remote_url:
             policy_instance.remote_url = policy_data.remote_url
-        # if role == "DPA":
-        #     license_instance.status = LicenseStatus.CREATED.value
-        #     org_id = info.context.META.get("HTTP_ORGANIZATION")
-        #     organization = Organization.objects.get(id=org_id)
-        #     license_instance.created_organization_id = org_id
-        # if role == "PMU":
-        #     license_instance.status = LicenseStatus.PUBLISHED.value
-        policy_instance.status = PolicyStatus.REQUESTED.value
+        
+        if role == "DPA":
+            policy_instance.status = PolicyStatus.REQUESTED.value
+            org_id = info.context.META.get("HTTP_ORGANIZATION")
+            try:
+                organization = Organization.objects.get(id=org_id)
+            except Organization.DoesNotExist as e:
+                raise GraphQLError("Organization with given id does not exist.")
+            organization = Organization.objects.get(id=org_id)
+            policy_instance.organization = organization
+        if role == "PMU":
+            policy_instance.status = PolicyStatus.PUBLISHED.value
+        
         policy_instance.save()
         
         log_activity(
@@ -110,8 +115,8 @@ class UpdatePolicy(graphene.Mutation, Output):
 
     @staticmethod
     @validate_token
-    # @check_license_role
-    def mutate(root, info, username, policy_data: PolicyInput = None):
+    @check_license_role(action="create_policy")
+    def mutate(root, info, role, username, policy_data: PolicyInput = None):
         try:
             policy_instance = Policy.objects.get(pk=policy_data.id)
         except Policy.DoesNotExist as e:
@@ -124,10 +129,10 @@ class UpdatePolicy(graphene.Mutation, Output):
             policy_instance.file = policy_data.file
         if policy_data.remote_url:
             policy_instance.remote_url = policy_data.remote_url
-        # if role == "DPA":
-        #     policy_instance.status = LicenseStatus.CREATED.value
-        # if role == "PMU":
-        #     policy_instance.status = LicenseStatus.PUBLISHED.value
+        if role == "DPA":
+            policy_instance.status = PolicyStatus.REQUESTED.value
+        if role == "PMU":
+            policy_instance.status = PolicyStatus.PUBLISHED.value
         policy_instance.save()
         
         log_activity(
@@ -149,27 +154,30 @@ class ApproveRejectPolicy(graphene.Mutation, Output):
 
     @staticmethod
     @validate_token
-    # @auth_user_by_org(action="approve_license")
-    def mutate(root, info, username, policy_data: PolicyApproveRejectInput = None):
-        try:
-            policy_instance = Policy.objects.get(pk=policy_data.id)
-        except Policy.DoesNotExist as e:
-            raise GraphQLError("Policy with given id does not exist.")
-        
-        policy_instance.status = policy_data.status
-        if policy_data.reject_reason:
-            policy_instance.reject_reason = policy_data.reject_reason
-        policy_instance.save()
-        
-        log_activity(
-            target_obj=policy_instance,
-            ip=get_client_ip(info),
-            target_group=policy_instance.organization,
-            username=username,
-            verb=policy_instance.status,
-        )
-        
-        return ApproveRejectPolicy(policy=policy_instance)
+    @check_license_role(action="create_policy")
+    def mutate(root, info, role, username, policy_data: PolicyApproveRejectInput = None):
+        if role == "PMU":
+            try:
+                policy_instance = Policy.objects.get(pk=policy_data.id)
+            except Policy.DoesNotExist as e:
+                raise GraphQLError("Policy with given id does not exist.")
+            
+            policy_instance.status = policy_data.status
+            if policy_data.reject_reason:
+                policy_instance.reject_reason = policy_data.reject_reason
+            policy_instance.save()
+            
+            log_activity(
+                target_obj=policy_instance,
+                ip=get_client_ip(info),
+                target_group=policy_instance.organization,
+                username=username,
+                verb=policy_instance.status,
+            )
+            
+            return ApproveRejectPolicy(policy=policy_instance)
+        else:
+            raise GraphQLError("Access Denied.")
 
 
 class DeletePolicy(graphene.Mutation, Output):
@@ -181,7 +189,7 @@ class DeletePolicy(graphene.Mutation, Output):
     # resource = graphene.Field(ResourceType)
 
     @staticmethod
-    # @check_license_role
+    @check_license_role("create_policy")
     def mutate(root, info, policy_id: graphene.ID):
         policy_instance = Policy.objects.get(id=policy_id)
         policy_instance.delete()

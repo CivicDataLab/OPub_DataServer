@@ -24,3 +24,6 @@ class OrganizationCreateRequest(Organization):
     address = models.CharField(default="", blank=True, null=True, max_length=500)
     state = models.ForeignKey(Geography, on_delete=models.PROTECT, default='', null=True)
     organization_subtypes = models.CharField(max_length=20, choices=OrganizationSubTypes.choices, blank=True, null=True, default='')
+    dpa_name = models.CharField(default="", blank=True, null=True, max_length=200)
+    dpa_designation = models.CharField(default="", blank=True, null=True, max_length=200)
+    dpa_phone = models.CharField(default="", blank=True, null=True, max_length=15)

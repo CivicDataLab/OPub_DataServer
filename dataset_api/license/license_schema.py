@@ -83,7 +83,7 @@ class CreateLicense(graphene.Mutation, Output):
 
     @staticmethod
     @validate_token_or_none
-    @check_license_role
+    @check_license_role(action="create_license")
     def mutate(root, info, role, username, license_data: LicenseInput = None):
 
         license_instance = License(
@@ -125,7 +125,7 @@ class UpdateLicense(graphene.Mutation, Output):
 
     @staticmethod
     @validate_token_or_none
-    @check_license_role
+    @check_license_role(action="create_license")
     def mutate(root, info, role, username, license_data: LicenseInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         try:
@@ -225,7 +225,7 @@ class DeleteLicense(graphene.Mutation, Output):
     # resource = graphene.Field(ResourceType)
 
     @staticmethod
-    @check_license_role
+    @check_license_role(action="create_license")
     def mutate(root, info, license_id: graphene.ID):
         license_instance = License.objects.get(id=license_id)
         license_instance.delete()

@@ -6,7 +6,7 @@ from graphql import GraphQLError
 from graphql_auth.bases import Output
 
 from dataset_api.models import DataAccessModel, ResourceSchema
-from dataset_api.models import Dataset, Resource
+from dataset_api.models import Dataset, Resource, Policy
 from dataset_api.models import DatasetAccessModel
 from dataset_api.models import DatasetAccessModelResource
 from .decorators import auth_action_dam_resource
@@ -53,6 +53,7 @@ class AccessModelResourceInput(graphene.InputObjectType):
     resource_map: Iterable = graphene.List(of_type=ResourceFieldInput, required=True)
     access_model_id = graphene.ID(required=True)
     dataset_id = graphene.ID(required=True)
+    policy_id = graphene.ID(required=False)
 
 
 class DeleteAccessModelResourceInput(graphene.InputObjectType):
@@ -76,10 +77,11 @@ class CreateAccessModelResource(Output, graphene.Mutation):
             dataset_instance = Dataset.objects.get(
                 id=access_model_resource_data.dataset_id
             )
-
+            policy_instance = Policy.objects.get(pk=access_model_resource_data.policy_id)
+            
             dataset_access_model = DatasetAccessModel(
                 data_access_model=data_access_instance, dataset=dataset_instance,
-                title=access_model_resource_data.title,
+                title=access_model_resource_data.title, policy=policy_instance,
             )
 
             dataset_access_model.save()
@@ -137,6 +139,7 @@ class CreateAccessModelResource(Output, graphene.Mutation):
                     "id": [{"message": "Access Model id not found", "code": "404"}]
                 },
             }
+        raise GraphQLError("Policy with given id does not exist.")
 
 
 class UpdateAccessModelResource(Output, graphene.Mutation):
