@@ -134,6 +134,7 @@ class Query(graphene.ObjectType):
     organization_without_dpa = graphene.List(
         OrganizationType, organization_id=graphene.Int()
     )
+    entity_by_state = graphene.List(OrganizationType, state=graphene.String(), entity_type=graphene.String(), parent_id=graphene.String())
     ministries_by_state = graphene.List(OrganizationType, state=graphene.String())
     dept_by_ministry = graphene.List(
         OrganizationType, state=graphene.String(), organization_id=graphene.Int()
@@ -205,7 +206,21 @@ class Query(graphene.ObjectType):
             organizationcreaterequest__state=state_obj,
         )
 
-    def resolve_dept_by_ministry(self, info, state, organization_id):
+    def resolve_entity_by_state(self, info, state, entity_type, parent_id):
+        state_obj = Geography.objects.get(name=state)
+        if not parent_id:
+            return Organization.objects.filter(
+                organizationcreaterequest__organization_subtypes=entity_type,
+                organizationcreaterequest__state=state_obj,
+                )
+        else: 
+            return Organization.objects.filter(
+                organizationcreaterequest__organization_subtypes=entity_type,
+                organizationcreaterequest__state=state_obj,
+                parent_id=parent_id,
+                )
+
+    def rnsolve_dept_by_ministry(self, info, state, organization_id):
         state_obj = Geography.objects.get(name=state)
         return Organization.objects.filter(
             parent_id=organization_id,
@@ -219,11 +234,11 @@ class Query(graphene.ObjectType):
             organizations = OrganizationCreateRequest.objects.all().order_by("-modified")
             for org in organizations:
                 if org.organization_subtypes in ["OTHER", "MINISTRY"]:
-                    org_list.append({"id": org.id, "title": org.title, "parent": []})
+                    org_list.append({"id": org.id, "title": org.title, "parent": ["", "", ""]})
                 if org.organization_subtypes in ["DEPARTMENT"]:
-                    org_list.append({"id": org.id, "title": org.title, "parent": [org.state.name, org.parent.title if org.parent  else ""]})
+                    org_list.append({"id": org.id, "title": org.title, "parent": [org.state.name if org.state else "", "", org.parent.title if org.parent  else ""]})
                 if org.organization_subtypes in ["ORGANISATION"]:
-                    temp_parent = [org.state.name, org.parent.parent.title if org.parent.parent else "", org.parent.title if org.parent else ""]
+                    temp_parent = [org.state.name if org.state else "", org.parent.parent.title if org.parent.parent else "", org.parent.title if org.parent else ""]
                     temp_org = {"id": org.id, "title": org.title, "parent": temp_parent}
                     org_list.append(temp_org)
             #print(org_list)
