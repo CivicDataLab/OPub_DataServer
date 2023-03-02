@@ -370,7 +370,10 @@ class CreateOrganization(Output, graphene.Mutation):
         # )
 
         # Send email notification to the desired entities.
-        org_create_notif(username, organization_additional_info_instance)
+        try:
+            org_create_notif(username, organization_additional_info_instance)
+        except Exception as e:
+            print(str(e))
 
         log_activity(
             target_obj=organization_additional_info_instance,
@@ -584,7 +587,10 @@ class PatchOrganization(Output, graphene.Mutation):
         organization_instance.save()
 
         # Send email notification to the desired entities.
-        register_dpa_notif(username, organization_instance)
+        try:
+            register_dpa_notif(username, organization_instance)
+        except Exception as e:
+            print(str(e))
         
         return PatchOrganization(organization=organization_instance)
 

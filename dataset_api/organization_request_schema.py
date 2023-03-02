@@ -93,7 +93,10 @@ class OrganizationRequestMutation(graphene.Mutation, Output):
         organization.save()
         
         # Send email notification to the desired entities.
-        register_dp_notif(username, organization_request_instance)
+        try:
+            register_dp_notif(username, organization_request_instance)
+        except Exception as e:
+            print(str(e))            
         
         return OrganizationRequestMutation(
             organization_request=organization_request_instance

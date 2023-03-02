@@ -18,7 +18,7 @@ COPY requirements.txt /code/
 COPY manage.py /code/
 COPY dataset_api /code/dataset_api/
 COPY DatasetServer /code/DatasetServer/
-COPY templates /code/templates/
+# COPY templates /code/templates/
 COPY activity_log /code/activity_log/
 RUN pip install -r requirements.txt
 #RUN python manage.py migrate

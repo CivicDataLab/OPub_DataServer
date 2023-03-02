@@ -436,7 +436,10 @@ class ApproveRejectDataAccessModelRequest(graphene.Mutation, Output):
         data_access_model_request_instance.save()
 
         # Send email notification to the desired entities.
-        data_access_approval_notif(username, data_access_model_request_instance)
+        try:
+            data_access_approval_notif(username, data_access_model_request_instance)
+        except Exception as e:
+            print(str(e))
         
         log_activity(
             target_obj=data_access_model_request_instance,
