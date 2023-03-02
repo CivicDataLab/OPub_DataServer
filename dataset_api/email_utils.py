@@ -24,7 +24,7 @@ def org_create_notif(username, org_obj):
         "actor": username,
         "action": "Created",
         "tgt_obj": org_obj.title,
-        "tgt_group": "Organization",
+        "tgt_group": "Entity",
         "extras": {"tgt_org": org_obj.id, "action_name": "register entity"},
     }
     headers = {}
@@ -38,7 +38,7 @@ def register_dpa_notif(username, org_obj):
         "actor": username,
         "action": "Added DPA",
         "tgt_obj": org_obj.title,
-        "tgt_group": "Organization",
+        "tgt_group": "to Entity",
         "extras": {
             "tgt_org": org_obj.id,
             "action_name": "add dpa",
@@ -57,7 +57,7 @@ def register_dp_notif(username, org_req_obj):
         "actor": username,
         "action": "Added DP",
         "tgt_obj": org_req_obj.organization.title,
-        "tgt_group": "Organization",
+        "tgt_group": "to Entity",
         "extras": {
             "tgt_org": org_req_obj.organization.id,
             "action_name": "add dp",
