@@ -38,7 +38,7 @@ from .models import (
 )
 
 from .utils import get_client_ip, get_average_rating, log_activity
-
+from .email_utils import register_dpa_notif, org_create_notif
 
 class CreateOrganizationType(DjangoObjectType):
     class Meta:
@@ -369,6 +369,9 @@ class CreateOrganization(Output, graphene.Mutation):
         #     organization_additional_info_instance.logo.path
         # )
 
+        # Send email notification to the desired entities.
+        org_create_notif(username, organization_additional_info_instance)
+
         log_activity(
             target_obj=organization_additional_info_instance,
             ip=get_client_ip(info),
@@ -550,9 +553,10 @@ class PatchOrganization(Output, graphene.Mutation):
     organization = graphene.Field(OrganizationType)
 
     @staticmethod
+    @validate_token
     @auth_user_by_org(action="update_organization")
     @create_user_org
-    def mutate(root, info, organization_data: OrganizationPatchInput = None):
+    def mutate(root, info, username, organization_data: OrganizationPatchInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_id = organization_data.id if organization_data.id else org_id
         organization_instance = Organization.objects.get(id=org_id)
@@ -579,6 +583,9 @@ class PatchOrganization(Output, graphene.Mutation):
             organization_instance.dpa_name = organization_data.dpa_name
         organization_instance.save()
 
+        # Send email notification to the desired entities.
+        register_dpa_notif(username, organization_instance)
+        
         return PatchOrganization(organization=organization_instance)
 
 

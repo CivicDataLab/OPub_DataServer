@@ -7,7 +7,7 @@ from dataset_api.decorators import validate_token, update_user_org, auth_user_by
 from dataset_api.enums import OrganizationRequestStatusType
 from dataset_api.models import Organization
 from dataset_api.models import OrganizationRequest
-
+from .email_utils import register_dp_notif
 
 class OrganizationRequestType(DjangoObjectType):
     class Meta:
@@ -91,6 +91,10 @@ class OrganizationRequestMutation(graphene.Mutation, Output):
         )
         organization_request_instance.save()
         organization.save()
+        
+        # Send email notification to the desired entities.
+        register_dp_notif(username, organization_request_instance)
+        
         return OrganizationRequestMutation(
             organization_request=organization_request_instance
         )
