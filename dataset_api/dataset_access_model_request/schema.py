@@ -24,6 +24,7 @@ from ..constants import DATAREQUEST_SWAGGER_SPEC
 from ..data_request.token_handler import create_data_refresh_token, create_data_jwt_token
 from ..models import DatasetAccessModelResource, Resource 
 from ..utils import get_client_ip, get_data_access_model_request_validity, log_activity
+from ..email_utils import data_access_approval_notif
 
 r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
 
@@ -434,6 +435,9 @@ class ApproveRejectDataAccessModelRequest(graphene.Mutation, Output):
             data_access_model_request_instance.remark = data_access_model_request.remark
         data_access_model_request_instance.save()
 
+        # Send email notification to the desired entities.
+        data_access_approval_notif(username, data_access_model_request_instance)
+        
         log_activity(
             target_obj=data_access_model_request_instance,
             ip=get_client_ip(info),
