@@ -266,6 +266,7 @@ class OrganizationInput(graphene.InputObjectType):
     state = graphene.String(required=False)
     gov_sub_type = graphene.Enum.from_enum(OrganizationSubTypes)(required=False)
     cdo_notification = Upload(required=False)
+    ogd_tid   = graphene.Int(required=False)
 
 
 class OrganizationPatchInput(graphene.InputObjectType):
@@ -339,6 +340,7 @@ class CreateOrganization(Output, graphene.Mutation):
             state=geography_obj,
             organization_subtypes=organization_data.gov_sub_type,
             cdo_notification=organization_data.cdo_notification,
+            ogd_tid=organization_data.ogd_tid,
         )
         organization_additional_info_instance.save()
 

@@ -27,3 +27,4 @@ class OrganizationCreateRequest(Organization):
     dpa_name = models.CharField(default="", blank=True, null=True, max_length=200)
     dpa_designation = models.CharField(default="", blank=True, null=True, max_length=200)
     dpa_phone = models.CharField(default="", blank=True, null=True, max_length=15)
+    ogd_tid   = models.IntegerField(blank=True, null=True)

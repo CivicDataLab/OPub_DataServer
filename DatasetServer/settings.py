@@ -36,7 +36,7 @@ REFRESH_TOKEN_EXPIRY_DAYS = 7
 BASE_DOMAIN = env("BASE_DOMAIN")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['http://idpbe.civicdatalab.in', 'http://43.205.200.192', 'idp.civicdatalab.in',
                  'http://localhost:3000', '*', 'idpbe.civicdatalab.in']
