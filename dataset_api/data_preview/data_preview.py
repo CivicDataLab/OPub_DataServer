@@ -85,6 +85,8 @@ def preview(request):
     
     if resp["response_type"].lower() == "csv":
         data = resp["data"]
+        keep_cols = [x.lower() for x in keep_cols]
+        data.columns = [x.lower() for x in data.columns]
         data = data.loc[:, data.columns.isin(keep_cols)]
         data = (data if len(data)<50 else data.head(50)) if res_type == "api" else data.head(int(row_count) if row_count != None else 0)   
         data = data.to_dict("records") if len(data.columns) > 0 and len(data) > 0 else []
@@ -100,6 +102,8 @@ def preview(request):
     
     if resp["response_type"].lower() == "xml":
         data = pd.read_xml(resp["data"])
+        keep_cols = [x.lower() for x in keep_cols]
+        data.columns = [x.lower() for x in data.columns]        
         data = data.loc[:, data.columns.isin(keep_cols)]
         #data = xmltodict.parse(resp["data"])
         #data = json_keep_column(data, keep_cols, keep_cols_path)
