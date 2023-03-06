@@ -15,7 +15,6 @@ class DataRequest(models.Model):
     status = models.CharField(max_length=20)
     resource = models.ForeignKey(Resource, on_delete=models.CASCADE)
     file = models.FileField(
-        storage=fs,
         upload_to=_data_request_directory_path, blank=True, null=True
     )
     creation_date = models.DateTimeField(auto_now_add=True, null=True)

@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     "graphql_auth",
     "activity_log",
     "encrypted_json_fields",
+    'storages',
 ]
 
 MIDDLEWARE = [
@@ -180,6 +181,38 @@ GRAPHENE = {"SCHEMA": "DatasetServer.schema.schema"}
 # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') 
 # SESSION_COOKIE_SECURE = True
 # CSRF_COOKIE_SECURE = True
+
+
+
+
+# s3 file storage - nic
+# AWS_ACCESS_KEY_ID = 'PGTNB49QR7JR7IYQCTXI'
+# AWS_SECRET_ACCESS_KEY = 'EGobXDq8aVONay7DeBA9q5pJeXhodXfXzIMf7vc0'
+# AWS_STORAGE_BUCKET_NAME = 'mit6c0-backup'
+# #AWS_S3_SIGNATURE_VERSION = 's3v4'
+# #AWS_S3_REGION_NAME = 'ap-south-1'
+# AWS_S3_FILE_OVERWRITE = False
+# AWS_DEFAULT_ACL = None
+# AWS_S3_VERIFY = True
+# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage' 
+# AWS_S3_ENDPOINT_URL = 'https://staas-bbs1.cloud.gov.in'
+# #AWS_LOCATION = 'files'
+# #AWS_S3_CUSTOM_DOMAIN = 'https://dev.idp.civicdatalab.in'
+
+
+
+# s3 file storage - aws
+AWS_ACCESS_KEY_ID = 'AKIARIP5TJ5DCZTLFFVK'
+AWS_SECRET_ACCESS_KEY = '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'
+AWS_STORAGE_BUCKET_NAME = 'idpfilebox'
+AWS_S3_SIGNATURE_VERSION = 's3v4'
+AWS_S3_REGION_NAME = 'ap-south-1'
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = None
+AWS_S3_VERIFY = True
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage' 
+#AWS_LOCATION = 'files'
+#AWS_S3_CUSTOM_DOMAIN = 'https://dev.idp.civicdatalab.in'
 
 
 # Internationalization

@@ -136,21 +136,24 @@ def fetchapi(resource_id, api_data_params):
     if  res_type == "file":
         
         try:
-            file_path = res_model.filedetails.file.path
+            file_path = res_model.filedetails.file.name
+            file_obj = res_model.filedetails.file
             file_format = res_model.filedetails.format  
 
             
             if file_format.lower() == "json":
-                with open(file_path, "r") as fp:
-                    data = json.load(fp)
+               # with open(file_path, "r") as fp:
+                fp = file_obj
+                data = json.load(fp)
             if file_format.lower() == "csv":
-                data = pd.read_csv(file_path)
+                data = pd.read_csv(file_obj)
             if file_format.lower() == "xml":
-                with open(file_path) as xmlFile:
-                    data = xmlFile.read()
+                #with open(file_path) as xmlFile:
+                xmlFile = file_obj
+                data = xmlFile.read().decode("utf-8")
             if file_format.lower() not in ["json", "csv", "xml"]:
-                with open(file_path) as xmlFile:
-                    data = xmlFile.read()
+                #with open(file_path) as xmlFile:
+                data = file_obj.read().decode("utf-8")
               
             context = {"Success": True, "data": data, "response_type": file_format}
             return context
