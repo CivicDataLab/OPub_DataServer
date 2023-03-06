@@ -216,11 +216,11 @@ class Query(graphene.ObjectType):
         if role == "PMU" or role == "DPA" or role == "DP":
             resource = Resource.objects.get(pk=resource_id)
             if resource.dataset.dataset_type == DataType.FILE.value:
-                if resource.filedetails.file and len(resource.filedetails.file.path):
+                if resource.filedetails.file and len(resource.filedetails.file.name):
                     global count
                     count = 0
                     if "csv" in resource.filedetails.format.lower():
-                        file = pd.read_csv(resource.filedetails.file.path)
+                        file = pd.read_csv(resource.filedetails.file)
                         schema_list = pd.io.json.build_table_schema(file, version=False)
                         schema_list = schema_list.get("fields", [])
                         schema = []
@@ -554,7 +554,7 @@ def _create_update_file_details(resource_instance, attribute):
 
         try:
             print("before deep clone --", file_format)
-            file_obj = copy.deepcopy(attribute.file)
+            file_obj = copy.deepcopy(attribute.file) if not isinstance(attribute.file, str) else  copy.deepcopy(file_detail_object.file)
             # print(file_format)
             if file_format.lower() == "csv":
                 data = pd.read_csv(file_obj)

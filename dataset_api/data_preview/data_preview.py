@@ -132,7 +132,7 @@ def fetchapi(resource_id, api_data_params):
     if  res_type == "file":
         
         try:
-            file_path = res_model.filedetails.file.path
+            file_path = res_model.filedetails.file
             file_format = res_model.filedetails.format  
 
             
