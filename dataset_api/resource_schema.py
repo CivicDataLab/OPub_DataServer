@@ -238,36 +238,38 @@ class Query(graphene.ObjectType):
                         return schema
                         # return file.columns.tolist()
                     if resource.filedetails.format.lower() == "json":
-                        with open(resource.filedetails.file.path) as jsonFile:
+                        #with open(resource.filedetails.file.path) as jsonFile:
                             # return list(set(get_keys(jsonFile.read(), [])))
                             # global count
                             # count = 0
-                            builder = genson.SchemaBuilder()
-                            jsondata = json.loads(jsonFile.read())  # json.loads(resource.filedetails.file)
-                            builder.add_object(jsondata)
-                            schema_dict = builder.to_schema()
-                            schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties",
+                        jsonFile = resource.filedetails.file
+                        builder = genson.SchemaBuilder()
+                        jsondata = json.loads(jsonFile.read())  # json.loads(resource.filedetails.file)
+                        builder.add_object(jsondata)
+                        schema_dict = builder.to_schema()
+                        schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties",
                                                                                                          {}))  # schema_dict.get("properties", {})
-                            schema = []
-                            parse_schema(schema_dict, "", schema, "")
-                            return schema
+                        schema = []
+                        parse_schema(schema_dict, "", schema, "")
+                        return schema
                     if resource.filedetails.format.lower() == "xml":
-                        with open(resource.filedetails.file.path) as xmlFile:
+                        #with open(resource.filedetails.file.path) as xmlFile:
                             # global count
                             # count = 0
                             # return list(set(get_keys(jsonFile.read(), [])))
-                            builder = genson.SchemaBuilder()
-                            jsondata = xmltodict.parse(xmlFile.read())
+                        xmlFile = resource.filedetails.file
+                        builder = genson.SchemaBuilder()
+                        jsondata = xmltodict.parse(xmlFile.read())
                             # jsondata = json.loads(
                             #     jsonFile.read()
                             # )   json.loads(resource.filedetails.file)
-                            builder.add_object(jsondata)
-                            schema_dict = builder.to_schema()
-                            schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties",
+                        builder.add_object(jsondata)
+                        schema_dict = builder.to_schema()
+                        schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties",
                                                                                                          {}))  # schema_dict.get("properties", {})
-                            schema = []
-                            parse_schema(schema_dict, "", schema, "")
-                            return schema
+                        schema = []
+                        parse_schema(schema_dict, "", schema, "")
+                        return schema
             return []
         else:
             raise GraphQLError("Access Denied")
