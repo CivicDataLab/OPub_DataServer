@@ -40,6 +40,7 @@ from .models import (
 from .utils import get_client_ip, get_average_rating, log_activity
 from .email_utils import register_dpa_notif, org_create_notif
 
+
 class CreateOrganizationType(DjangoObjectType):
     class Meta:
         model = OrganizationCreateRequest
@@ -118,15 +119,20 @@ class OrganizationType(DjangoObjectType):
         dam_count = DatasetAccessModel.objects.filter(dataset__in=org_datasets).count()
         return dam_count
 
+
 class OrgItem(graphene.ObjectType):
-    org_id    = graphene.String()
-    title     = graphene.String()
-    parent    = graphene.List(graphene.String)
+    org_id = graphene.String()
+    title = graphene.String()
+    parent = graphene.List(graphene.String)
+
 
 class Query(graphene.ObjectType):
     all_organizations = graphene.List(OrganizationType)
     organization_by_id = graphene.Field(
         OrganizationType, organization_id=graphene.Int()
+    )
+    organization_by_tid = graphene.Field(
+        OrganizationType, organization_tid=graphene.Int()
     )
     organization_by_title = graphene.Field(
         OrganizationType, organization_title=graphene.String()
@@ -138,13 +144,18 @@ class Query(graphene.ObjectType):
     organization_without_dpa = graphene.List(
         OrganizationType, organization_id=graphene.Int()
     )
-    entity_by_state = graphene.List(OrganizationType, state=graphene.String(), entity_type=graphene.String(), parent_id=graphene.String())
+    entity_by_state = graphene.List(
+        OrganizationType,
+        state=graphene.String(),
+        entity_type=graphene.String(),
+        parent_id=graphene.String(),
+    )
     ministries_by_state = graphene.List(OrganizationType, state=graphene.String())
     dept_by_ministry = graphene.List(
         OrganizationType, state=graphene.String(), organization_id=graphene.Int()
     )
     all_organizations_hierarchy = graphene.List(OrgItem)
-    
+
     # TODO: Allow all org list for PMU? Current State -- YES
     @auth_user_by_org(action="query")
     def resolve_all_organizations(self, info, role, **kwargs):
@@ -158,6 +169,16 @@ class Query(graphene.ObjectType):
     def resolve_organization_by_id(self, info, role, organization_id):
         if role == "DPA" or role == "PMU" or role == "DP":
             return Organization.objects.get(pk=organization_id)
+        else:
+            raise GraphQLError("Access Denied")
+
+    # Used only in Script for updating dpa information.
+    @auth_user_by_org(action="query")
+    def resolve_organization_by_tid(self, info, role, organization_tid):
+        if role == "DPA" or role == "PMU" or role == "DP":
+            return Organization.objects.get(
+                organizationcreaterequest__ogd_tid=organization_tid
+            )
         else:
             raise GraphQLError("Access Denied")
 
@@ -216,13 +237,13 @@ class Query(graphene.ObjectType):
             return Organization.objects.filter(
                 organizationcreaterequest__organization_subtypes=entity_type,
                 organizationcreaterequest__state=state_obj,
-                )
-        else: 
+            )
+        else:
             return Organization.objects.filter(
                 organizationcreaterequest__organization_subtypes=entity_type,
                 organizationcreaterequest__state=state_obj,
                 parent_id=parent_id,
-                )
+            )
 
     def rnsolve_dept_by_ministry(self, info, state, organization_id):
         state_obj = Geography.objects.get(name=state)
@@ -235,19 +256,36 @@ class Query(graphene.ObjectType):
     def resolve_all_organizations_hierarchy(self, info, role, **kwargs):
         if role == "PMU":
             org_list = []
-            organizations = OrganizationCreateRequest.objects.all().order_by("-modified")
+            organizations = OrganizationCreateRequest.objects.all().order_by(
+                "-modified"
+            )
             for org in organizations:
                 if org.organization_subtypes in ["OTHER", "MINISTRY"]:
                     org_list.append(OrgItem(org.id, org.title, ["", "", ""]))
                 if org.organization_subtypes in ["DEPARTMENT"]:
-                    org_list.append(OrgItem(org.id, org.title, [org.state.name if org.state else "", "", org.parent.title if org.parent  else ""]))
+                    org_list.append(
+                        OrgItem(
+                            org.id,
+                            org.title,
+                            [
+                                org.state.name if org.state else "",
+                                "",
+                                org.parent.title if org.parent else "",
+                            ],
+                        )
+                    )
                 if org.organization_subtypes in ["ORGANISATION"]:
-                    temp_parent = [org.state.name if org.state else "", org.parent.parent.title if org.parent.parent else "", org.parent.title if org.parent else ""]
+                    temp_parent = [
+                        org.state.name if org.state else "",
+                        org.parent.parent.title if org.parent.parent else "",
+                        org.parent.title if org.parent else "",
+                    ]
                     temp_org = OrgItem(org.id, org.title, temp_parent)
                     org_list.append(temp_org)
             return org_list
         else:
             raise GraphQLError("Access Denied")
+
 
 class OrganizationInput(graphene.InputObjectType):
     id = graphene.ID()
@@ -266,7 +304,7 @@ class OrganizationInput(graphene.InputObjectType):
     state = graphene.String(required=False)
     gov_sub_type = graphene.Enum.from_enum(OrganizationSubTypes)(required=False)
     cdo_notification = Upload(required=False)
-    ogd_tid   = graphene.Int(required=False)
+    ogd_tid = graphene.Int(required=False)
 
 
 class OrganizationPatchInput(graphene.InputObjectType):
@@ -283,6 +321,7 @@ class OrganizationPatchInput(graphene.InputObjectType):
     dpa_designation = graphene.String(required=False)
     dpa_phone = graphene.String(required=False)
 
+
 class ApproveRejectOrganizationApprovalInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
     status = graphene.Enum.from_enum(OrganizationCreationStatusType)(required=True)
@@ -298,9 +337,7 @@ class CreateOrganization(Output, graphene.Mutation):
     @staticmethod
     @validate_token
     @create_user_org
-    def mutate(
-        root, info, username, organization_data: OrganizationInput = None
-    ):
+    def mutate(root, info, username, organization_data: OrganizationInput = None):
         # try:
         #     OrganizationCreateRequest.objects.get(
         #         Q(organization_ptr_id__title__iexact=organization_data.title),
@@ -421,7 +458,9 @@ class UpdateOrganization(Output, graphene.Mutation):
         organization_create_request_instance.contact_email = organization_data.contact
         organization_create_request_instance.homepage = organization_data.homepage
         organization_create_request_instance.address = organization_data.address
-        organization_create_request_instance.cdo_notification = organization_data.cdo_notification
+        organization_create_request_instance.cdo_notification = (
+            organization_data.cdo_notification
+        )
         organization_create_request_instance.dpa_email = organization_data.dpa_email
         organization_create_request_instance.organization_types = (
             organization_data.organization_types
@@ -555,7 +594,7 @@ class PatchOrganization(Output, graphene.Mutation):
     class Arguments:
         organization_data = OrganizationPatchInput(required=True)
 
-    organization = graphene.Field(OrganizationType)
+    organization = graphene.Field(CreateOrganizationType)
 
     @staticmethod
     @validate_token
@@ -564,7 +603,9 @@ class PatchOrganization(Output, graphene.Mutation):
     def mutate(root, info, username, organization_data: OrganizationPatchInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_id = organization_data.id if organization_data.id else org_id
-        organization_instance = Organization.objects.get(id=org_id)
+        organization_instance = OrganizationCreateRequest.objects.get(
+            organiztion_ptr_id=org_id
+        )
 
         if organization_data.title:
             organization_instance.title = organization_data.title
@@ -593,7 +634,7 @@ class PatchOrganization(Output, graphene.Mutation):
             register_dpa_notif(username, organization_instance)
         except Exception as e:
             print(str(e))
-        
+
         return PatchOrganization(organization=organization_instance)
 
 
