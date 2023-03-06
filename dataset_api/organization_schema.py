@@ -603,7 +603,9 @@ class PatchOrganization(Output, graphene.Mutation):
     def mutate(root, info, username, organization_data: OrganizationPatchInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_id = organization_data.id if organization_data.id else org_id
-        organization_instance = OrganizationCreateRequest.objects.get(org=org_id)
+        organization_instance = OrganizationCreateRequest.objects.get(
+            organiztion_ptr_id=org_id
+        )
 
         if organization_data.title:
             organization_instance.title = organization_data.title
