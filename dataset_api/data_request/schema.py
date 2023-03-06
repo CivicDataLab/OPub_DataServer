@@ -39,7 +39,10 @@ from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
 from dataset_api.utils import get_client_ip, log_activity
 from dataset_api.utils import json_keep_column
-
+from io import StringIO
+from django.core.files.storage import default_storage
+from storages.backends.s3boto3 import S3Boto3Storage
+from django.core.files.base import ContentFile
 
 class DataRequestType(DjangoObjectType):
     access_token = graphene.String()
@@ -192,10 +195,13 @@ def initiate_dam_request(
         print('-----------------bbbbbaaa')
         data_request_instance.file = File(
             resource.filedetails.file,
-            os.path.basename(resource.filedetails.file.path),
+            os.path.basename(resource.filedetails.file.name),
         )
+
+        # data_request_instance.file.save(os.path.basename(resource.filedetails.file.name),resource.filedetails.file)
         file_instance = FileDetails.objects.get(resource=resource)
         data_request_instance.save()
+        # print ('*****', data_request_instance.file.name)       
         if file_instance.format.lower() == "csv":
             file_data = pd.read_csv(data_request_instance.file)
             file_columns = file_data.columns.values.tolist()
@@ -203,19 +209,24 @@ def initiate_dam_request(
             if len(fields) == 0:
                 remove_cols = []
             file_data.drop(remove_cols, axis=1, inplace=True)
-            file_data.to_csv(data_request_instance.file.path, index=False)
+            csv_buffer = StringIO()
+            file_data.to_csv(csv_buffer, index=False)
+            file = default_storage.open(data_request_instance.file.name, 'w')
+            file.write(csv_buffer.getvalue())
+            file.close()
         elif file_instance.format.lower() == "json":
-            read_file = open(data_request_instance.file.path, "r")
+            read_file = data_request_instance.file #open(data_request_instance.file.path, "r")
             file = json.load(read_file)
-            print("--------------------jsonparse", file, "----", fields)
             if len(fields) > 0:
                 # skip_col(file, fields)
                 file = json_keep_column(file, fields, schema_rows)
                 # file = json_keep_column(file, fields)
             print("-----------------fltrddata", file)
-            read_file.close()
-            output_file = open(data_request_instance.file.path, "w")
-            file = json.dump(file, output_file, indent=4)
+            #read_file.close()
+            json_buffer = StringIO()
+            json.dump(file, json_buffer)
+            output_file = default_storage.open(data_request_instance.file.name, "w")
+            output_file.write(json_buffer.getvalue())
             output_file.close()
         data_request_instance.status = "FETCHED"
         data_request_instance.save()
