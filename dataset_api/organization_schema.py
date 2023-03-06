@@ -275,11 +275,8 @@ class Query(graphene.ObjectType):
                         )
                     )
                 if org.organization_subtypes in ["ORGANISATION"]:
-                    temp_parent = [
-                        org.state.name if org.state else "",
-                        org.parent.parent.title if org.parent.parent else "",
-                        org.parent.title if org.parent else "",
-                    ]
+
+                    temp_parent = [org.state.name if org.state else "", org.parent.parent.title if org.parent and org.parent.parent else "", org.parent.title if org.parent else ""]
                     temp_org = OrgItem(org.id, org.title, temp_parent)
                     org_list.append(temp_org)
             return org_list

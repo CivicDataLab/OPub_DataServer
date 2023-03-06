@@ -41,3 +41,6 @@ Pillow==9.2.0
 genson==1.2.2
 xmltodict==0.13.0
 dicttoxml==1.7.15
+django-storages==1.13.2
+boto3==1.26.76
+

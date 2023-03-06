@@ -3,7 +3,7 @@ import mimetypes
 
 
 def check_ext(file_object):
-    ext_type = mimetypes.guess_type(file_object.path)[0]
+    ext_type = mimetypes.guess_type(file_object.name)[0]
     return ext_type
 
 
