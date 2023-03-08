@@ -56,7 +56,7 @@ class UpdateGeography(Output, graphene.Mutation):
     class Arguments:
         geography_data = GeographyInput(required=True)
 
-    sector = graphene.Field(GeographyType)
+    geography = graphene.Field(GeographyType)
 
     @staticmethod
     def mutate(root, info, geography_data=None):
@@ -67,7 +67,7 @@ class UpdateGeography(Output, graphene.Mutation):
             parent_instance = Geography.objects.get(pk=geography_data.parent_id)
             geography_instance.parent_id = parent_instance
         geography_instance.save()
-        return UpdateGeography(sector=geography_instance)    
+        return UpdateGeography(geography=geography_instance)    
 
 
 class Mutation(graphene.ObjectType):
