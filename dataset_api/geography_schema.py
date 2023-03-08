@@ -62,6 +62,7 @@ class UpdateGeography(Output, graphene.Mutation):
     def mutate(root, info, geography_data=None):
         geography_instance = Geography.objects.get(official_id=geography_data.official_id)
         geography_instance.name = geography_data.name
+        geography_instance.geo_type = geography_data.geo_type
         if geography_data.parent_id:
             parent_instance = Geography.objects.get(pk=geography_data.parent_id)
             geography_instance.parent_id = parent_instance
