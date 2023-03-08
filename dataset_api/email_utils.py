@@ -55,12 +55,11 @@ def register_dpa_notif(username, org_obj):
 def register_dp_notif(username, org_req_obj):
     body = {
         "actor": username,
-        "action": "Added DP",
-        "tgt_obj": org_req_obj.organization.title,
-        "tgt_group": "to Entity",
+        "action": "add_dp",
+        "tgt_obj": org_req_obj.organization.id,
+        "tgt_group": "Entity",
         "extras": {
-            "tgt_org": org_req_obj.organization.id,
-            "action_name": "add dp",
+            "entity_title": org_req_obj.organization.title,
             "dp_email": org_req_obj.user_email,
         },
     }
@@ -73,13 +72,12 @@ def register_dp_notif(username, org_req_obj):
 def data_access_approval_notif(username, dam_req_obj):
     body = {
         "actor": username,  # Approval User
-        "action": "Approved",
-        "tgt_obj": dam_req_obj.access_model.dataset.title,  # Dataset Title
-        "tgt_group": "Access for Dataset",
+        "action": "approve_data_access",
+        "tgt_obj": dam_req_obj.access_model.dataset.id,  # Dataset Title
+        "tgt_group": "Dataset",
         "extras": {
-            "tgt_dataset": dam_req_obj.access_model.dataset.id,
-            "action_name": "approve data access request",
-            "requestor": dam_req_obj.user,
+            "dataset_title": dam_req_obj.access_model.dataset.title,
+            "consumer": dam_req_obj.user,
         },
     }
     headers = {}
