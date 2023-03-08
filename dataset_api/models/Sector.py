@@ -7,3 +7,4 @@ class Sector(models.Model):
     description = models.CharField(max_length=1000, null=False)
     highlights = ArrayField(models.CharField(max_length=100, blank=True, null=True), blank=True, null=True)
     official_id = models.CharField(max_length=100, null=True, unique=False, default='')
+    parent_id = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, default='')

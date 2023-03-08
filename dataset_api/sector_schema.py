@@ -76,6 +76,7 @@ class SectorInput(graphene.InputObjectType):
     highlights = graphene.List(of_type=graphene.String)
     official_id = graphene.String(required=True)
     # organization = graphene.String()
+    parent_id = graphene.String(required=False)
 
 
 class CreateSector(Output, graphene.Mutation):
@@ -86,11 +87,15 @@ class CreateSector(Output, graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, sector_data=None):
+        parent_instance = None
+        if sector_data.parent_id:
+            parent_instance = Sector.objects.get(pk=sector_data.parent_id)
         sector_instance = Sector(
             name=sector_data.name,
             description=sector_data.description,
             highlights=sector_data.highlights,
             official_id=sector_data.official_id,
+            parent_id=parent_instance,
         )
         sector_instance.save()
         return CreateSector(sector=sector_instance)
@@ -111,10 +116,13 @@ class UpdateSector(Output, graphene.Mutation):
         if sector_data.highlights:
             sector_instance.highlights = sector_data.highlights
         if sector_data.official_id:
-            sector_instance.official_id = sector_data.official_id            
+            sector_instance.official_id = sector_data.official_id
+        if sector_data.parent_id:
+            parent_instance = Sector.objects.get(pk=sector_data.parent_id)
+            sector_instance.parent_id = parent_instance
         sector_instance.save()
         return UpdateSector(sector=sector_instance)
-    
+
 
 class Mutation(graphene.ObjectType):
     create_sector = CreateSector.Field()
