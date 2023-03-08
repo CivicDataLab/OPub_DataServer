@@ -22,10 +22,10 @@ def dataset_approval_notif(username, dataset_id, org_id):
 def org_create_notif(username, org_obj):
     body = {
         "actor": username,
-        "action": "Created",
-        "tgt_obj": org_obj.title,
+        "action": "register_entity",
+        "tgt_obj": org_obj.id,
         "tgt_group": "Entity",
-        "extras": {"tgt_org": org_obj.id, "action_name": "register entity"},
+        "extras": {"entity_title": org_obj.title, "entity_email": org_obj.contact_email},
     }
     headers = {}
     response = requests.request("POST", email_url, json=body, headers=headers)
@@ -36,13 +36,13 @@ def org_create_notif(username, org_obj):
 def register_dpa_notif(username, org_obj):
     body = {
         "actor": username,
-        "action": "Added DPA",
-        "tgt_obj": org_obj.title,
-        "tgt_group": "to Entity",
+        "action": "add_dpa",
+        "tgt_obj": org_obj.id,
+        "tgt_group": "Entity",
         "extras": {
-            "tgt_org": org_obj.id,
-            "action_name": "add dpa",
+            "entity_title": org_obj.title,
             "dpa_email": org_obj.dpa_email,
+            "dpa_name": org_obj.dpa_name,
             "entity_email": org_obj.contact_email,
         },
     }
