@@ -104,9 +104,9 @@ def contact_provider_notif(contact_info):
     body = {
         "actor": contact_info.user,
         "action": "contact_provider",
-        "tgt_obj": contact_info.dataset_id,
-        "tgt_group": "Dataset",
-        "extras": {"category": contact_info.category, "desc": contact_info.desc, "org_id": contact_info.org_id},
+        "tgt_obj": contact_info.org_id,
+        "tgt_group": "Entity",
+        "extras": {"category": contact_info.category, "desc": contact_info.desc, "dataset_id": contact_info.dataset_id, "dataset_title":contact_info.dataset_title },
     }
     headers = {}
     response = requests.request("POST", email_url, json=body, headers=headers)
