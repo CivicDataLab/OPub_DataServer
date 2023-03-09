@@ -84,3 +84,31 @@ def data_access_approval_notif(username, dam_req_obj):
     response = requests.request("POST", email_url, json=body, headers=headers)
     response_json = response.text
     return response_json
+
+
+def subscribe_notif(username, dataset_obj, action):
+    body = {
+        "actor": username,
+        "action": action,
+        "tgt_obj": dataset_obj.id,
+        "tgt_group": "Dataset",
+        "extras": {"dataset_title": dataset_obj.title},
+    }
+    headers = {}
+    response = requests.request("POST", email_url, json=body, headers=headers)
+    response_json = response.text
+    return response_json
+
+
+def contact_provider_notif(contact_info):
+    body = {
+        "actor": contact_info.user,
+        "action": "contact_provider",
+        "tgt_obj": contact_info.dataset_id,
+        "tgt_group": "Dataset",
+        "extras": {"category": contact_info.category, "desc": contact_info.desc, "org_id": contact_info.org_id},
+    }
+    headers = {}
+    response = requests.request("POST", email_url, json=body, headers=headers)
+    response_json = response.text
+    return response_json

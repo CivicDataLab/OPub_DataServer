@@ -7,6 +7,7 @@ from dataset_api.decorators import validate_token
 from dataset_api.enums import SubscriptionAction
 from dataset_api.models import Subscribe, Dataset
 from ..utils import get_client_ip, log_activity
+from ..email_utils import subscribe_notif
 
 
 class SubscribeType(DjangoObjectType):
@@ -78,6 +79,13 @@ class SubscribeMutation(Output, graphene.Mutation):
             target_group=dataset.catalog.organization,
             verb="Subscribed",
         )
+        
+        # Send email notification to the user for subscribing to dataset.
+        try:
+            subscribe_notif(username, dataset, subscribe_input.action)
+        except Exception as e:
+            print(str(e))
+            
         return SubscribeMutation(success=True)
 
 
