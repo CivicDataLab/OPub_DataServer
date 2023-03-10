@@ -340,37 +340,38 @@ def more_like_this(request):
         return HttpResponse(json.dumps(resp["hits"]))
 
 def index_organizations():
-    org_obj = OrganizationCreateRequest.objects.all()
-    # print(org_obj.__dir__)
-    if org_obj.status == "APPROVED":
-        doc = {
-            "org_title": org_obj.title,
-            "org_description": org_obj.description,
-            "homepage": org_obj.hompage,
-            "contact": org_obj.contact_email,
-            "type": org_obj.organization_types,
-            "parent": org_obj.parent,
-            "dpa_name": org_obj.dpa_name,
-            "dpa_email": org_obj.dpa_email,
-            "dpa_designation": org_obj.dpa_designation,
-            "dpa_phone": org_obj.dpa_phone,
-            "dpa_tid": org_obj.ogd_tid,
-            "sub_type": org_obj.organization_subtypes,
-            "state": org_obj.state,
-            "address": org_obj.address,
-            "status": org_obj.status,
-            "issued": org_obj.issued,
-            "modified": org_obj.modified,
-        }
-        # Check if Org already exists.
-        # resp = es_client.exists(index="dataset", id=dataset_obj.id)
-        # if resp:
-        #     # Delete the Dataset.
-        #     resp = es_client.delete(index="dataset", id=dataset_obj.id)
-        #     # print(resp["result"])
-        # # Index the Dataset.
-        resp = es_client.index(index="organizations", id=org_obj.id, document=doc)
-        # # print(resp["result"])
+    obj = OrganizationCreateRequest.objects.all()
+    print(len(org_obj))
+    for org_obj in obj:
+        if org_obj.status == "APPROVED":
+            doc = {
+                "org_title": org_obj.title,
+                "org_description": org_obj.description,
+                "homepage": org_obj.hompage,
+                "contact": org_obj.contact_email,
+                "type": org_obj.organization_types,
+                "parent": org_obj.parent,
+                "dpa_name": org_obj.dpa_name,
+                "dpa_email": org_obj.dpa_email,
+                "dpa_designation": org_obj.dpa_designation,
+                "dpa_phone": org_obj.dpa_phone,
+                "dpa_tid": org_obj.ogd_tid,
+                "sub_type": org_obj.organization_subtypes,
+                "state": org_obj.state,
+                "address": org_obj.address,
+                "status": org_obj.status,
+                "issued": org_obj.issued,
+                "modified": org_obj.modified,
+            }
+            # Check if Org already exists.
+            # resp = es_client.exists(index="dataset", id=dataset_obj.id)
+            # if resp:
+            #     # Delete the Dataset.
+            #     resp = es_client.delete(index="dataset", id=dataset_obj.id)
+            #     # print(resp["result"])
+            # # Index the Dataset.
+            resp = es_client.index(index="organizations", id=org_obj.id, document=doc)
+            # # print(resp["result"])
         return resp["result"]
 
 
