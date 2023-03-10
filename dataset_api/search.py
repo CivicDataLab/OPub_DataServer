@@ -341,7 +341,7 @@ def more_like_this(request):
 
 def index_organizations():
     obj = OrganizationCreateRequest.objects.all()
-    print(len(org_obj))
+    print(len(obj))
     for org_obj in obj:
         if org_obj.status == "APPROVED":
             doc = {
@@ -353,6 +353,8 @@ def index_organizations():
                 "dpa_name": org_obj.dpa_name,
                 "dpa_email": org_obj.dpa_email,
                 "dpa_designation": org_obj.dpa_designation,
+                "state": org_obj.state.name if org_obj.state else "",
+                "parent": org_obj.parent.id if org_obj.parent else "",
                 "dpa_phone": org_obj.dpa_phone,
                 "dpa_tid": org_obj.ogd_tid,
                 "sub_type": org_obj.organization_subtypes,
@@ -361,10 +363,6 @@ def index_organizations():
                 "issued": org_obj.issued,
                 "modified": org_obj.modified,
             }
-            if org_obj.state:
-                doc["state"] = org_obj.state.name
-            if org_obj.parent:
-                doc["parent"] = org_obj.parent.id
             # Check if Org already exists.
             # resp = es_client.exists(index="dataset", id=dataset_obj.id)
             # if resp:
@@ -374,7 +372,7 @@ def index_organizations():
             # # Index the Dataset.
             resp = es_client.index(index="organizations", id=org_obj.id, document=doc)
             print(resp["result"], org_obj.id)
-        return resp["result"]
+            # return resp["result"]
 
 
 def reindex_data():
