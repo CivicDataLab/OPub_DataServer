@@ -347,7 +347,7 @@ def index_organizations():
             doc = {
                 "org_title": org_obj.title,
                 "org_description": org_obj.description,
-                "homepage": org_obj.hompage,
+                "homepage": org_obj.homepage,
                 "contact": org_obj.contact_email,
                 "type": org_obj.organization_types,
                 "dpa_name": org_obj.dpa_name,
