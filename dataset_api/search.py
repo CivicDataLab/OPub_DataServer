@@ -9,6 +9,7 @@ from elasticsearch import Elasticsearch
 from .models import (
     Catalog,
     Organization,
+    OrganizationCreateRequest,
     Resource,
     FileDetails,
     APIDetails,
@@ -299,7 +300,7 @@ def facets(request):
     return HttpResponse(json.dumps(resp))
 
 
-def search(request):
+def search(request, index):
     query_string = request.GET.get("q", None)
     size = request.GET.get("size", 5)
     paginate_from = request.GET.get("from", 0)
@@ -319,7 +320,7 @@ def search(request):
         query = {"match_all": {}}
 
     resp = es_client.search(
-        index="dataset", query=query, size=size, from_=paginate_from, sort=sort_mapping
+        index=index, query=query, size=size, from_=paginate_from, sort=sort_mapping
     )
     return HttpResponse(json.dumps(resp["hits"]))
 
@@ -337,6 +338,40 @@ def more_like_this(request):
         }
         resp = es_client.search(index="dataset", query=query)
         return HttpResponse(json.dumps(resp["hits"]))
+
+def index_organizations():
+    org_obj = OrganizationCreateRequest.objects.all()
+    # print(org_obj.__dir__)
+    if org_obj.status == "APPROVED":
+        doc = {
+            "org_title": org_obj.title,
+            "org_description": org_obj.description,
+            "homepage": org_obj.hompage,
+            "contact": org_obj.contact_email,
+            "type": org_obj.organization_types,
+            "parent": org_obj.parent,
+            "dpa_name": org_obj.dpa_name,
+            "dpa_email": org_obj.dpa_email,
+            "dpa_designation": org_obj.dpa_designation,
+            "dpa_phone": org_obj.dpa_phone,
+            "dpa_tid": org_obj.ogd_tid,
+            "sub_type": org_obj.organization_subtypes,
+            "state": org_obj.state,
+            "address": org_obj.address,
+            "status": org_obj.status,
+            "issued": org_obj.issued,
+            "modified": org_obj.modified,
+        }
+        # Check if Org already exists.
+        # resp = es_client.exists(index="dataset", id=dataset_obj.id)
+        # if resp:
+        #     # Delete the Dataset.
+        #     resp = es_client.delete(index="dataset", id=dataset_obj.id)
+        #     # print(resp["result"])
+        # # Index the Dataset.
+        resp = es_client.index(index="organizations", id=org_obj.id, document=doc)
+        # # print(resp["result"])
+        return resp["result"]
 
 
 def reindex_data():
