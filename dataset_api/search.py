@@ -350,19 +350,21 @@ def index_organizations():
                 "homepage": org_obj.hompage,
                 "contact": org_obj.contact_email,
                 "type": org_obj.organization_types,
-                "parent": org_obj.parent,
                 "dpa_name": org_obj.dpa_name,
                 "dpa_email": org_obj.dpa_email,
                 "dpa_designation": org_obj.dpa_designation,
                 "dpa_phone": org_obj.dpa_phone,
                 "dpa_tid": org_obj.ogd_tid,
                 "sub_type": org_obj.organization_subtypes,
-                "state": org_obj.state,
                 "address": org_obj.address,
                 "status": org_obj.status,
                 "issued": org_obj.issued,
                 "modified": org_obj.modified,
             }
+            if org_obj.state:
+                doc["state"] = org_obj.state.name
+            if org_obj.parent:
+                doc["parent"] = org_obj.parent.id
             # Check if Org already exists.
             # resp = es_client.exists(index="dataset", id=dataset_obj.id)
             # if resp:
@@ -371,7 +373,7 @@ def index_organizations():
             #     # print(resp["result"])
             # # Index the Dataset.
             resp = es_client.index(index="organizations", id=org_obj.id, document=doc)
-            # # print(resp["result"])
+            print(resp["result"], org_obj.id)
         return resp["result"]
 
 
