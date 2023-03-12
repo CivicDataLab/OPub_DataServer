@@ -102,11 +102,11 @@ def subscribe_notif(username, dataset_obj, action):
 
 def contact_provider_notif(contact_info):
     body = {
-        "actor": contact_info.user,
+        "actor": contact_info.get("user"),
         "action": "contact_provider",
-        "tgt_obj": contact_info.org_id,
+        "tgt_obj": contact_info.get("org_id"),
         "tgt_group": "Entity",
-        "extras": {"category": contact_info.category, "desc": contact_info.desc, "dataset_id": contact_info.dataset_id, "dataset_title":contact_info.dataset_title },
+        "extras": {"category": contact_info.get("category"), "desc": contact_info.get("desc"), "dataset_id": contact_info.get("dataset_id"), "dataset_title":contact_info.get("dataset_title") },
     }
     headers = {}
     response = requests.request("POST", email_url, json=body, headers=headers)
