@@ -1,7 +1,6 @@
-import mimetypes
 import os
-import magic
 
+import magic
 from django.http import HttpResponse
 
 from dataset_api.models.DataAccessModel import DataAccessModel

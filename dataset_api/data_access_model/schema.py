@@ -156,7 +156,12 @@ class CreateDataAccessModel(Output, graphene.Mutation):
             raise GraphQLError("License with given id does not exist.")
         #if data_access_model_data.policy:
         #    policy_obj = Policy.objects.get(pk=data_access_model_data.policy)
-        
+        dam_obj = DataAccessModel.objects.filter(title__exact=data_access_model_data.title,
+                                                 organization=org_instance)
+        if len(dam_obj) >= 1:
+            raise GraphQLError(
+                "Data Access Model with Same name already exists"
+            )
         data_access_model_instance = DataAccessModel(
             title=data_access_model_data.title,
             type=data_access_model_data.type,
@@ -242,6 +247,12 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
         #if data_access_model_data.policy:
         #    policy_obj = Policy.objects.get(pk=data_access_model_data.policy)
 
+        dam_obj = DataAccessModel.objects.filter(title__exact=data_access_model_data.title,
+                                                 organization=org_instance).exclude(id=data_access_model_instance.id)
+        if len(dam_obj) >= 1:
+            raise GraphQLError(
+                "Data Access Model with Same name already exists"
+            )
         data_access_model_instance.title = data_access_model_data.title
         data_access_model_instance.type = data_access_model_data.type
         data_access_model_instance.description = data_access_model_data.description
