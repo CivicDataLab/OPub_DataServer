@@ -50,10 +50,13 @@ class SubscribeMutation(Output, graphene.Mutation):
         subscribe_input = SubscribeInput(required=True)
 
     success = graphene.Boolean()
+    message = graphene.String()
 
     @validate_token
     def mutate(root, info, subscribe_input: SubscribeInput = None, username=""):
         dataset = Dataset.objects.get(id=subscribe_input.dataset_id)
+        if dataset.status is "PUBLISHED":
+            return SubscribeMutation(success=True, message="unpublished_dataset_subscription")
         try:
             subscribe_instance = Subscribe.objects.get(
                 Q(user=username), Q(dataset=dataset)
