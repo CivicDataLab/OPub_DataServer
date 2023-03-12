@@ -93,7 +93,7 @@ def update_download_count(username, data_request: DataRequest):
     # update download count in dataset
     dataset = data_request.dataset_access_model_request.access_model.dataset
     count = dataset.download_count
-    if dataset.status != "PUBLISHED":
+    if dataset.status == "PUBLISHED":
         dataset.download_count = count + 1
         dataset.save()
         index_data(dataset)
