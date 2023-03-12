@@ -55,7 +55,7 @@ class EditDataset(Output, graphene.Mutation):
                     cloned_dataset = Dataset.objects.get(pk=cloned_id)
                     cloned_dataset.status = "DRAFT"
                     cloned_dataset.parent = dataset_instance
-                    cloned_dataset.accepted_agreement = File(dataset_instance.accepted_agreement,os.path.basename(dataset_instance.accepted_agreement.path),)
+                    cloned_dataset.accepted_agreement = File(dataset_instance.accepted_agreement,os.path.basename(dataset_instance.accepted_agreement.name),)
                     cloned_dataset.version_name = dataset_data.new_version_name
                     cloned_dataset.save()
                 else:
