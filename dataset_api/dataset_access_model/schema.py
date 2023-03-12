@@ -26,22 +26,22 @@ class DatasetAccessModelType(DjangoObjectType):
 
     def resolve_usage(self: DatasetAccessModel, info):
         try:
-            dam_requests = DatasetAccessModelRequest.objects.filter(
+            return DatasetAccessModelRequest.objects.filter(
                 access_model_id=self.id
-            )
+            ).values_list('user').distinct().count()
             # dam_requests = self.datasetaccessmodelrequest_set.all()
-            print(
-                [
-                    x.datarequest_set.filter(status="FETCHED").count()
-                    for x in dam_requests
-                ]
-            )
-            return sum(
-                [
-                    x.datarequest_set.filter(status="FETCHED").count()
-                    for x in dam_requests
-                ]
-            )
+            # print(
+            #     [
+            #         x.datarequest_set.filter(status="FETCHED").count()
+            #         for x in dam_requests
+            #     ]
+            # )
+            # return sum(
+            #     [
+            #         x.datarequest_set.filter(status="FETCHED").count()
+            #         for x in dam_requests
+            #     ]
+            # )
         except (DatasetAccessModelRequest.DoesNotExist, DataRequest.DoesNotExist) as e:
             return 0
 

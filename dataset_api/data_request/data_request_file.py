@@ -93,11 +93,13 @@ def update_download_count(username, data_request: DataRequest):
     # update download count in dataset
     dataset = data_request.dataset_access_model_request.access_model.dataset
     count = dataset.download_count
-    dataset.download_count = count + 1
-    dataset.save()
-    index_data(dataset)
+    if dataset.status == "PUBLISHED":
+        dataset.download_count = count + 1
+        dataset.save()
+        index_data(dataset)
     # update download count in user datasetreq table
     headers = {}
+    # TODO: Move this to appropriate place
     auth_url = settings.AUTH_URL + "update_datasetreq"
     response = requests.post(
         auth_url,
