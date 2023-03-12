@@ -34,7 +34,7 @@ class Query(graphene.ObjectType):
 
     @validate_token
     def resolve_user_dataset_subscription(
-        self, info, dataset_id, username="", **kwargs
+            self, info, dataset_id, username="", **kwargs
     ):
         dataset = Dataset.objects.get(id=dataset_id)
         return Subscribe.objects.get(Q(user=username), Q(dataset=dataset))
@@ -50,13 +50,14 @@ class SubscribeMutation(Output, graphene.Mutation):
         subscribe_input = SubscribeInput(required=True)
 
     success = graphene.Boolean()
-    message = graphene.String()
 
     @validate_token
     def mutate(root, info, subscribe_input: SubscribeInput = None, username=""):
         dataset = Dataset.objects.get(id=subscribe_input.dataset_id)
-        if dataset.status is "PUBLISHED":
-            return SubscribeMutation(success=True, message="unpublished_dataset_subscription")
+        if dataset.status != "PUBLISHED":
+            return {"success": False, "errors": {
+                "dataset": [{"message": "unpublished_dataset_subscription"}]
+            }}
         try:
             subscribe_instance = Subscribe.objects.get(
                 Q(user=username), Q(dataset=dataset)
@@ -82,13 +83,13 @@ class SubscribeMutation(Output, graphene.Mutation):
             target_group=dataset.catalog.organization,
             verb="Subscribed",
         )
-        
+
         # Send email notification to the user for subscribing to dataset.
         try:
             subscribe_notif(username, dataset, subscribe_input.action)
         except Exception as e:
             print(str(e))
-            
+
         return SubscribeMutation(success=True)
 
 
