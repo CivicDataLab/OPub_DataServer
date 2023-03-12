@@ -20,7 +20,7 @@ from django.views.decorators.csrf import csrf_exempt
 from graphene_file_upload.django import FileUploadGraphQLView
 
 from DatasetServer import settings
-from dataset_api import resource_file, organization_logo, license_file
+from dataset_api import resource_file, organization_logo, license_file, public_download
 from dataset_api.data_access_model import contract_file
 from dataset_api.data_request import data_request_file
 from dataset_api.policy import policy_file
@@ -48,5 +48,6 @@ urlpatterns = [
     path("resource_preview/<int:resource_id>/", api_fetch.preview),
     path("contact_provider", contact_provider.contact_provider),
     path("graphql", csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True))),
+    path("public/<path:file_path>", public_download.download),
     path("", include("dataset_api.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
