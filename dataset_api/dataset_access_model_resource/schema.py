@@ -78,7 +78,17 @@ class CreateAccessModelResource(Output, graphene.Mutation):
                 id=access_model_resource_data.dataset_id
             )
             policy_instance = Policy.objects.get(pk=access_model_resource_data.policy_id)
-            
+            exists = True
+            try:
+                DatasetAccessModel.objects.get(title__exact=access_model_resource_data.title,
+                                               dataset__catalog__organization=dataset_instance.catalog.organization)
+            except DatasetAccessModel.DoesNotExist as e:
+                exists = False
+
+            if exists:
+                raise GraphQLError(
+                    "Dataset Access Model with Same name already exists"
+                )
             dataset_access_model = DatasetAccessModel(
                 data_access_model=data_access_instance, dataset=dataset_instance,
                 title=access_model_resource_data.title, policy=policy_instance,

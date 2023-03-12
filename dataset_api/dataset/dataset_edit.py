@@ -1,19 +1,15 @@
 import os
+
 import graphene
 from django.core.files import File
-from graphene_django import DjangoObjectType
-from graphql_auth.bases import Output
 from graphql import GraphQLError
+from graphql_auth.bases import Output
 
-from dataset_api.decorators import validate_token, auth_user_by_org
 from dataset_api.models import Dataset
-from .decorators import (
-    auth_user_action_dataset,
-    map_user_dataset,
-    auth_query_dataset,
-    get_user_datasets,
-)
 from dataset_api.utils import cloner
+from .decorators import (
+    map_user_dataset,
+)
 
 
 class EditDatasetInput(graphene.InputObjectType):
@@ -32,9 +28,9 @@ class EditDataset(Output, graphene.Mutation):
     # @auth_user_action_dataset(action="create_dataset")
     @map_user_dataset
     def mutate(
-        root,
-        info,
-        dataset_data: EditDatasetInput = None,
+            root,
+            info,
+            dataset_data: EditDatasetInput = None,
     ):
         try:
             dataset_instance = Dataset.objects.get(pk=dataset_data.id)
@@ -46,7 +42,7 @@ class EditDataset(Output, graphene.Mutation):
             return EditDataset(dataset_id=dataset_data.id)
         else:
             print("----cloned called----")
-            
+
             try:
                 existing_clone = Dataset.objects.filter(parent_id=dataset_data.id, status="DRAFT")
                 print("exis-clone--", existing_clone)
@@ -55,7 +51,8 @@ class EditDataset(Output, graphene.Mutation):
                     cloned_dataset = Dataset.objects.get(pk=cloned_id)
                     cloned_dataset.status = "DRAFT"
                     cloned_dataset.parent = dataset_instance
-                    cloned_dataset.accepted_agreement = File(dataset_instance.accepted_agreement,os.path.basename(dataset_instance.accepted_agreement.name),)
+                    cloned_dataset.accepted_agreement = File(dataset_instance.accepted_agreement, os.path.basename(
+                        dataset_instance.accepted_agreement.name), )
                     cloned_dataset.version_name = dataset_data.new_version_name
                     cloned_dataset.save()
                 else:
