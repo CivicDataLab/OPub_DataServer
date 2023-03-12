@@ -1,6 +1,7 @@
 import json
 import requests
 from django.conf import settings
+from dataset_api.models import Dataset
 
 email_url = settings.EMAIL_URL
 
@@ -101,12 +102,13 @@ def subscribe_notif(username, dataset_obj, action):
 
 
 def contact_provider_notif(contact_info):
+    dataset_instance = Dataset.objects.get(pk=contact_info.dataset_id)
     body = {
         "actor": contact_info.get("user"),
         "action": "contact_provider",
         "tgt_obj": contact_info.get("org_id"),
         "tgt_group": "Entity",
-        "extras": {"category": contact_info.get("category"), "desc": contact_info.get("desc"), "dataset_id": contact_info.get("dataset_id"), "dataset_title":contact_info.get("dataset_title") },
+        "extras": {"category": contact_info.category, "desc": contact_info.desc, "dataset_id": contact_info.dataset_id, "dataset_title":dataset_instance.title },
     }
     headers = {}
     response = requests.request("POST", email_url, json=body, headers=headers)
