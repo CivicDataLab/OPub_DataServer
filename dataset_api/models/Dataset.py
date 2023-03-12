@@ -41,7 +41,9 @@ class Dataset(models.Model):
     temporal_resolution = models.CharField(blank=True, null=True, max_length=100)
     temporal_coverage = models.CharField(blank=True, null=True, max_length=100)
     accepted_agreement = models.FileField(upload_to=_provider_agreement_directory_path, blank=True, null=True)
-    parent = models.ForeignKey("self",unique=False,blank=True,null=True,on_delete=models.SET_NULL,related_name="parent_field",)
+    parent = models.ForeignKey("self", unique=False, blank=True, null=True, on_delete=models.SET_NULL,
+                               related_name="parent_field", )
+    version_name = models.CharField(blank=True, null=True, default="Original", max_length=200)
     source = models.CharField(max_length=100, blank=True)
     last_updated = models.DateTimeField(null=True, blank=True)
     published_date = models.DateTimeField(null=True, blank=True)

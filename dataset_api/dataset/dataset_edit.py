@@ -18,6 +18,7 @@ from dataset_api.utils import cloner
 
 class EditDatasetInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
+    new_version_name = graphene.String(required=True)
 
 
 class EditDataset(Output, graphene.Mutation):
@@ -51,11 +52,12 @@ class EditDataset(Output, graphene.Mutation):
                 print("exis-clone--", existing_clone)
                 if not existing_clone.exists():
                     cloned_id = cloner(Dataset, dataset_instance.id)
-                    cloned_resource = Dataset.objects.get(pk=cloned_id)
-                    cloned_resource.status = "DRAFT"
-                    cloned_resource.parent = dataset_instance
-                    cloned_resource.accepted_agreement = File(dataset_instance.accepted_agreement,os.path.basename(dataset_instance.accepted_agreement.path),)
-                    cloned_resource.save()
+                    cloned_dataset = Dataset.objects.get(pk=cloned_id)
+                    cloned_dataset.status = "DRAFT"
+                    cloned_dataset.parent = dataset_instance
+                    cloned_dataset.accepted_agreement = File(dataset_instance.accepted_agreement,os.path.basename(dataset_instance.accepted_agreement.path),)
+                    cloned_dataset.version_name = dataset_data.new_version_name
+                    cloned_dataset.save()
                 else:
                     return EditDataset(dataset_id=existing_clone[0].id)
             except Dataset.DoesNotExist as e:
