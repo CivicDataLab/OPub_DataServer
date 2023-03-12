@@ -78,14 +78,9 @@ class CreateAccessModelResource(Output, graphene.Mutation):
                 id=access_model_resource_data.dataset_id
             )
             policy_instance = Policy.objects.get(pk=access_model_resource_data.policy_id)
-            exists = True
-            try:
-                datasetaccess_obj = DatasetAccessModel.objects.filter(title__exact=access_model_resource_data.title,
-                                               dataset__catalog__organization=dataset_instance.catalog.organization)
-            except DatasetAccessModel.DoesNotExist as e:
-                exists = False
-            print ('------------------dataobj', datasetaccess_obj)
-            if len(datasetaccess_obj) >= 1:
+            dam_obj = DatasetAccessModel.objects.filter(title__exact=access_model_resource_data.title,
+                                                        dataset__catalog__organization=dataset_instance.catalog.organization)
+            if len(dam_obj) >= 1:
                 raise GraphQLError(
                     "Dataset Access Model with Same name already exists"
                 )
@@ -171,6 +166,13 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
             ):
                 raise GraphQLError(
                     "Please select at least one distribution and corresponding fields"
+                )
+            dam_obj = DatasetAccessModel.objects.filter(title__exact=access_model_resource_data.title,
+                                                        dataset__catalog__organization=dataset_access_model_instance.dataset.catalog.organization)\
+                .exclude(id=dataset_access_model_instance.id)
+            if len(dam_obj) >= 1:
+                raise GraphQLError(
+                    "Dataset Access Model with Same name already exists"
                 )
             dataset_access_model_instance.title = access_model_resource_data.title
             dataset_access_model_instance.save()
