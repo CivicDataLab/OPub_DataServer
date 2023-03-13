@@ -138,7 +138,7 @@ class UpdateLicense(graphene.Mutation, Output):
                 "errors": {
                     "id": [
                         {
-                            "message": "License or organization with given id not found",
+                            "message": "License with given id not found",
                             "code": "404",
                         }
                     ]
