@@ -5,6 +5,7 @@ from django.db.models import Q, Prefetch
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from graphql import GraphQLError
+from dataset_api.search import index_data
 
 from dataset_api.decorators import validate_token, auth_user_by_org
 from dataset_api.enums import DataType
@@ -387,6 +388,8 @@ class PatchDataset(Output, graphene.Mutation):
             verb="Updated",
         )
         update_provider_agreement(dataset_instance, username)
+        if dataset_instance.status == "PUBLISHED":
+            index_data(dataset_instance)
 
         return PatchDataset(success=True, dataset=dataset_instance)
 
