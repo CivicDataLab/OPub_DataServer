@@ -21,7 +21,7 @@ class LicenceAdditionInputType(graphene.InputObjectType):
     id = graphene.ID(required=False)
     title = graphene.String(required=True)
     description = graphene.String(required=True)
-    generic_item = graphene.Boolean(required=True)
+    generic_item = graphene.Boolean(required=False)
 
 
 class LicenseAdditionsCreateInput(graphene.InputObjectType):
@@ -60,9 +60,10 @@ def _create_license_addition(license_instance, addition: LicenceAdditionInputTyp
     addition_instance = LicenseAddition(
         license=license_instance,
         description=addition.description,
-        title=addition.title,
-        generic_item=addition.generic_item,
+        title=addition.title
     )
+    if addition.generic_item:
+        addition_instance.generic_item = addition.generic_item
     addition_instance.save()
 
 
@@ -84,7 +85,8 @@ def _create_update_license_additions(
                 license_addition_instance.title = addition.title
                 license_addition_instance.description = addition.description
                 license_addition_instance.license = license_instance
-                license_addition_instance.generic_item = addition.generic_item
+                if addition.generic_item:
+                    license_addition_instance.generic_item = addition.generic_item
                 license_addition_instance.save()
                 license_additions_ids.remove(
                     int(license_addition_instance.id)
