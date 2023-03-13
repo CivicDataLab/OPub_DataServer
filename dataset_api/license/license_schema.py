@@ -69,6 +69,7 @@ class LicenseApproveRejectInput(graphene.InputObjectType):
 class LicenseInput(graphene.InputObjectType):
     id = graphene.ID(required=False)
     title = graphene.String(required=True)
+    short_name = graphene.String(required=True)
     description = graphene.String(required=True)
     file = Upload(required=False)
     remote_url = graphene.String(required=False)
@@ -89,6 +90,7 @@ class CreateLicense(graphene.Mutation, Output):
         license_instance = License(
             title=license_data.title,
             description=license_data.description,
+            short_name=license_data.short_name
         )
         if license_data.file:
             license_instance.file = license_data.file
