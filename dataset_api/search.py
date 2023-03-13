@@ -1,6 +1,7 @@
 import json
 
 from django.conf import settings
+from django.db.models import Q
 from django.http import HttpResponse
 from elasticsearch import Elasticsearch
 
@@ -14,7 +15,7 @@ from .models import (
     FileDetails,
     APIDetails,
     Dataset,
-    DatasetAccessModel,
+    DatasetAccessModel, DatasetAccessModelRequest,
 )
 from .utils import dataset_slug, get_average_rating
 
@@ -339,6 +340,43 @@ def more_like_this(request):
         resp = es_client.search(index="dataset", query=query)
         return HttpResponse(json.dumps(resp["hits"]))
 
+
+def org_user_count(organization):
+    user_count = (
+        DatasetAccessModelRequest.objects.filter(
+            Q(access_model_id__dataset_id__catalog__organization=organization.id),
+            Q(access_model_id__dataset__status__exact="PUBLISHED"),
+        )
+        .values_list("user")
+        .distinct()
+        .count()
+    )
+    return user_count
+
+
+def org_dataset_count(organization):
+    dataset = Dataset.objects.filter(
+        Q(status__exact="PUBLISHED"),
+        Q(catalog__organization=organization.id),
+    ).count()
+    return dataset
+
+
+def org_average_rating(organization):
+    pub_datasets = Dataset.objects.filter(
+        Q(status__exact="PUBLISHED"),
+        Q(catalog__organization=organization.id),
+    )
+    count = 0
+    rating = 0
+    for dataset in pub_datasets:
+        dataset_rating = get_average_rating(dataset)
+        if dataset_rating > 0:
+            count = count + 1
+            rating = rating + dataset_rating
+    return rating / count if rating else 0
+
+
 def index_organizations():
     obj = OrganizationCreateRequest.objects.all()
     print(len(obj))
@@ -362,14 +400,18 @@ def index_organizations():
                 "status": org_obj.status,
                 "issued": org_obj.issued,
                 "modified": org_obj.modified,
+                "logo": org_obj.logo.name,
+                "dataset_count": org_dataset_count(org_obj),
+                "user_count": org_user_count(org_obj),
+                "average_rating": org_average_rating(org_obj)
             }
             # Check if Org already exists.
-            # resp = es_client.exists(index="dataset", id=dataset_obj.id)
-            # if resp:
-            #     # Delete the Dataset.
-            #     resp = es_client.delete(index="dataset", id=dataset_obj.id)
+            resp = es_client.exists(index="organizations", id=org_obj.id)
+            if resp:
+                # Delete the Org.
+                resp = es_client.delete(index="organizations", id=org_obj.id)
             #     # print(resp["result"])
-            # # Index the Dataset.
+            # Index the Organization.
             resp = es_client.index(index="organizations", id=org_obj.id, document=doc)
             print(resp["result"], org_obj.id)
             # return resp["result"]
