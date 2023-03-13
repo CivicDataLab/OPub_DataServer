@@ -10,6 +10,8 @@ from dataset_api.utils import cloner
 from .decorators import (
     map_user_dataset,
 )
+from DatasetServer import settings
+import requests
 
 
 class EditDatasetInput(graphene.InputObjectType):
@@ -47,7 +49,20 @@ class EditDataset(Output, graphene.Mutation):
                 existing_clone = Dataset.objects.filter(parent_id=dataset_data.id, status="DRAFT")
                 print("exis-clone--", existing_clone)
                 if not existing_clone.exists():
-                    cloned_id = cloner(Dataset, dataset_instance.id)
+                    #get transformers of the dataset
+                    url = f"{settings.PIPELINE_URL}pipeline_filter?datasetId=dataset_data.id"
+                    headers = {}
+                    response = requests.request("GET", url, headers=headers)   
+                    response = response.json()
+                    trans_list = []
+                    for each in response:
+                        if each['resultant_res_id']:
+                            trans_list.append({'pipeline_id': each['pipeline_id'], 'dataset_id': dataset_data.id, 'resource_id': each['resource_id'], 'resultant_res_id': each['resultant_res_id'] })
+                        else:
+                            trans_list.append({'pipeline_id': each['pipeline_id'], 'dataset_id': dataset_data.id, 'resource_id': each['resource_id'], 'resultant_res_id': each['resource_id'] })
+                        
+                        
+                    cloned_id = cloner(Dataset, dataset_instance.id, trans_list)
                     cloned_dataset = Dataset.objects.get(pk=cloned_id)
                     cloned_dataset.status = "DRAFT"
                     cloned_dataset.parent = dataset_instance

@@ -8,6 +8,8 @@ from dataset_api.enums import RatingStatus
 from dataset_api.models import Dataset, DataAccessModel, Organization
 from dataset_api.enums import ValidationUnits
 import datetime
+import json
+import requests
 
 def get_client_ip(request):
     x_forwarded_for = request.context.META.get("HTTP_X_FORWARDED_FOR")
@@ -160,7 +162,7 @@ def json_keep_column(data, cols, parentnodes):
 
 
 
-def clone_object(obj, clone_list, old_clone, attrs={}):
+def clone_object(obj, clone_list, old_clone, trans_list, attrs={}):
 
     print("----clone", obj)
 
@@ -179,6 +181,32 @@ def clone_object(obj, clone_list, old_clone, attrs={}):
         clone.save()
         clone_list.append(str(clone._meta.object_name) + str(clone.pk))
         old_clone.append(str(obj._meta.object_name) + str(obj.pk))
+        
+        #for resource create transform clone
+        if str(obj._meta.object_name) == "Resource":
+            for each in trans_list:
+                if each['resource_id'] == obj.pk:
+                    each['clone_resource_id'] = clone.pk
+                    
+                if each['resultant_res_id'] == obj.pk:
+                    each['clone_resultant_res_id'] = clone.pk
+                    
+                if (each['resultant_res_id'] == obj.pk or each['resource_id'] == obj.pk) and ("clone_resource_id" in each) and ("clone_resultant_res_id" in each):
+                    
+                    url = f"{settings.PIPELINE_URL}clone_pipe"
+                    payload = json.dumps(
+                        {
+                            "pipeline_id": each['pipeline_id'], 
+                            "dataset_id": each['dataset_id'],
+                            "resource_id": each['clone_resource_id'], 
+                            "resultant_res_id": each['clone_resultant_res_id'],                    
+                        }
+                    )
+                    headers = {}
+                    response = requests.request("POST", url, headers=headers, data=payload)   
+                    response = response.json()        
+        
+        
     else:
         print ('----inelse')
         obj_model = obj._meta.model.objects.get(pk=obj.pk) 
@@ -241,19 +269,19 @@ def clone_object(obj, clone_list, old_clone, attrs={}):
                     ] and (str(child._meta.object_name) + str(child.pk)) not in old_clone:
                         #clone_list.append(str(child._meta.object_name) + str(child.pk))
                         # if child not in ["DataRequest", "Geography", "Sector"]:
-                        clone_object(child, clone_list, old_clone, attrs)
+                        clone_object(child, clone_list, old_clone, trans_list, attrs)
 
     return clone
 
 
-def cloner(object_type, object_id):
+def cloner(object_type, object_id, trans_list):
     obj = object_type.objects.get(pk=object_id)
     # data = {"id": str(obj.pk)}
 
     print("---in----")
     clone_list = []   
     old_clone = []
-    clone = clone_object(obj, clone_list, old_clone)
+    clone = clone_object(obj, clone_list, old_clone, trans_list)
     print("---out----")
 
     return clone.id
