@@ -150,6 +150,7 @@ class UpdateLicense(graphene.Mutation, Output):
             organization = None
 
         license_instance.title = license_data.title
+        license_instance.short_name = license_data.short_name
         license_instance.description = license_data.description
         if organization:
             license_instance.created_organization = organization
