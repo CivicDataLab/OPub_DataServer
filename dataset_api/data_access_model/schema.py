@@ -51,7 +51,7 @@ class Query(graphene.ObjectType):
     def resolve_org_data_access_models(self, info, organization_id, role):
         if role == "PMU" or role == "DPA" or role == "DP":
             organization = Organization.objects.get(pk=organization_id)
-            return DataAccessModel.objects.filter(organization=organization).order_by(
+            return DataAccessModel.objects.filter(Q(organization=organization) | Q(is_global=True)).order_by(
                 "-modified"
             )
         else:
