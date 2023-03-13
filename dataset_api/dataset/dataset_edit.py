@@ -50,17 +50,16 @@ class EditDataset(Output, graphene.Mutation):
                 print("exis-clone--", existing_clone)
                 if not existing_clone.exists():
                     #get transformers of the dataset
-                    url = f"{settings.PIPELINE_URL}pipeline_filter?datasetId=dataset_data.id"
+                    url = f"{settings.PIPELINE_URL}pipeline_filter?datasetId={dataset_data.id}"
                     headers = {}
                     response = requests.request("GET", url, headers=headers)   
                     response = response.json()
                     trans_list = []
-                    for each in response:
+                    for each in response['result']:
                         if each['resultant_res_id']:
                             trans_list.append({'pipeline_id': each['pipeline_id'], 'dataset_id': dataset_data.id, 'resource_id': each['resource_id'], 'resultant_res_id': each['resultant_res_id'] })
                         else:
                             trans_list.append({'pipeline_id': each['pipeline_id'], 'dataset_id': dataset_data.id, 'resource_id': each['resource_id'], 'resultant_res_id': each['resource_id'] })
-                        
                         
                     cloned_id = cloner(Dataset, dataset_instance.id, trans_list)
                     cloned_dataset = Dataset.objects.get(pk=cloned_id)

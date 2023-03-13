@@ -164,7 +164,7 @@ def json_keep_column(data, cols, parentnodes):
 
 def clone_object(obj, clone_list, old_clone, trans_list, attrs={}):
 
-    print("----clone", obj)
+    #print("----clone", obj)
 
     if (str(obj._meta.object_name) + str(obj.pk)) not in clone_list:
         # we start by building a "flat" clone
@@ -181,23 +181,32 @@ def clone_object(obj, clone_list, old_clone, trans_list, attrs={}):
         clone.save()
         clone_list.append(str(clone._meta.object_name) + str(clone.pk))
         old_clone.append(str(obj._meta.object_name) + str(obj.pk))
-        
+       
+        print ('----------------------objname', str(obj._meta.object_name))
         #for resource create transform clone
-        if str(obj._meta.object_name) == "Resource":
+        if str(obj._meta.object_name) == "Dataset":
             for each in trans_list:
-                if each['resource_id'] == obj.pk:
+                if each['dataset_id'] == str(obj.pk):
+                    each['clone_dataset_id'] = clone.pk
+
+
+        if str(obj._meta.object_name) == "Resource":
+            #print ('-------------------transl1', trans_list, obj.pk)
+            for each in trans_list:
+                if each['resource_id'] == str(obj.pk):
                     each['clone_resource_id'] = clone.pk
                     
-                if each['resultant_res_id'] == obj.pk:
+                if each['resultant_res_id'] == str(obj.pk):
                     each['clone_resultant_res_id'] = clone.pk
                     
-                if (each['resultant_res_id'] == obj.pk or each['resource_id'] == obj.pk) and ("clone_resource_id" in each) and ("clone_resultant_res_id" in each):
-                    
+                if (each['resultant_res_id'] == str(obj.pk) or each['resource_id'] == str(obj.pk)) and ("clone_resource_id" in each) and ("clone_resultant_res_id" in each):
+                   
+                    #print ('----------------inside')
                     url = f"{settings.PIPELINE_URL}clone_pipe"
                     payload = json.dumps(
                         {
                             "pipeline_id": each['pipeline_id'], 
-                            "dataset_id": each['dataset_id'],
+                            "dataset_id": each['clone_dataset_id'],
                             "resource_id": each['clone_resource_id'], 
                             "resultant_res_id": each['clone_resultant_res_id'],                    
                         }
@@ -242,7 +251,7 @@ def clone_object(obj, clone_list, old_clone, trans_list, attrs={}):
                     **{field.remote_field.name: obj}
                 )
                 for child in children:
-                    print("-----child", str(child), '-----attr', attrs)
+                    # print("-----child", str(child), '-----attr', attrs)
                     '''print(
                         "💪💪💪",
                         str(child._meta.object_name)
