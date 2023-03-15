@@ -73,7 +73,7 @@ def index_data(dataset_obj):
     doc["org_description"] = org_instance.description
     doc["org_id"] = catalog_instance.organization_id
     doc["org_logo"] = str(org_instance.logo) if org_instance.logo else ""
-
+    update_organization_index(OrganizationCreateRequest.objects.get(organization_ptr_id=org_instance.id))
     resource_instance = Resource.objects.filter(dataset_id=dataset_obj.id)
     resource_title = []
     resource_description = []
@@ -129,6 +129,7 @@ def index_data(dataset_obj):
         # print(resp["result"])
     # Index the Dataset.
     resp = es_client.index(index="dataset", id=dataset_obj.id, document=doc)
+    update_organization_index(OrganizationCreateRequest.objects.get(organization_ptr_id=org_instance.id))
     # print(resp["result"])
     return resp["result"]
 
@@ -375,44 +376,48 @@ def org_average_rating(organization):
     return rating / count if rating else 0
 
 
-def index_organizations():
+def reindex_organizations():
     obj = OrganizationCreateRequest.objects.all()
     for org_obj in obj:
-        if org_obj.status == "APPROVED":
-            doc = {
-                "id": org_obj.id,
-                "org_title": org_obj.title,
-                "org_description": org_obj.description,
-                "homepage": org_obj.homepage,
-                "contact": org_obj.contact_email,
-                "type": org_obj.organization_types,
-                "dpa_name": org_obj.dpa_name,
-                "dpa_email": org_obj.dpa_email,
-                "dpa_designation": org_obj.dpa_designation,
-                "state": org_obj.state.name if org_obj.state else "",
-                "parent": org_obj.parent.id if org_obj.parent else "",
-                "dpa_phone": org_obj.dpa_phone,
-                "dpa_tid": org_obj.ogd_tid,
-                "sub_type": org_obj.organization_subtypes,
-                "address": org_obj.address,
-                "status": org_obj.status,
-                "issued": org_obj.issued,
-                "modified": org_obj.modified,
-                "logo": org_obj.logo.name,
-                "dataset_count": org_dataset_count(org_obj),
-                "user_count": org_user_count(org_obj),
-                "average_rating": org_average_rating(org_obj)
-            }
-            # Check if Org already exists.
-            resp = es_client.exists(index="organizations", id=org_obj.id)
-            if resp:
-                # Delete the Org.
-                resp = es_client.delete(index="organizations", id=org_obj.id)
-            #     # print(resp["result"])
-            # Index the Organization.
-            resp = es_client.index(index="organizations", id=org_obj.id, document=doc)
-            print(resp["result"], org_obj.id)
-            # return resp["result"]
+        update_organization_index(org_obj)
+
+
+def update_organization_index(org_obj):
+    if org_obj.status == "APPROVED":
+        doc = {
+            "id": org_obj.id,
+            "org_title": org_obj.title,
+            "org_description": org_obj.description,
+            "homepage": org_obj.homepage,
+            "contact": org_obj.contact_email,
+            "type": org_obj.organization_types,
+            "dpa_name": org_obj.dpa_name,
+            "dpa_email": org_obj.dpa_email,
+            "dpa_designation": org_obj.dpa_designation,
+            "state": org_obj.state.name if org_obj.state else "",
+            "parent": org_obj.parent.id if org_obj.parent else "",
+            "dpa_phone": org_obj.dpa_phone,
+            "dpa_tid": org_obj.ogd_tid,
+            "sub_type": org_obj.organization_subtypes,
+            "address": org_obj.address,
+            "status": org_obj.status,
+            "issued": org_obj.issued,
+            "modified": org_obj.modified,
+            "logo": org_obj.logo.name,
+            "dataset_count": org_dataset_count(org_obj),
+            "user_count": org_user_count(org_obj),
+            "average_rating": org_average_rating(org_obj)
+        }
+        # Check if Org already exists.
+        resp = es_client.exists(index="organizations", id=org_obj.id)
+        if resp:
+            # Delete the Org.
+            resp = es_client.delete(index="organizations", id=org_obj.id)
+        #     # print(resp["result"])
+        # Index the Organization.
+        resp = es_client.index(index="organizations", id=org_obj.id, document=doc)
+        print(resp["result"], org_obj.id)
+        # return resp["result"]
 
 
 def reindex_data():

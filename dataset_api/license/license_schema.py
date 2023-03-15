@@ -11,7 +11,7 @@ from dataset_api.models import Organization
 from dataset_api.models.LicenseAddition import LicenseAddition
 from dataset_api.models.License import License
 from dataset_api.decorators import auth_user_by_org
-from .decorators import check_license_role, auth_query_license
+from .decorators import check_license_role
 from ..decorators import validate_token_or_none
 from .enums import LicenseStatus
 from ..license_addition.enums import LICENSEADDITIONSTATE

@@ -20,7 +20,6 @@ from .decorators import (
 from .enums import (
     OrganizationTypes,
     OrganizationCreationStatusType,
-    RatingStatus,
     OrganizationSubTypes,
 )
 from .file_utils import file_validation
@@ -33,7 +32,6 @@ from .models import (
     Sector,
     DatasetAccessModelRequest,
     DatasetAccessModel,
-    DataAccessModel,
     Geography,
 )
 
@@ -434,9 +432,7 @@ class UpdateOrganization(Output, graphene.Mutation):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_id = organization_data.id if organization_data.id else org_id
         try:
-            organization_create_request_instance = (
-                OrganizationCreateRequest.objects.get(organization_ptr_id=org_id)
-            )
+            organization_create_request_instance = OrganizationCreateRequest.objects.get(organization_ptr_id=org_id)
         except OrganizationCreateRequest.DoesNotExist as e:
             return {
                 "success": False,
