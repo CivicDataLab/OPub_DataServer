@@ -1,10 +1,12 @@
+import copy
 import json
-import mimetypes
 import os
-import magic
+
 import jwt
+import magic
 import pandas as pd
 import requests
+import xmltodict
 from django.conf import settings
 from django.http import HttpResponse, FileResponse, HttpResponseForbidden, JsonResponse
 from elasticsearch import Elasticsearch
@@ -20,14 +22,10 @@ from dataset_api.models.DataRequest import DataRequest
 from dataset_api.search import index_data
 from dataset_api.utils import idp_make_cache_key
 from .decorators import dam_request_validity
-
 # Overwriting ratelimit's cache key function.
 from .schema import initiate_dam_request
-from ..constants import FORMAT_MAPPING
 from ..models import DatasetAccessModelResource, DatasetAccessModelRequest
-import xmltodict
-from django.core.files.storage import default_storage
-import copy
+
 # from graphql import GraphQLError
 
 core._make_cache_key = idp_make_cache_key
@@ -132,7 +130,7 @@ class InvalidDataException(Exception):
 def filter_csv(request, csv_file, paginate_from, size):
     # paginate
     start = paginate_from
-    end = len(csv_file) if start+size > len(csv_file) else start+size
+    end = len(csv_file) if start + size > len(csv_file) else start + size
     csv_file = csv_file[start:end]
     csv_file = csv_file.applymap(str)
 
@@ -153,7 +151,8 @@ def filter_csv(request, csv_file, paginate_from, size):
 
 class FormatConverter:
     @classmethod
-    def convert_csv_to_json(cls, csv_file, csv_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0,
+    def convert_csv_to_json(cls, csv_file, csv_file_path, src_mime_type, return_type="data", size=10000,
+                            paginate_from=0,
                             request=None):
         csv_file = pd.DataFrame(
             pd.read_csv(csv_file, sep=",", header=0, index_col=False, )
@@ -276,7 +275,7 @@ class FormatConverter:
             )
             os.remove("file.xml")
         elif return_type == "data":
-            #with open(xml_file_path) as f:
+            # with open(xml_file_path) as f:
             f = xml_file
             contents = f.read()
             response = HttpResponse(contents, content_type="application/xml")
@@ -312,7 +311,8 @@ class FormatConverter:
             return response
 
     @classmethod
-    def convert_json_to_json(cls, json_file, json_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0,
+    def convert_json_to_json(cls, json_file, json_file_path, src_mime_type, return_type="data", size=10000,
+                             paginate_from=0,
                              request=None):
         if return_type == "file":
             with open("file.json", "w") as f:
@@ -325,14 +325,15 @@ class FormatConverter:
             )
             os.remove("file.json")
         elif return_type == "data":
-            #with open(json_file_path) as f:
-            f= json_file
+            # with open(json_file_path) as f:
+            f = json_file
             json_data = json.load(f)
             response = JsonResponse(json_data, safe=False)
         return response
 
     @classmethod
-    def convert_json_to_csv(cls, json_file, json_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0,
+    def convert_json_to_csv(cls, json_file, json_file_path, src_mime_type, return_type="data", size=10000,
+                            paginate_from=0,
                             request=None):
         # final_json = pd.read_json(json_file_path, orient='index' )  #cls.process_json_data(json_file_path)
         final_json = cls.process_json_data(json_file)
@@ -401,7 +402,8 @@ class FormatConverter:
                 return pd.DataFrame.from_dict(data)
 
     @classmethod
-    def convert_json_to_xml(cls, json_file, json_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0,
+    def convert_json_to_xml(cls, json_file, json_file_path, src_mime_type, return_type="data", size=10000,
+                            paginate_from=0,
                             request=None):
         final_json = cls.process_json_data(json_file)
         if return_type == "file":
@@ -769,7 +771,7 @@ def get_request_file(
 ):
     data_request = DataRequest.objects.get(pk=data_request_id)
     file_path = data_request.file.name
-    file_obj = data_request.file #default_storage.open(data_request.file.name, 'r')
+    file_obj = data_request.file  # default_storage.open(data_request.file.name, 'r')
     try:
         if len(file_path):
             deep_copy_file_1 = copy.deepcopy(data_request.file)
@@ -788,6 +790,7 @@ def get_request_file(
                     os.path.basename(file_path)
                 )
             update_download_count(username, data_request)
+            index_
             data_request.file.delete()
             return response
     except InvalidDataException as e:

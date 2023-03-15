@@ -1,20 +1,19 @@
 import json
-import mimetypes
 import os
+from io import StringIO
 from typing import Iterator
-import magic
+
 import graphene
 import pandas as pd
 import requests
 from django.core.files import File
+from django.core.files.storage import default_storage
 from django.db.models import Q
-from elasticsearch import Elasticsearch, helpers
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql_auth.bases import Output
 
 from DatasetServer import settings
-from dataset_api.constants import FORMAT_MAPPING
 from dataset_api.data_request.token_handler import (
     create_access_jwt_token,
     generate_refresh_token,
@@ -26,23 +25,18 @@ from dataset_api.dataset_access_model_request.schema import (
 )
 from dataset_api.decorators import validate_token, validate_token_or_none
 from dataset_api.enums import DataType
-from dataset_api.es_utils import es_create_index_if_not_exists
 from dataset_api.models import (
     Resource,
     DatasetAccessModel,
     DatasetAccessModelResource,
     FileDetails,
     DataRequestParameter,
-    ResourceSchema,
 )
 from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
 from dataset_api.utils import get_client_ip, log_activity
 from dataset_api.utils import json_keep_column
-from io import StringIO
-from django.core.files.storage import default_storage
-from storages.backends.s3boto3 import S3Boto3Storage
-from django.core.files.base import ContentFile
+
 
 class DataRequestType(DjangoObjectType):
     access_token = graphene.String()
@@ -215,7 +209,7 @@ def initiate_dam_request(
             file.write(csv_buffer.getvalue())
             file.close()
         elif file_instance.format.lower() == "json":
-            read_file = data_request_instance.file #open(data_request_instance.file.path, "r")
+            read_file = data_request_instance.file
             file = json.load(read_file)
             if len(fields) > 0:
                 # skip_col(file, fields)
@@ -312,58 +306,58 @@ def generator(dict_df, index):
         yield {"_index": index, "_type": "_doc", "_source": line}
 
 
-def update_data_request_index(data_request: DataRequest):
-    es_client = Elasticsearch(settings.ELASTICSEARCH)
-    file_path = data_request.file.path
-    if len(file_path):
-        mime_type = magic.from_file(file_path, mime=True)
-        src_format = FORMAT_MAPPING[mime_type]
-        index_name = str(data_request.id)
-        es_create_index_if_not_exists(es_client, index_name)
-        if src_format.lower() == "csv":
-            csv_file = pd.DataFrame(pd.read_csv(file_path, sep=","))
-            csv_file.fillna("", inplace=True)
-            json_df = csv_file.to_dict(orient="records")
-            res = helpers.bulk(es_client, generator(json_df, index=index_name))
-        elif src_format.lower() == "json":
-            with open(file_path, "r") as fp:
-                data = json.load(fp)
-                temp = pd.json_normalize(data, max_level=2)
-                list_cols = []
-                all_cols = []
-                for v in list(temp.columns):
-                    if "." in v:
-                        all_cols.append(v.split("."))
-                    else:
-                        all_cols.append(v)
-                    keys = v.split(".")
-                    rv = data
-                    for key in keys:
-                        rv = rv[key]
-                    # print(rv)
-                    if type(rv) == list:
-                        list_cols.append(v)
-                df = data
-                for col_path in list_cols:
-                    meta = all_cols.copy()
-                    if "." in col_path:
-                        path_list = col_path.split(".")
-                        meta.remove(path_list)
-                    else:
-                        meta.remove(col_path)
-
-                    df = pd.json_normalize(
-                        df, record_path=col_path.split("."), meta=meta
-                    ).to_dict(orient="records")
-                df = pd.DataFrame(df)
-                df.fillna("", inplace=True)
-                json_df = df.to_dict(orient="records")
-                res = helpers.bulk(es_client, generator(json_df, index=index_name))
-        elif src_format.lower() == "xml":
-            df = pd.DataFrame(pd.read_xml(file_path))
-            df.fillna("", inplace=True)
-            json_df = df.to_dict(orient="records")
-            res = helpers.bulk(es_client, generator(json_df, index=index_name))
+# def update_data_request_index(data_request: DataRequest):
+#     es_client = Elasticsearch(settings.ELASTICSEARCH)
+#     file_path = data_request.file.path
+#     if len(file_path):
+#         mime_type = magic.from_file(file_path, mime=True)
+#         src_format = FORMAT_MAPPING[mime_type]
+#         index_name = str(data_request.id)
+#         es_create_index_if_not_exists(es_client, index_name)
+#         if src_format.lower() == "csv":
+#             csv_file = pd.DataFrame(pd.read_csv(file_path, sep=","))
+#             csv_file.fillna("", inplace=True)
+#             json_df = csv_file.to_dict(orient="records")
+#             res = helpers.bulk(es_client, generator(json_df, index=index_name))
+#         elif src_format.lower() == "json":
+#             with open(file_path, "r") as fp:
+#                 data = json.load(fp)
+#                 temp = pd.json_normalize(data, max_level=2)
+#                 list_cols = []
+#                 all_cols = []
+#                 for v in list(temp.columns):
+#                     if "." in v:
+#                         all_cols.append(v.split("."))
+#                     else:
+#                         all_cols.append(v)
+#                     keys = v.split(".")
+#                     rv = data
+#                     for key in keys:
+#                         rv = rv[key]
+#                     # print(rv)
+#                     if type(rv) == list:
+#                         list_cols.append(v)
+#                 df = data
+#                 for col_path in list_cols:
+#                     meta = all_cols.copy()
+#                     if "." in col_path:
+#                         path_list = col_path.split(".")
+#                         meta.remove(path_list)
+#                     else:
+#                         meta.remove(col_path)
+#
+#                     df = pd.json_normalize(
+#                         df, record_path=col_path.split("."), meta=meta
+#                     ).to_dict(orient="records")
+#                 df = pd.DataFrame(df)
+#                 df.fillna("", inplace=True)
+#                 json_df = df.to_dict(orient="records")
+#                 res = helpers.bulk(es_client, generator(json_df, index=index_name))
+#         elif src_format.lower() == "xml":
+#             df = pd.DataFrame(pd.read_xml(file_path))
+#             df.fillna("", inplace=True)
+#             json_df = df.to_dict(orient="records")
+#             res = helpers.bulk(es_client, generator(json_df, index=index_name))
 
 
 class DataRequestUpdateMutation(graphene.Mutation, Output):

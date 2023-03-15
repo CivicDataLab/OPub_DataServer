@@ -7,6 +7,7 @@ from dataset_api.models.Organization import Organization
 
 class License(models.Model):
     title = models.CharField(max_length=100)
+    short_name = models.CharField(blank=True, null=True, max_length=100)
     description = models.CharField(max_length=100000)
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)

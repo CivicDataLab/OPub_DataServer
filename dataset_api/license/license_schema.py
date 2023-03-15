@@ -11,7 +11,7 @@ from dataset_api.models import Organization
 from dataset_api.models.LicenseAddition import LicenseAddition
 from dataset_api.models.License import License
 from dataset_api.decorators import auth_user_by_org
-from .decorators import check_license_role, auth_query_license
+from .decorators import check_license_role
 from ..decorators import validate_token_or_none
 from .enums import LicenseStatus
 from ..license_addition.enums import LICENSEADDITIONSTATE
@@ -69,6 +69,7 @@ class LicenseApproveRejectInput(graphene.InputObjectType):
 class LicenseInput(graphene.InputObjectType):
     id = graphene.ID(required=False)
     title = graphene.String(required=True)
+    short_name = graphene.String(required=True)
     description = graphene.String(required=True)
     file = Upload(required=False)
     remote_url = graphene.String(required=False)
@@ -89,6 +90,7 @@ class CreateLicense(graphene.Mutation, Output):
         license_instance = License(
             title=license_data.title,
             description=license_data.description,
+            short_name=license_data.short_name
         )
         if license_data.file:
             license_instance.file = license_data.file
@@ -136,7 +138,7 @@ class UpdateLicense(graphene.Mutation, Output):
                 "errors": {
                     "id": [
                         {
-                            "message": "License or organization with given id not found",
+                            "message": "License with given id not found",
                             "code": "404",
                         }
                     ]
@@ -148,6 +150,7 @@ class UpdateLicense(graphene.Mutation, Output):
             organization = None
 
         license_instance.title = license_data.title
+        license_instance.short_name = license_data.short_name
         license_instance.description = license_data.description
         if organization:
             license_instance.created_organization = organization

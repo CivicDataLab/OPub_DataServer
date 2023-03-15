@@ -10,6 +10,7 @@ from dataset_api.models import Dataset, Resource, Policy
 from dataset_api.models import DatasetAccessModel
 from dataset_api.models import DatasetAccessModelResource
 from .decorators import auth_action_dam_resource
+from ..dataset_access_model.enums import PAYMENTTYPES
 from ..dataset_access_model.schema import DatasetAccessModelType
 from ..enums import DataType
 
@@ -54,6 +55,8 @@ class AccessModelResourceInput(graphene.InputObjectType):
     access_model_id = graphene.ID(required=True)
     dataset_id = graphene.ID(required=True)
     policy_id = graphene.ID(required=False)
+    payment_type = graphene.Enum.from_enum(PAYMENTTYPES)(required=True)
+    payment = graphene.Int(required=False)
 
 
 class DeleteAccessModelResourceInput(graphene.InputObjectType):
@@ -87,7 +90,10 @@ class CreateAccessModelResource(Output, graphene.Mutation):
             dataset_access_model = DatasetAccessModel(
                 data_access_model=data_access_instance, dataset=dataset_instance,
                 title=access_model_resource_data.title, policy=policy_instance,
+                payment_type=access_model_resource_data.payment_type
             )
+            if access_model_resource_data.payment:
+                dataset_access_model.payment = access_model_resource_data.payment
 
             dataset_access_model.save()
 
@@ -175,6 +181,9 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                     "Dataset Access Model with Same name already exists"
                 )
             dataset_access_model_instance.title = access_model_resource_data.title
+            dataset_access_model_instance.payment_type = access_model_resource_data.payment_type
+            if access_model_resource_data.payment:
+                dataset_access_model_instance.payment = access_model_resource_data.payment
             dataset_access_model_instance.save()
 
             # Getting id's that were removed.

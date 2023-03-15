@@ -1,29 +1,26 @@
-import json
-import mimetypes
-import os
-from typing import Iterable
 import copy
-import magic
+import json
+from typing import Iterable
 
 import genson
 import graphene
 import pandas as pd
-from django.core.files.base import ContentFile
+import xmltodict
+from django.db.models import Q
 from graphene import List
 from graphene_django import DjangoObjectType
 from graphene_file_upload.scalars import Upload
 from graphql import GraphQLError
 from graphql_auth.bases import Output
-from django.db.models import Q
-from .api_resource import api_fetch
+
 from .constants import FORMAT_MAPPING
 from .decorators import (
     auth_user_action_resource,
     validate_token,
-    auth_user_by_org,
     auth_query_resource,
 )
 from .enums import DataType, ParameterTypes, FormatLocation
+from .file_utils import file_validation
 from .models import (
     APISource,
     Resource,
@@ -34,8 +31,6 @@ from .models import (
     APIParameter,
 )
 from .utils import log_activity, get_client_ip
-from .file_utils import file_validation
-import xmltodict
 
 
 def parse_schema(schema_dict, parent, schema, current_path):
@@ -47,7 +42,6 @@ def parse_schema(schema_dict, parent, schema, current_path):
     for key in schema_dict:
         if key == "required":
             continue
-        print(key)
         if key == "items":
             count = count + 1
             schema.append(
@@ -355,19 +349,19 @@ class DeleteResourceInput(graphene.InputObjectType):
 
 
 def _remove_masked_fields(resource_instance: Resource):
-    if (
-            resource_instance.masked_fields
-            and len(resource_instance.filedetails.file.path)
-            and "csv" in resource_instance.filedetails.format.lower()
-    ):
-        df = pd.read_csv(resource_instance.filedetails.file.path)
-        df = df.drop(columns=resource_instance.masked_fields)
-        data = df.to_csv(index=False)
-        temp_file = ContentFile(data.encode("utf-8"))
-        resource_instance.filedetails.file.save(
-            os.path.basename(resource_instance.filedetails.file.path), temp_file
-        )
-    resource_instance.save()
+     if (
+             resource_instance.masked_fields
+             and len(resource_instance.filedetails.file.name)
+             and "csv" in resource_instance.filedetails.format.lower()
+     ):
+         df = pd.read_csv(resource_instance.filedetails.file)
+         df = df.drop(columns=resource_instance.masked_fields)
+         data = df.to_csv(index=False)
+         temp_file = ContentFile(data.encode("utf-8"))
+         resource_instance.filedetails.file.save(
+             os.path.basename(resource_instance.filedetails.file.name), temp_file
+         )
+     resource_instance.save()
 
 
 def _create_update_schema(resource_data: ResourceInput, resource_instance):
@@ -722,7 +716,7 @@ class UpdateResource(graphene.Mutation, Output):
                 attribute=resource_data.file_details,
             )
         resource_instance.save()
-        _remove_masked_fields(resource_instance)
+        # _remove_masked_fields(resource_instance)
         _create_update_schema(resource_data, resource_instance)
         log_activity(
             target_obj=resource_instance,
