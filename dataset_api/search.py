@@ -5,8 +5,6 @@ from django.db.models import Q
 from django.http import HttpResponse
 from elasticsearch import Elasticsearch
 
-# import warnings
-# warnings.filterwarnings("ignore")
 from .models import (
     Catalog,
     Organization,
@@ -379,10 +377,10 @@ def org_average_rating(organization):
 
 def index_organizations():
     obj = OrganizationCreateRequest.objects.all()
-    print(len(obj))
     for org_obj in obj:
         if org_obj.status == "APPROVED":
             doc = {
+                "id": org_obj.id,
                 "org_title": org_obj.title,
                 "org_description": org_obj.description,
                 "homepage": org_obj.homepage,
