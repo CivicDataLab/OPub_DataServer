@@ -252,7 +252,7 @@ def facets(request):
                 "max": {"max": {"field": "period_to", "format": "yyyy-MM-dd"}},
             },
         },
-        "type": {"terms": {"field": "dataset_access_models.type", "size": 10000}},
+        "type": {"terms": {"field": "dataset_access_models.type.keyword", "size": 10000}},
         "payment_type": {"terms": {"field": "dataset_access_models.payment_type.keyword", "size": 10000}},
     }
     if not query_string:
