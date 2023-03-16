@@ -790,7 +790,6 @@ def get_request_file(
                     os.path.basename(file_path)
                 )
             update_download_count(username, data_request)
-            index_
             data_request.file.delete()
             return response
     except InvalidDataException as e:
