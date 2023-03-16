@@ -350,19 +350,19 @@ class DeleteResourceInput(graphene.InputObjectType):
 
 
 def _remove_masked_fields(resource_instance: Resource):
-    if (
-            resource_instance.masked_fields
-            and len(resource_instance.filedetails.file.path)
-            and "csv" in resource_instance.filedetails.format.lower()
-    ):
-        df = pd.read_csv(resource_instance.filedetails.file.path)
-        df = df.drop(columns=resource_instance.masked_fields)
-        data = df.to_csv(index=False)
-        temp_file = ContentFile(data.encode("utf-8"))
-        resource_instance.filedetails.file.save(
-            os.path.basename(resource_instance.filedetails.file.path), temp_file
-        )
-    resource_instance.save()
+     if (
+             resource_instance.masked_fields
+             and len(resource_instance.filedetails.file.name)
+             and "csv" in resource_instance.filedetails.format.lower()
+     ):
+         df = pd.read_csv(resource_instance.filedetails.file)
+         df = df.drop(columns=resource_instance.masked_fields)
+         data = df.to_csv(index=False)
+         temp_file = ContentFile(data.encode("utf-8"))
+         resource_instance.filedetails.file.save(
+             os.path.basename(resource_instance.filedetails.file.name), temp_file
+         )
+     resource_instance.save()
 
 
 def _create_update_schema(resource_data: ResourceInput, resource_instance):
