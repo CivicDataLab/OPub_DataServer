@@ -113,10 +113,13 @@ def index_data(dataset_obj):
     data_access_model_id = []
     data_access_model_title = []
     data_access_model_type = []
+    dataset_access_models = []
     for dam in dam_instances:
         data_access_model_id.append(dam.data_access_model.id)
         data_access_model_title.append(dam.data_access_model.title)
         data_access_model_type.append(dam.data_access_model.type)
+        dataset_access_models.append({"id": dam.id, "type":dam.data_access_model.type, "payment_type":dam.payment_type, "payment": dam.payment})
+    doc["dataset_access_models"] = dataset_access_models
     doc["data_access_model_id"] = data_access_model_id
     doc["data_access_model_title"] = data_access_model_title
     doc["data_access_model_type"] = data_access_model_type
