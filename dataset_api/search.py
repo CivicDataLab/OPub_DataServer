@@ -253,7 +253,7 @@ def facets(request):
             },
         },
         "type": {"terms": {"field": "dataset_access_models.type", "size": 10000}},
-        "payment_type": {"terms": {"field": "dataset_access_models.payment_type", "size": 10000}},
+        "payment_type": {"terms": {"field": "dataset_access_models.payment_type.keyword", "size": 10000}},
     }
     if not query_string:
         # For filter search
