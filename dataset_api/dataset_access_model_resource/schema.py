@@ -184,6 +184,13 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                 policy_instance = Policy.objects.get(pk=access_model_resource_data.policy_id)
             except Policy.DoesNotExist as e:
                 raise GraphQLError("Policy with given id doesn't exist")
+            try:
+                data_access_instance = DataAccessModel.objects.get(
+                    id=access_model_resource_data.access_model_id
+                )
+            except DataAccessModel.DoesNotExist as e:
+                GraphQLError("Data Access Model with given id doesn't exist")
+            dataset_access_model_instance.data_access_model = data_access_instance
             dataset_access_model_instance.policy = policy_instance
             dataset_access_model_instance.title = access_model_resource_data.title
             dataset_access_model_instance.payment_type = access_model_resource_data.payment_type
@@ -195,18 +202,13 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
             # Getting id's that were removed.
             get_all_resources = list(DatasetAccessModelResource.objects.filter(
                 dataset_access_model_id=access_model_resource_data.id).values_list("resource_id", flat=True))
-            # print("---------", get_all_resources, type(get_all_resources[0]))
             for resources in access_model_resource_data.resource_map:
-                # print(resources.resource_id)
                 try:
-                    # print("removing value", type(resources.resource_id))
                     get_all_resources.remove(int(resources.resource_id))
                 except Exception as e:
                     print(str(e))
             # Deleting removed resources.
-            # print("bef del", get_all_resources)
             dam_resource_instance = DatasetAccessModelResource.objects.filter(resource_id__in=get_all_resources)
-            # print("del obj", dam_resource_instance)
             if dam_resource_instance.exists():
                 for resource in dam_resource_instance:
                     resource.delete()
