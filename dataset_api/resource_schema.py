@@ -427,67 +427,8 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
 
 def get_resource_schema(resource_instance):
 
-    resource = Resource.objects.get(pk=resource_instance.id)
-    if resource.dataset.dataset_type == DataType.FILE.value:
-        if resource.filedetails.file and len(resource.filedetails.file.name):
-            global count
-            count = 0
-            if "csv" in resource.filedetails.format.lower():
-                file = pd.read_csv(resource.filedetails.file)
-                schema_list = pd.io.json.build_table_schema(file, version=False)
-                schema_list = schema_list.get("fields", [])
-                schema = []
-                for each in schema_list[1:]:
-                    schema.append(
-                        {
-                            "key": each["name"],
-                            "display_name": each["name"],
-                            "format": each["type"],
-                            "description": "",
-                            "parent": "",
-                            "array_field": "",
-                        }
-                    )
-                return schema
-                # return file.columns.tolist()
-            if resource.filedetails.format.lower() == "json":
-                #with open(resource.filedetails.file.path) as jsonFile:
-                    # return list(set(get_keys(jsonFile.read(), [])))
-                    # global count
-                    # count = 0
-                jsonFile = resource.filedetails.file
-                builder = genson.SchemaBuilder()
-                jsondata = json.loads(jsonFile.read())  # json.loads(resource.filedetails.file)
-                builder.add_object(jsondata)
-                schema_dict = builder.to_schema()
-                schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties",
-                                                                                                    {}))  # schema_dict.get("properties", {})
-                schema = []
-                parse_schema(schema_dict, "", schema, "")
-                return schema
-            if resource.filedetails.format.lower() == "xml":
-                #with open(resource.filedetails.file.path) as xmlFile:
-                    # global count
-                    # count = 0
-                    # return list(set(get_keys(jsonFile.read(), [])))
-                xmlFile = resource.filedetails.file
-                builder = genson.SchemaBuilder()
-                jsondata = xmltodict.parse(xmlFile.read())
-                    # jsondata = json.loads(
-                    #     jsonFile.read()
-                    # )   json.loads(resource.filedetails.file)
-                builder.add_object(jsondata)
-                schema_dict = builder.to_schema()
-                schema_dict = schema_dict.get("properties", schema_dict.get("items", {}).get("properties",
-                                                                                                    {}))  # schema_dict.get("properties", {})
-                schema = []
-                parse_schema(schema_dict, "", schema, "")
-                return schema
-    if  resource.dataset.dataset_type == DataType.API.value:
-        schema = json.loads(api_fetch.schema(resource_instance.id))['schema']
-        return schema
-        
-    return []
+    schema = json.loads(api_fetch.schema("", resource_instance.id).content)['schema']
+    return schema
 
 
 def _create_schema_new(resource_instance):
@@ -495,12 +436,16 @@ def _create_schema_new(resource_instance):
     prepared_schema = get_resource_schema(resource_instance)
     
     for schema in prepared_schema:
-            
+        schema['filterable'] = False
+        schema= type('ResourceSchemaInputType', (object,), schema)
+        #schema = ResourceSchemaInputType(schema)
+        print ('---------------------------------', schema.key) 
         schema_instance = _create_resource_schema_instance(
                     resource_instance, schema
                 )
 
     for schema in prepared_schema:
+        schema= type('ResourceSchemaInputType', (object,), schema)
         schema_instance = ResourceSchema.objects.get(
             resource_id=resource_instance.id, key=schema.key, path=schema.path
         )
