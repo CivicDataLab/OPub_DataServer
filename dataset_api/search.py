@@ -303,7 +303,7 @@ def facets(request):
     return HttpResponse(json.dumps(resp))
 
 
-def search(request, index):
+def organization_search(request):
     query_string = request.GET.get("q", None)
     size = request.GET.get("size", 5)
     paginate_from = request.GET.get("from", 0)
@@ -318,12 +318,37 @@ def search(request, index):
         sort_mapping = {}
 
     if query_string:
-        query = {"match": {"dataset_title": {"query": query_string, "operator": "AND"}}}
+        filters = [{
+            "bool": {
+                "should": [
+                    {
+                        "match": {
+                            "org_title": {
+                                "query": query_string,
+                                "operator": "OR",
+                                "fuzziness": "AUTO",
+                                "boost": "2",
+                            }
+                        }
+                    },
+                    {
+                        "match": {
+                            "org_description": {
+                                "query": query_string,
+                                "boost": "0.5",
+                            }
+                        }
+                    },
+                ]
+            }
+        }]
+        query = {"bool": {"must": filters}}
+        # query = {"match": {"org_title": {"query": query_string, "operator": "AND"}}}
     else:
         query = {"match_all": {}}
 
     resp = es_client.search(
-        index=index, query=query, size=size, from_=paginate_from, sort=sort_mapping
+        index="organizations", query=query, size=size, from_=paginate_from, sort=sort_mapping
     )
     return HttpResponse(json.dumps(resp["hits"]))
 
