@@ -180,6 +180,11 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                 raise GraphQLError(
                     "Dataset Access Model with Same name already exists"
                 )
+            try:
+                policy_instance = Policy.objects.get(pk=access_model_resource_data.policy_id)
+            except Policy.DoesNotExist as e:
+                raise GraphQLError("Policy with given id doesn't exist")
+            dataset_access_model_instance.policy = policy_instance
             dataset_access_model_instance.title = access_model_resource_data.title
             dataset_access_model_instance.payment_type = access_model_resource_data.payment_type
             dataset_access_model_instance.payment = None
