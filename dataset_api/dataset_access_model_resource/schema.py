@@ -189,7 +189,7 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                     id=access_model_resource_data.access_model_id
                 )
             except DataAccessModel.DoesNotExist as e:
-                GraphQLError("Data Access Model with given id doesn't exist")
+                raise GraphQLError("Data Access Model with given id doesn't exist")
             dataset_access_model_instance.data_access_model = data_access_instance
             dataset_access_model_instance.policy = policy_instance
             dataset_access_model_instance.title = access_model_resource_data.title
