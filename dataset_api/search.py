@@ -151,8 +151,9 @@ def delete_data(id):
 def facets(request):
     filters = []  # List of queries for elasticsearch to filter up on.
     selected_facets = []  # List of facets that are selected.
-    facet = ["license", "geography", "format", "status", "rating", "sector"]
+    facet = ["license", "geography", "format", "status", "rating", "sector", "payment_type"]
     dam_type = request.GET.get("type")
+    payment_type = request.GET.get("payment_type")
     size = request.GET.get("size")
     if not size:
         size = 5
@@ -205,9 +206,14 @@ def facets(request):
 
     if dam_type:
         filters.append(
-            {"match": {"data_access_model_type": dam_type.replace("||", " ")}}
+            {"match": {"dataset_access_models.type": dam_type.replace("||", " ")}}
         )
         selected_facets.append({"type": dam_type.split("||")})
+    if payment_type:
+        filters.append(
+            {"match": {"dataset_access_models.payment_type": payment_type.replace("||", " ")}}
+        )
+        selected_facets.append({"payment_type": payment_type.split("||")})
 
     if org:
         filters.append({"terms": {"org_title.keyword": org.split("||")}})
