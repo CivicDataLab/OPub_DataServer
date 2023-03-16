@@ -110,19 +110,19 @@ def index_data(dataset_obj):
 
     # Index Data Access Model.
     dam_instances = DatasetAccessModel.objects.filter(dataset=dataset_obj)
-    data_access_model_id = []
-    data_access_model_title = []
-    data_access_model_type = []
+    data_access_model_ids = []
+    data_access_model_titles = []
+    data_access_model_types = []
     dataset_access_models = []
     for dam in dam_instances:
-        data_access_model_id.append(dam.data_access_model.id)
-        data_access_model_title.append(dam.data_access_model.title)
-        data_access_model_type.append(dam.data_access_model.type)
-        dataset_access_models.append({"id": dam.id, "type":dam.data_access_model.type, "payment_type":dam.payment_type, "payment": dam.payment})
+        data_access_model_ids.append(dam.data_access_model.id)
+        data_access_model_titles.append(dam.data_access_model.title)
+        data_access_model_types.append(dam.data_access_model.type)
+        dataset_access_models.append({"id": dam.id, "type": dam.data_access_model.type, "payment_type": dam.payment_type, "payment": dam.payment})
     doc["dataset_access_models"] = dataset_access_models
-    doc["data_access_model_id"] = data_access_model_id
-    doc["data_access_model_title"] = data_access_model_title
-    doc["data_access_model_type"] = data_access_model_type
+    doc["data_access_model_id"] = data_access_model_ids
+    doc["data_access_model_title"] = data_access_model_titles
+    doc["data_access_model_type"] = data_access_model_types
 
     # Check if Dataset already exists.
     resp = es_client.exists(index="dataset", id=dataset_obj.id)

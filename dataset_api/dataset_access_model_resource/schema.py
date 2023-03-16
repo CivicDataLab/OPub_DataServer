@@ -182,6 +182,7 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                 )
             dataset_access_model_instance.title = access_model_resource_data.title
             dataset_access_model_instance.payment_type = access_model_resource_data.payment_type
+            dataset_access_model_instance.payment = None
             if access_model_resource_data.payment:
                 dataset_access_model_instance.payment = access_model_resource_data.payment
             dataset_access_model_instance.save()
