@@ -55,7 +55,6 @@ class Query(graphene.ObjectType):
     def resolve_dataset_access_model(self, info, dataset_id, username, anonymous_users=[], **kwargs):
         dataset = Dataset.objects.get(id=dataset_id)
 
-        print(anonymous_users)
         if username:
             prefetch_data_requests = Prefetch("datarequest_set",
                                               queryset=DataRequest.objects.filter(default=True, user=username))
