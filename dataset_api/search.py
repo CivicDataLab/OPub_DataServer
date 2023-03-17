@@ -2,7 +2,7 @@ import json
 
 from django.conf import settings
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from elasticsearch import Elasticsearch
 
 from .models import (
@@ -16,6 +16,7 @@ from .models import (
     DatasetAccessModel, DatasetAccessModelRequest,
 )
 from .utils import dataset_slug, get_average_rating
+
 
 # from django.utils.datastructures import MultiValueDictKeyError
 
@@ -297,7 +298,7 @@ def facets(request):
             sort=sort_mapping,
         )
     resp["selected_facets"] = selected_facets
-    return HttpResponse(json.dumps(resp))
+    return JsonResponse(resp) #HttpResponse(json.dumps(resp))
 
 
 def search(request, index):
