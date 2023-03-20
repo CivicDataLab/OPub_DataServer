@@ -156,6 +156,8 @@ def schema(request, resource_id):
                     "description": "",
                     "parent": "",
                     "array_field": "",
+                    "path": "",
+                    "parent_path": ""
                 }
             )
         context = {

@@ -111,16 +111,19 @@ def index_data(dataset_obj):
 
     # Index Data Access Model.
     dam_instances = DatasetAccessModel.objects.filter(dataset=dataset_obj)
-    data_access_model_id = []
-    data_access_model_title = []
-    data_access_model_type = []
+    data_access_model_ids = []
+    data_access_model_titles = []
+    data_access_model_types = []
+    dataset_access_models = []
     for dam in dam_instances:
-        data_access_model_id.append(dam.data_access_model.id)
-        data_access_model_title.append(dam.data_access_model.title)
-        data_access_model_type.append(dam.data_access_model.type)
-    doc["data_access_model_id"] = data_access_model_id
-    doc["data_access_model_title"] = data_access_model_title
-    doc["data_access_model_type"] = data_access_model_type
+        data_access_model_ids.append(dam.data_access_model.id)
+        data_access_model_titles.append(dam.data_access_model.title)
+        data_access_model_types.append(dam.data_access_model.type)
+        dataset_access_models.append({"id": dam.id, "type": dam.data_access_model.type, "payment_type": dam.payment_type, "payment": dam.payment})
+    doc["dataset_access_models"] = dataset_access_models
+    doc["data_access_model_id"] = data_access_model_ids
+    doc["data_access_model_title"] = data_access_model_titles
+    doc["data_access_model_type"] = data_access_model_types
 
     # Check if Dataset already exists.
     resp = es_client.exists(index="dataset", id=dataset_obj.id)
@@ -149,8 +152,9 @@ def delete_data(id):
 def facets(request):
     filters = []  # List of queries for elasticsearch to filter up on.
     selected_facets = []  # List of facets that are selected.
-    facet = ["license", "geography", "format", "status", "rating", "sector"]
+    facet = ["license", "geography", "format", "status", "rating", "sector", "payment_type"]
     dam_type = request.GET.get("type")
+    payment_type = request.GET.get("payment_type")
     size = request.GET.get("size")
     if not size:
         size = 5
@@ -203,9 +207,14 @@ def facets(request):
 
     if dam_type:
         filters.append(
-            {"match": {"data_access_model_type": dam_type.replace("||", " ")}}
+            {"match": {"dataset_access_models.type": dam_type.replace("||", " ")}}
         )
         selected_facets.append({"type": dam_type.split("||")})
+    if payment_type:
+        filters.append(
+            {"match": {"dataset_access_models.payment_type": payment_type.replace("||", " ")}}
+        )
+        selected_facets.append({"payment_type": payment_type.split("||")})
 
     if org:
         filters.append({"terms": {"org_title.keyword": org.split("||")}})
@@ -244,7 +253,8 @@ def facets(request):
                 "max": {"max": {"field": "period_to", "format": "yyyy-MM-dd"}},
             },
         },
-        "type": {"terms": {"field": "data_access_model_type.keyword", "size": 10000}},
+        "type": {"terms": {"field": "dataset_access_models.type.keyword", "size": 10000}},
+        "payment_type": {"terms": {"field": "dataset_access_models.payment_type.keyword", "size": 10000}},
     }
     if not query_string:
         # For filter search
@@ -301,7 +311,7 @@ def facets(request):
     return JsonResponse(resp) #HttpResponse(json.dumps(resp))
 
 
-def search(request, index):
+def organization_search(request):
     query_string = request.GET.get("q", None)
     size = request.GET.get("size", 5)
     paginate_from = request.GET.get("from", 0)
@@ -316,12 +326,37 @@ def search(request, index):
         sort_mapping = {}
 
     if query_string:
-        query = {"match": {"dataset_title": {"query": query_string, "operator": "AND"}}}
+        filters = [{
+            "bool": {
+                "should": [
+                    {
+                        "match": {
+                            "org_title": {
+                                "query": query_string,
+                                "operator": "OR",
+                                "fuzziness": "AUTO",
+                                "boost": "2",
+                            }
+                        }
+                    },
+                    {
+                        "match": {
+                            "org_description": {
+                                "query": query_string,
+                                "boost": "0.5",
+                            }
+                        }
+                    },
+                ]
+            }
+        }]
+        query = {"bool": {"must": filters}}
+        # query = {"match": {"org_title": {"query": query_string, "operator": "AND"}}}
     else:
         query = {"match_all": {}}
 
     resp = es_client.search(
-        index=index, query=query, size=size, from_=paginate_from, sort=sort_mapping
+        index="organizations", query=query, size=size, from_=paginate_from, sort=sort_mapping
     )
     return HttpResponse(json.dumps(resp["hits"]))
 

@@ -31,6 +31,7 @@ from .models import (
     APIParameter,
 )
 from .utils import log_activity, get_client_ip
+from dataset_api.api_resource import api_fetch
 
 
 def parse_schema(schema_dict, parent, schema, current_path):
@@ -424,6 +425,53 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
         schema_instance.save()
 
 
+def get_resource_schema(resource_instance):
+
+    schema = json.loads(api_fetch.schema("", resource_instance.id).content)['schema']
+    return schema
+
+
+def _create_schema_new(resource_instance):
+        
+    prepared_schema = get_resource_schema(resource_instance)
+    
+    for schema in prepared_schema:
+        schema['filterable'] = False
+        schema= type('ResourceSchemaInputType', (object,), schema)
+        #schema = ResourceSchemaInputType(schema)
+        print ('---------------------------------', schema.key) 
+        schema_instance = _create_resource_schema_instance(
+                    resource_instance, schema
+                )
+
+    for schema in prepared_schema:
+        schema= type('ResourceSchemaInputType', (object,), schema)
+        schema_instance = ResourceSchema.objects.get(
+            resource_id=resource_instance.id, key=schema.key, path=schema.path
+        )
+        if schema.parent and schema.parent != "":
+            try:
+                parent_instance = ResourceSchema.objects.get(
+                    resource_id=resource_instance.id, key=schema.parent, path=schema.parent_path
+                )
+                schema_instance.parent = parent_instance
+            except ResourceSchema.DoesNotExist:
+                pass
+        if schema.array_field and schema.array_field != "":
+            try:
+                array_field_instance = ResourceSchema.objects.get(
+                    resource=resource_instance.id,
+                    key=schema.array_field,
+                )
+                schema_instance.array_field = array_field_instance
+            except ResourceSchema.DoesNotExist:
+                pass
+
+        schema_instance.save()
+
+
+
+
 def _create_resource_schema_instance(resource_instance, schema):
     schema_instance = ResourceSchema(
         key=schema.key,
@@ -654,8 +702,9 @@ class CreateResource(graphene.Mutation, Output):
                     attribute=resource_data.file_details,
                 )
 
-            _remove_masked_fields(resource_instance)
-            _create_update_schema(resource_data, resource_instance)
+            # _remove_masked_fields(resource_instance)
+            _create_schema_new(resource_instance)
+            # _create_update_schema(resource_data, resource_instance)
             log_activity(
                 target_obj=resource_instance,
                 ip=get_client_ip(info),

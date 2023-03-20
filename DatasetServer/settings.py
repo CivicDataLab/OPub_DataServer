@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "graphene_django",
     "dataset_api",
+    "payment",
     "graphql_auth",
     "activity_log",
     "encrypted_json_fields",

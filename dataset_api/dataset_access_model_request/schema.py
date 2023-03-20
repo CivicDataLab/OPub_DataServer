@@ -1,30 +1,28 @@
 import copy
-import datetime
-import redis
 
 import graphene
+import redis
+from django.conf import settings
+from django.db.models import Q
 from django.utils import timezone
 from graphene_django import DjangoObjectType
-from graphql_auth.bases import Output
-from django.db.models import Q
 from graphql import GraphQLError
-from django.conf import settings
-from activity_log.signal import activity
+from graphql_auth.bases import Output
 
-from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
-from dataset_api.models.DatasetAccessModel import DatasetAccessModel
 from dataset_api.decorators import (
     validate_token,
     validate_token_or_none,
     auth_user_by_org,
 )
+from dataset_api.enums import SubscriptionUnits
+from dataset_api.models.DatasetAccessModel import DatasetAccessModel
+from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
 from .decorators import auth_query_dam_request
-from dataset_api.enums import SubscriptionUnits, ValidationUnits
 from ..constants import DATAREQUEST_SWAGGER_SPEC
 from ..data_request.token_handler import create_data_refresh_token, create_data_jwt_token
-from ..models import DatasetAccessModelResource, Resource 
-from ..utils import get_client_ip, get_data_access_model_request_validity, log_activity
 from ..email_utils import data_access_approval_notif
+from ..models import DatasetAccessModelResource, Resource
+from ..utils import get_client_ip, get_data_access_model_request_validity, log_activity
 
 r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
 
@@ -153,7 +151,7 @@ class Query(graphene.ObjectType):
     # Access : PMU/DPA of that org.
     @auth_query_dam_request(action="query||request_id")
     def resolve_data_access_model_request(
-        self, info, data_access_model_request_id, role
+            self, info, data_access_model_request_id, role
     ):
         if role == "PMU" or role == "DPA":
             return DatasetAccessModelRequest.objects.get(
@@ -181,7 +179,7 @@ class Query(graphene.ObjectType):
 
     @validate_token_or_none
     def resolve_data_spec(self, info, username, resource_id, dataset_access_model_resource_id,
-                         dataset_access_model_request_id=""):
+                          dataset_access_model_request_id=""):
         resource_instance = Resource.objects.get(pk=resource_id)
         dam_resource = DatasetAccessModelResource.objects.get(pk=dataset_access_model_resource_id)
         dataset_access_model = dam_resource.dataset_access_model
@@ -313,13 +311,13 @@ class DataAccessModelRequestUpdateInput(graphene.InputObjectType):
 
 
 def create_dataset_access_model_request(
-    access_model,
-    description,
-    purpose,
-    username,
-    status="REQUESTED",
-    user_email=None,
-    id=None,
+        access_model,
+        description,
+        purpose,
+        username,
+        status="REQUESTED",
+        user_email=None,
+        id=None,
 ):
     try:
         data_access_model_request_instance = DatasetAccessModelRequest.objects.filter(
@@ -365,10 +363,10 @@ class DataAccessModelRequestMutation(graphene.Mutation, Output):
     @staticmethod
     @validate_token_or_none
     def mutate(
-        root,
-        info,
-        data_access_model_request: DataAccessModelRequestInput = None,
-        username=None,
+            root,
+            info,
+            data_access_model_request: DataAccessModelRequestInput = None,
+            username=None,
     ):
         id = None
         if data_access_model_request.id:
@@ -409,10 +407,10 @@ class ApproveRejectDataAccessModelRequest(graphene.Mutation, Output):
     @staticmethod
     @validate_token_or_none
     def mutate(
-        root,
-        info,
-        username,
-        data_access_model_request: DataAccessModelRequestUpdateInput = None,
+            root,
+            info,
+            username,
+            data_access_model_request: DataAccessModelRequestUpdateInput = None,
     ):
         try:
             data_access_model_request_instance = DatasetAccessModelRequest.objects.get(
@@ -440,7 +438,7 @@ class ApproveRejectDataAccessModelRequest(graphene.Mutation, Output):
             data_access_approval_notif(username, data_access_model_request_instance)
         except Exception as e:
             print(str(e))
-        
+
         log_activity(
             target_obj=data_access_model_request_instance,
             ip=get_client_ip(info),

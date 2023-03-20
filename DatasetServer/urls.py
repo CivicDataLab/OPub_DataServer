@@ -50,4 +50,5 @@ urlpatterns = [
     path("graphql", csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True))),
     path("public/<path:file_path>", public_download.download),
     path("", include("dataset_api.urls")),
+    path("payment/", include("payment.urls"))
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
