@@ -201,6 +201,21 @@ AWS_S3_ENDPOINT_URL = 'https://staas-bbs1.cloud.gov.in'
 # #AWS_S3_CUSTOM_DOMAIN = 'https://dev.idp.civicdatalab.in'
 
 
+# s3 file storage - nic -staging
+# AWS_ACCESS_KEY_ID = '5PJRS6YDGF2M520L0CO0'
+# AWS_SECRET_ACCESS_KEY = 'ubS1x9z86pUYhJndv7RRGAszMEu3oDRSWYnx8CVB'
+# AWS_STORAGE_BUCKET_NAME = 'w86w-vtrv2r-ceph-bb1-idp-stg'
+# #AWS_S3_SIGNATURE_VERSION = 's3v4'
+# #AWS_S3_REGION_NAME = 'ap-south-1'
+# AWS_S3_FILE_OVERWRITE = False
+# AWS_DEFAULT_ACL = None
+# # AWS_S3_VERIFY = True
+# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage' 
+# AWS_S3_ENDPOINT_URL = 'https://staas-bbs1.cloud.gov.in'
+# # #AWS_LOCATION = 'files'
+# # #AWS_S3_CUSTOM_DOMAIN = 'https://dev.idp.civicdatalab.in'
+
+
 
 # s3 file storage - aws
 # AWS_ACCESS_KEY_ID = 'AKIARIP5TJ5DCZTLFFVK'

@@ -1,7 +1,7 @@
 import json
 import requests
 from django.conf import settings
-from dataset_api.models import Dataset
+from dataset_api.models import Dataset, Organization
 
 email_url = settings.EMAIL_URL
 
@@ -109,6 +109,21 @@ def contact_provider_notif(contact_info):
         "tgt_obj": contact_info.get("org_id"),
         "tgt_group": "Entity",
         "extras": {"category": contact_info.category, "desc": contact_info.desc, "dataset_id": contact_info.dataset_id, "dataset_title":dataset_instance.title },
+    }
+    headers = {}
+    response = requests.request("POST", email_url, json=body, headers=headers)
+    response_json = response.text
+    return response_json
+
+
+def contact_consumer_notif(contact_info):
+    org_instance = Organization.objects.get(pk=contact_info.org_id)
+    body = {
+        "actor": contact_info.get("user"),
+        "action": "contact_consumer",
+        "tgt_obj": contact_info.get("org_id"),
+        "tgt_group": "Entity",
+        "extras": {"entity_title": org_instance.title, "subject": contact_info.subject, "msg": contact_info.msg, "consumers": contact_info.consumers},
     }
     headers = {}
     response = requests.request("POST", email_url, json=body, headers=headers)

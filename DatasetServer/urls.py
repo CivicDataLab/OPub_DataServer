@@ -27,6 +27,7 @@ from dataset_api.policy import policy_file
 from dataset_api.api_resource import api_fetch
 from dataset_api.data_preview import data_preview
 from dataset_api.dataset import contact_provider
+from dataset_api.dataset import contact_consumer
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -47,6 +48,7 @@ urlpatterns = [
     path("data_preview", data_preview.preview),
     path("resource_preview/<int:resource_id>/", api_fetch.preview),
     path("contact_provider", contact_provider.contact_provider),
+    path("contact_consumer", contact_consumer.contact_consumer),
     path("graphql", csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True))),
     path("public/<path:file_path>", public_download.download),
     path("", include("dataset_api.urls")),
