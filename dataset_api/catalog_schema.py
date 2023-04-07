@@ -1,5 +1,6 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphql_auth.bases import Output
 
 from .models import Catalog, Organization
 
@@ -15,7 +16,7 @@ class Query(graphene.ObjectType):
     catalog = graphene.Field(CatalogType, catalog_id=graphene.Int())
 
     def resolve_all_catalog(self, info, **kwargs):
-        return Catalog.objects.all()
+        return Catalog.objects.all().order_by("-modified")
 
     def resolve_catalog(self, info, catalog_id):
         return Catalog.objects.get(pk=catalog_id)
@@ -23,12 +24,11 @@ class Query(graphene.ObjectType):
 
 class CatalogInput(graphene.InputObjectType):
     id = graphene.ID()
-    title = graphene.String()
-    description = graphene.String()
-    organization = graphene.String()
+    title = graphene.String(required=True)
+    description = graphene.String(required=True)
 
 
-class CreateCatalog(graphene.Mutation):
+class CreateCatalog(Output, graphene.Mutation):
     class Arguments:
         catalog_data = CatalogInput(required=True)
 
@@ -36,7 +36,11 @@ class CreateCatalog(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, catalog_data=None):
-        organization = Organization.objects.get(id=catalog_data.organization)
+        org_id = info.context.META.get("HTTP_ORGANIZATION")
+        try:
+            organization = Organization.objects.get(id=org_id)
+        except Organization.DoesNotExist as e:
+            return {"success": False, "errors": {"id": [{"message": "Organization with given id not found", "code": "404"}]}}
         catalog_instance = Catalog(
             title=catalog_data.title,
             description=catalog_data.description,
@@ -44,3 +48,7 @@ class CreateCatalog(graphene.Mutation):
         )
         catalog_instance.save()
         return CreateCatalog(catalog=catalog_instance)
+
+
+class Mutation(graphene.ObjectType):
+    create_catalog = CreateCatalog.Field()

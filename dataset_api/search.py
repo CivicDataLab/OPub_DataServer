@@ -1,80 +1,141 @@
-from django.conf import settings
-from elasticsearch import Elasticsearch
-from django.http import HttpResponse
 import json
-from django.utils.datastructures import MultiValueDictKeyError
 
-# import warnings
-# warnings.filterwarnings("ignore")
+from django.conf import settings
+from django.db.models import Q
+from django.http import HttpResponse, JsonResponse
+from elasticsearch import Elasticsearch
 
 from .models import (
     Catalog,
     Organization,
-    Dataset,
+    OrganizationCreateRequest,
     Resource,
-    DatasetRatings,
-    APISource,
-    APIResource,
+    FileDetails,
+    APIDetails,
+    Dataset,
+    DatasetAccessModel, DatasetAccessModelRequest,
 )
+from .utils import dataset_slug, get_average_rating
+
+
+# from django.utils.datastructures import MultiValueDictKeyError
 
 es_client = Elasticsearch(settings.ELASTICSEARCH)
-# print(es_client.info())
 
 
-def index_data(data_obj):
-    dataset_id = data_obj.dataset_id
+# TODO: New flow for rating, only update will be there.
+def index_data(dataset_obj):
+    if not dataset_obj.status == "PUBLISHED":
+        return
+    doc = {
+        "dataset_title": dataset_obj.title,
+        "dataset_description": dataset_obj.description,
+        "action": dataset_obj.action,
+        "funnel": dataset_obj.funnel,
+        "issued": dataset_obj.issued,
+        "period_from": dataset_obj.period_from,
+        "period_to": dataset_obj.period_to,
+        "update_frequency": dataset_obj.update_frequency,
+        "dataset_type": dataset_obj.dataset_type,
+        "remote_issued": dataset_obj.remote_issued,
+        "remote_modified": dataset_obj.remote_modified,
+        "published_date": dataset_obj.published_date,
+        "last_updated": dataset_obj.last_updated,
+        "modified": dataset_obj.modified,
+        "slug": dataset_slug(dataset_obj.id),
+        "highlights": dataset_obj.highlights or [],
+        "download_count": dataset_obj.download_count,
+        "average_rating": get_average_rating(dataset_obj),
+        "hvd_rating": dataset_obj.hvd_rating,
+    }
 
-    dataset_instance = Dataset.objects.get(id=dataset_id)
-    geography = dataset_instance.geography.all()
-    sector = dataset_instance.sector.all()
+    geography = dataset_obj.geography.all()
+    sector = dataset_obj.sector.all()
+    tags = dataset_obj.tags.all()
     dataset_geography = []
     dataset_sector = []
+    dataset_tag = []
     for geo in geography:
         dataset_geography.append(geo.name)
     for sec in sector:
         dataset_sector.append(sec.name)
-    dataset_rating = DatasetRatings.objects.filter(dataset_id=dataset_id)
-    if dataset_rating.exists():
-        rating = dataset_rating[0].data_quality
-    else:
-        rating = ""
-    catalog_instance = Catalog.objects.get(id=dataset_instance.catalog_id)
-    org_instance = Organization.objects.get(id=catalog_instance.organization_id)
+    for tag in tags:
+        dataset_tag.append(tag.name)
+    doc["geography"] = dataset_geography
+    doc["sector"] = dataset_sector
+    doc["tags"] = dataset_tag
 
-    doc = {
-        "resource_title": data_obj.title,
-        "resource_description": data_obj.description,
-        "format": data_obj.format,
-        "resource_status": data_obj.status,
-        "dataset_title": dataset_instance.title,
-        "dataset_description": dataset_instance.description,
-        "dataset_id": dataset_id,
-        "license": dataset_instance.License,
-        "geography": dataset_geography,
-        "dataset_issued": dataset_instance.issued,
-        "dataset_modified": dataset_instance.modified,
-        "sector": dataset_sector,
-        "access_type": dataset_instance.access_type,
-        "action": dataset_instance.action,
-        "funnel": dataset_instance.funnel,
-        "remote_issued": dataset_instance.remote_issued,
-        "remote_modified": dataset_instance.remote_modified,
-        "status": dataset_instance.status,
-        "period_from": dataset_instance.period_from,
-        "period_to": dataset_instance.period_to,
-        "update_frequency": dataset_instance.update_frequency,
-        "rating": rating,
-        "catalog_title": catalog_instance.title,
-        "catalog_description": catalog_instance.description,
-        "catalog_issued": catalog_instance.issued,
-        "catalog_modified": catalog_instance.modified,
-        "org_title": org_instance.title,
-        "org_description": org_instance.description,
-        "org_issued": org_instance.issued,
-        "org_modified": org_instance.modified,
-    }
-    resp = es_client.index(index="dataset", id=data_obj.id, document=doc)
-    print(resp["result"])
+    catalog_instance = Catalog.objects.get(id=dataset_obj.catalog_id)
+    doc["catalog_title"] = catalog_instance.title
+    doc["catalog_description"] = catalog_instance.description
+
+    org_instance = Organization.objects.get(id=catalog_instance.organization_id)
+    doc["org_title"] = org_instance.title
+    doc["org_description"] = org_instance.description
+    doc["org_id"] = catalog_instance.organization_id
+    doc["org_logo"] = str(org_instance.logo) if org_instance.logo else ""
+    update_organization_index(OrganizationCreateRequest.objects.get(organization_ptr_id=org_instance.id))
+    resource_instance = Resource.objects.filter(dataset_id=dataset_obj.id)
+    resource_title = []
+    resource_description = []
+    auth_required = []
+    auth_type = []
+    format = []
+    for resources in resource_instance:
+        resource_title.append(resources.title)
+        resource_description.append(resources.description)
+        # Checks based on datasets_type.
+        if dataset_obj.dataset_type == "API":
+            try:
+                api_details_obj = APIDetails.objects.get(resource_id=resources.id)
+                auth_required.append(api_details_obj.auth_required)
+                auth_type.append(api_details_obj.api_source.auth_type)
+                format.append(api_details_obj.response_type)
+            except APIDetails.DoesNotExist as e:
+                pass
+        else:
+            try:
+                file_details_obj = FileDetails.objects.get(resource_id=resources.id)
+                format.append(file_details_obj.format)
+            except FileDetails.DoesNotExist as e:
+                pass
+    # Index all resources of a dataset.
+    doc["resource_title"] = resource_title
+    doc["resource_description"] = resource_description
+    if auth_required:
+        doc["auth_required"] = auth_required
+    if auth_type:
+        doc["auth_type"] = auth_type
+    if format:
+        doc["format"] = format
+
+    # Index Data Access Model.
+    dam_instances = DatasetAccessModel.objects.filter(dataset=dataset_obj)
+    data_access_model_ids = []
+    data_access_model_titles = []
+    data_access_model_types = []
+    dataset_access_models = []
+    for dam in dam_instances:
+        data_access_model_ids.append(dam.data_access_model.id)
+        data_access_model_titles.append(dam.data_access_model.title)
+        data_access_model_types.append(dam.data_access_model.type)
+        dataset_access_models.append({"id": dam.id, "type": dam.data_access_model.type, "payment_type": dam.payment_type, "payment": dam.payment})
+    doc["dataset_access_models"] = dataset_access_models
+    doc["data_access_model_id"] = data_access_model_ids
+    doc["data_access_model_title"] = data_access_model_titles
+    doc["data_access_model_type"] = data_access_model_types
+
+    # Check if Dataset already exists.
+    resp = es_client.exists(index="dataset", id=dataset_obj.id)
+    if resp:
+        # Delete the Dataset.
+        resp = es_client.delete(index="dataset", id=dataset_obj.id)
+        # print(resp["result"])
+    # Index the Dataset.
+    resp = es_client.index(index="dataset", id=dataset_obj.id, document=doc)
+    update_organization_index(OrganizationCreateRequest.objects.get(organization_ptr_id=org_instance.id))
+    # print(resp["result"])
+    return resp["result"]
 
 
 # def get_doc(doc_id):
@@ -83,344 +144,323 @@ def index_data(data_obj):
 #     print(resp['_source'])
 
 
-def update_data(data_obj):
-
-    doc = {
-        "resource_title": data_obj.title,
-        "resource_description": data_obj.description,
-        "format": data_obj.format,
-        "resource_status": data_obj.status,
-    }
-
-    resp = es_client.update(index="dataset", id=data_obj.id, doc=doc)
-    print(resp["result"])
-
-
-def update_dataset(dataset_obj):
-    # Find all related resources.
-    resource_obj = Resource.objects.filter(dataset_id=dataset_obj.id)
-    for resources in resource_obj:
-        geography = dataset_obj.geography.all()
-        sector = dataset_obj.sector.all()
-        dataset_geography = []
-        dataset_sector = []
-        for geo in geography:
-            dataset_geography.append(geo.name)
-        for sec in sector:
-            dataset_sector.append(sec.name)
-        doc = {
-            "dataset_title": dataset_obj.title,
-            "dataset_description": dataset_obj.description,
-            "license": dataset_obj.License,
-            "geography": dataset_geography,
-            "dataset_issued": dataset_obj.issued,
-            "dataset_modified": dataset_obj.modified,
-            "sector": dataset_sector,
-            "access_type": dataset_obj.access_type,
-            "action": dataset_obj.action,
-            "funnel": dataset_obj.funnel,
-            "remote_issued": dataset_obj.remote_issued,
-            "remote_modified": dataset_obj.remote_modified,
-            "status": dataset_obj.status,
-            "period_from": dataset_obj.period_from,
-            "period_to": dataset_obj.period_to,
-            "update_frequency": dataset_obj.update_frequency,
-        }
-        resp = es_client.update(index="dataset", id=resources.id, doc=doc)
-        print(resp["result"])
-
-
-def update_rating(rating_obj):
-    # Find all related resources.
-    dataset_obj = Dataset.objects.get(id=rating_obj.dataset_id)
-    resource_obj = Resource.objects.filter(dataset_id=dataset_obj.id)
-    for resources in resource_obj:
-        print(resources)
-        doc = {
-            "rating": rating_obj.data_quality,
-        }
-        resp = es_client.update(index="dataset", id=resources.id, doc=doc)
-        print(resp["result"])
-
-
-def index_api_resource(api_resource_obj):
-    dataset_obj = Dataset.objects.get(id=api_resource_obj.dataset_id)
-    api_source_obj = APISource.objects.get(id=api_resource_obj.api_source_id)
-    resource_obj = Resource.objects.filter(dataset_id=dataset_obj.id)
-    for resources in resource_obj:
-        doc = {
-            "api_resource_title": api_resource_obj.title,
-            "api_resource_description": api_resource_obj.description,
-            "api_resource_status": api_resource_obj.status,
-            "api_resource_urlpath": api_resource_obj.url_path,
-            "api_resource_auth_req": api_resource_obj.auth_required,
-            "api_resource_response_type": api_resource_obj.response_type,
-            "api_source_title": api_source_obj.title,
-            "api_source_description": api_source_obj.description,
-            "api_source_baseurl": api_source_obj.base_url,
-            "api_source_version": api_source_obj.api_version,
-            "api_source_auth_loc": api_source_obj.auth_loc,
-            "api_source_auth_type": api_source_obj.auth_type,
-        }
-        resp = es_client.update(index="dataset", id=resources.id, doc=doc)
-        print(resp["result"])
-
-
-def update_api_resource(api_resource_obj):
-    dataset_obj = Dataset.objects.get(id=api_resource_obj.dataset_id)
-    resource_obj = Resource.objects.filter(dataset_id=dataset_obj.id)
-    for resources in resource_obj:
-        doc = {
-            "api_resource_title": api_resource_obj.title,
-            "api_resource_description": api_resource_obj.description,
-            "api_resource_status": api_resource_obj.status,
-            "api_resource_urlpath": api_resource_obj.url_path,
-            "api_resource_auth_req": api_resource_obj.auth_required,
-            "api_resource_response_type": api_resource_obj.response_type,
-        }
-        resp = es_client.update(index="dataset", id=resources.id, doc=doc)
-        print(resp["result"])
-
-
-def delete_api_resource(api_resource_obj):
-    dataset_obj = Dataset.objects.get(id=api_resource_obj.dataset_id)
-    resource_obj = Resource.objects.filter(dataset_id=dataset_obj.id)
-    for resources in resource_obj:
-        doc = {
-            "api_resource_title": "",
-            "api_resource_description": "",
-            "api_resource_status": "",
-            "api_resource_urlpath": "",
-            "api_resource_auth_req": "",
-            "api_resource_response_type": "",
-        }
-        resp = es_client.update(index="dataset", id=resources.id, doc=doc)
-        print(resp["result"])
-
-
-# def update_catalog(catalog_obj):
-#     # Find all related resources.
-#     dataset_obj = Dataset.objects.filter(catalog_id=catalog_obj.id)
-#     print(dataset_obj)
-#     for datasets in dataset_obj:
-#         resource_obj = Resource.objects.filter(dataset_id=datasets.id)
-#         print(resource_obj)
-#         for resources in resource_obj:
-#             doc = {
-#                 "catalog_title": resources.title,
-#                 "catalog_description": resources.description,
-#                 "catalog_issued": resources.issued,
-#                 "catalog_modified": resources.modified,
-#             }
-#             resp = es_client.update(index="dataset", id=resources.id, doc=doc)
-#             print(resp["result"])
-
-
 def delete_data(id):
     resp = es_client.delete(index="dataset", id=id)
     print(resp["result"])
 
 
 def facets(request):
-    size = request.GET.get("size", "10")
-    paginate_from = request.GET.get("from", "0")
-    license = request.GET.get("license", "")
-    geography = request.GET.get("geography", "")
-    sector = request.GET.get("sector", "")
-    format = request.GET.get("format", "")
-    status = request.GET.get("status", "")
-    rating = request.GET.get("rating", "")
-    query_string = request.GET.get("q", "")
-    
-    agg = {
-        "license": {"terms": {"field": "license.keyword"}},
-        "geography": {"terms": {"field": "geography.keyword"}},
-        "sector": {"terms": {"field": "sector.keyword"}},
-        "format": {"terms": {"field": "format.keyword"}},
-        "status": {"terms": {"field": "status.keyword"}},
-        "rating": {"terms": {"field": "rating.keyword"}},
-    }
+    filters = []  # List of queries for elasticsearch to filter up on.
+    selected_facets = []  # List of facets that are selected.
+    facet = ["license", "geography", "format", "status", "rating", "sector", "payment_type"]
+    dam_type = request.GET.get("type")
+    payment_type = request.GET.get("payment_type")
+    size = request.GET.get("size")
+    if not size:
+        size = 5
+    paginate_from = request.GET.get("from", 0)
+    query_string = request.GET.get("q")
+    sort_by = request.GET.get("sort_by", None)
+    sort_order = request.GET.get("sort", None)
+    if sort_order == "":
+        sort_order = "desc"
+    org = request.GET.get("organization", None)
+    start_duration = request.GET.get("start_duration", None)
+    end_duration = request.GET.get("end_duration", None)
+    print(sort_by, sort_order)
+    if sort_by and sort_order:
+        if sort_by == "modified":
+            sort_mapping = {"modified": {"order": sort_order}}
+        elif sort_by == "rating":
+            sort_mapping = {"average_rating": {"order": sort_order}}
+        elif sort_by == "provider":
+            sort_mapping = {"org_title.keyword": {"order": sort_order}}
+        elif sort_by == "recent":
+            sort_mapping = {"last_updated": {"order": "desc"}}
+        elif sort_by == "relevance":
+            sort_mapping = {}
+        else:
+            sort_mapping = {"dataset_title.keyword": {"order": sort_order}}
+    else:
+        sort_mapping = {}
 
-    if query_string == "":
-        # For filter search
-        if len(request.GET.keys()) >= 1:
-            query = {
+    # Creating query for faceted search (filters).
+    for value in facet:
+        if value == "sector" and request.GET.get(value):
+            filters.append(
+                {
+                    "match": {
+                        f"{value}": {
+                            "query": request.GET.get(value).replace("||", " "),
+                            "operator": "AND",
+                        }
+                    }
+                }
+            )
+            selected_facets.append({f"{value}": request.GET.get(value).split("||")})
+        else:
+            if request.GET.get(value):
+                filters.append(
+                    {"match": {f"{value}": request.GET.get(value).replace("||", " ")}}
+                )
+                selected_facets.append({f"{value}": request.GET.get(value).split("||")})
+
+    if dam_type:
+        filters.append(
+            {"match": {"dataset_access_models.type": dam_type.replace("||", " ")}}
+        )
+        selected_facets.append({"type": dam_type.split("||")})
+    if payment_type:
+        filters.append(
+            {"match": {"dataset_access_models.payment_type": payment_type.replace("||", " ")}}
+        )
+        selected_facets.append({"payment_type": payment_type.split("||")})
+
+    if org:
+        filters.append({"terms": {"org_title.keyword": org.split("||")}})
+        selected_facets.append({"organization": org.split("||")})
+
+    if start_duration and end_duration:
+        filters.append(
+            {
                 "bool": {
-                    "should": [
-                        {"match": {"license": license}},
-                        {"match": {"geography": geography}},
-                        {"match": {"sector": sector}},
-                        {"match": {"format": format}},
-                        {"match": {"status": status}},
-                        {"match": {"rating": rating}}
+                    "must_not": [
+                        {"range": {"period_to": {"lte": start_duration}}},
+                        {"range": {"period_from": {"gte": end_duration}}},
                     ]
                 }
             }
-            resp = es_client.search(
-                index="dataset",
-                aggs=agg,
-                query=query,
-                size=size,
-                from_=paginate_from
-            )
-            return HttpResponse(json.dumps(resp))
-        else:
-            # For getting facets.
-            resp = es_client.search(
-                index="dataset",
-                aggs=agg,
-                size=0
-            )
-            return HttpResponse(json.dumps(resp))
-    else:
-        # For faceted search with query string.
-        query = {
-            "bool": {
-                "should": [
-                    {"match": {"license": license}},
-                    {"match": {"geography": geography}},
-                    {"match": {"sector": sector}},
-                    {"match": {"format": format}},
-                    {"match": {"status": status}},
-                    {"match": {"rating": rating}},
-                    {"match": {"dataset_title": query_string}},
-                ]
-            }
-        }
+        )
+        selected_facets.append({"start_duration": start_duration})
+        selected_facets.append({"end_duration": end_duration})
+
+    # Query for aggregations (facets).
+    agg = {
+        "license": {"terms": {"field": "license.keyword", "size": 10000}},
+        "geography": {"terms": {"field": "geography.keyword", "size": 10000}},
+        "sector": {"terms": {"field": "sector.keyword", "size": 10000}},
+        "format": {"terms": {"field": "format.keyword", "size": 10000}},
+        "status": {"terms": {"field": "status.keyword", "size": 10000}},
+        "rating": {"terms": {"field": "rating.keyword", "size": 10000}},
+        "organization": {
+            "global": {},
+            "aggs": {"all": {"terms": {"field": "org_title.keyword", "size": 10000}}},
+        },
+        "duration": {
+            "global": {},
+            "aggs": {
+                "min": {"min": {"field": "period_from", "format": "yyyy-MM-dd"}},
+                "max": {"max": {"field": "period_to", "format": "yyyy-MM-dd"}},
+            },
+        },
+        "type": {"terms": {"field": "dataset_access_models.type.keyword", "size": 10000}},
+        "payment_type": {"terms": {"field": "dataset_access_models.payment_type.keyword", "size": 10000}},
+    }
+    if not query_string:
+        # For filter search
+        query = {"bool": {"must": filters}}
         resp = es_client.search(
             index="dataset",
             aggs=agg,
             query=query,
             size=size,
-            from_=paginate_from
+            from_=paginate_from,
+            sort=sort_mapping,
         )
-        return HttpResponse(json.dumps(resp))
+    else:
+        # For faceted search with query string.
+        filters.append(
+            {
+                "bool": {
+                    "should": [
+                        {
+                            "match": {
+                                "dataset_title": {
+                                    "query": query_string,
+                                    "operator": "OR",
+                                    "fuzziness": "AUTO",
+                                    "boost": "2",
+                                }
+                            }
+                        },
+                        {"match": {"tags": {"query": query_string, "boost": "1"}}},
+                        {"match": {"geography": {"query": query_string, "boost": "1"}}},
+                        {
+                            "match": {
+                                "dataset_description": {
+                                    "query": query_string,
+                                    "boost": "0.5",
+                                }
+                            }
+                        },
+                    ]
+                }
+            }
+        )
+        # filters.append({"match_phrase_prefix":{"dataset_title":{"query": query_string}}})
+        query = {"bool": {"must": filters}}
+        resp = es_client.search(
+            index="dataset",
+            aggs=agg,
+            query=query,
+            size=size,
+            from_=paginate_from,
+            sort=sort_mapping,
+        )
+    resp["selected_facets"] = selected_facets
+    return JsonResponse(resp) #HttpResponse(json.dumps(resp))
 
 
-def search(request):
-    print(request.GET)
-    query_string = request.GET["q"]
-    size = request.GET["size"]
-    frm = request.GET["from"]
+def organization_search(request):
+    query_string = request.GET.get("q", None)
+    size = request.GET.get("size", 5)
+    paginate_from = request.GET.get("from", 0)
+    sort_order: str = request.GET.get("sort", None)
 
-    if query_string != "":
-        query = {"multi_match": {"query": query_string, "operator": "and"}}
+    if sort_order:
+        if sort_order == "last_modified":
+            sort_mapping = {"remote_modified": {"order": "desc"}}
+        else:
+            sort_mapping = {"dataset_title.keyword": {"order": sort_order}}
+    else:
+        sort_mapping = {}
+
+    if query_string:
+        filters = [{
+            "bool": {
+                "should": [
+                    {
+                        "match": {
+                            "org_title": {
+                                "query": query_string,
+                                "operator": "OR",
+                                "fuzziness": "AUTO",
+                                "boost": "2",
+                            }
+                        }
+                    },
+                    {
+                        "match": {
+                            "org_description": {
+                                "query": query_string,
+                                "boost": "0.5",
+                            }
+                        }
+                    },
+                ]
+            }
+        }]
+        query = {"bool": {"must": filters}}
+        # query = {"match": {"org_title": {"query": query_string, "operator": "AND"}}}
     else:
         query = {"match_all": {}}
 
-    resp = es_client.search(index="dataset", query=query, size=size, from_=frm)
-    print(resp)
+    resp = es_client.search(
+        index="organizations", query=query, size=size, from_=paginate_from, sort=sort_mapping
+    )
     return HttpResponse(json.dumps(resp["hits"]))
 
 
-def reindex_data():
-    resource_obj = Resource.objects.all()
-    # print(resource_obj)
-    for resources in resource_obj:
-        print("Dataset_id --", resources.dataset_id)
-        dataset_instance = Dataset.objects.get(id=resources.dataset_id)
-        geography = dataset_instance.geography.all()
-        # print(geography)
-        sector = dataset_instance.sector.all()
-        # print(sector)
-        dataset_geography = []
-        dataset_sector = []
-        if geography.exists():
-            for geo in geography:
-                dataset_geography.append(geo.name)
-        if sector.exists():
-            for sec in sector:
-                dataset_sector.append(sec.name)
-        dataset_rating = DatasetRatings.objects.filter(dataset_id=resources.dataset_id)
-        # print(dataset_rating)
-        if dataset_rating.exists():
-            rating = dataset_rating[0].data_quality
-        else:
-            rating = ""
-        # print(resources.dataset_id)
-        try:
-            api_resource_obj = APIResource.objects.filter(
-                dataset_id=resources.dataset_id
-            )
-            api_resource_title = []
-            api_resource_description = []
-            api_resource_status = []
-            api_resource_urlpath = []
-            api_resource_auth_req = []
-            api_resource_response_type = []
-            api_source_title = []
-            api_source_description = []
-            api_source_baseurl = []
-            api_source_version = []
-            api_source_auth_loc = []
-            api_source_auth_type = []
-
-            for api_resources in api_resource_obj:
-                api_source_obj = APISource.objects.get(id=api_resources.api_source_id)
-                api_resource_title.append(api_resources.title)
-                api_resource_description.append(api_resources.description)
-                api_resource_status.append(api_resources.status)
-                api_resource_urlpath.append(api_resources.url_path)
-                api_resource_auth_req.append(api_resources.auth_required)
-                api_resource_response_type.append(api_resources.response_type)
-                api_source_title.append(api_source_obj.title)
-                api_source_description.append(api_source_obj.description)
-                api_source_baseurl.append(api_source_obj.base_url)
-                api_source_version.append(api_source_obj.api_version)
-                api_source_auth_loc.append(api_source_obj.auth_loc)
-                api_source_auth_type.append(api_source_obj.auth_type)
-        except (APIResource.DoesNotExist, IndexError) as e:
-            print(e)
-        catalog_instance = Catalog.objects.get(id=dataset_instance.catalog_id)
-        org_instance = Organization.objects.get(id=catalog_instance.organization_id)
-
-        doc = {
-            "resource_title": resources.title,
-            "resource_description": resources.description,
-            "format": resources.format,
-            "resource_status": resources.status,
-            "dataset_title": dataset_instance.title,
-            "dataset_description": dataset_instance.description,
-            "dataset_id": resources.dataset_id,
-            "license": dataset_instance.License,
-            "geography": dataset_geography,
-            "dataset_issued": dataset_instance.issued,
-            "dataset_modified": dataset_instance.modified,
-            "sector": dataset_sector,
-            "access_type": dataset_instance.access_type,
-            "action": dataset_instance.action,
-            "funnel": dataset_instance.funnel,
-            "remote_issued": dataset_instance.remote_issued,
-            "remote_modified": dataset_instance.remote_modified,
-            "status": dataset_instance.status,
-            "period_from": dataset_instance.period_from,
-            "period_to": dataset_instance.period_to,
-            "update_frequency": dataset_instance.update_frequency,
-            "rating": rating,
-            "catalog_title": catalog_instance.title,
-            "catalog_description": catalog_instance.description,
-            "catalog_issued": catalog_instance.issued,
-            "catalog_modified": catalog_instance.modified,
-            "org_title": org_instance.title,
-            "org_description": org_instance.description,
-            "org_issued": org_instance.issued,
-            "org_modified": org_instance.modified,
-            "api_resource_title": api_resource_title,
-            "api_resource_description": api_resource_description,
-            "api_resource_status": api_resource_status,
-            "api_resource_urlpath": api_resource_urlpath,
-            "api_resource_auth_req": api_resource_auth_req,
-            "api_resource_response_type": api_resource_response_type,
-            "api_source_title": api_source_title,
-            "api_source_description": api_source_description,
-            "api_source_baseurl": api_source_baseurl,
-            "api_source_version": api_source_version,
-            "api_source_auth_loc": api_source_auth_loc,
-            "api_source_auth_type": api_source_auth_type,
+def more_like_this(request):
+    id = request.GET.get("q", None)
+    if id:
+        query = {
+            "more_like_this": {
+                "like": [{"_index": "dataset", "_id": id}],
+                "min_term_freq": 0,
+                "max_query_terms": 10,
+                "min_doc_freq": 0,
+            }
         }
-        print("Resource_id --", resources.id)
-        # if es_client.exists(index="dataset", id=resources.id):
-        #     pass
-        # else:
-        resp = es_client.index(index="dataset", id=resources.id, document=doc)
-        print("Index --", resp["result"])
+        resp = es_client.search(index="dataset", query=query)
+        return HttpResponse(json.dumps(resp["hits"]))
+
+
+def org_user_count(organization):
+    user_count = (
+        DatasetAccessModelRequest.objects.filter(
+            Q(access_model_id__dataset_id__catalog__organization=organization.id),
+            Q(access_model_id__dataset__status__exact="PUBLISHED"),
+        )
+        .values_list("user")
+        .distinct()
+        .count()
+    )
+    return user_count
+
+
+def org_dataset_count(organization):
+    dataset = Dataset.objects.filter(
+        Q(status__exact="PUBLISHED"),
+        Q(catalog__organization=organization.id),
+    ).count()
+    return dataset
+
+
+def org_average_rating(organization):
+    pub_datasets = Dataset.objects.filter(
+        Q(status__exact="PUBLISHED"),
+        Q(catalog__organization=organization.id),
+    )
+    count = 0
+    rating = 0
+    for dataset in pub_datasets:
+        dataset_rating = get_average_rating(dataset)
+        if dataset_rating > 0:
+            count = count + 1
+            rating = rating + dataset_rating
+    return rating / count if rating else 0
+
+
+def reindex_organizations():
+    obj = OrganizationCreateRequest.objects.all()
+    for org_obj in obj:
+        update_organization_index(org_obj)
+
+
+def update_organization_index(org_obj):
+    if org_obj.status == "APPROVED":
+        doc = {
+            "id": org_obj.id,
+            "org_title": org_obj.title,
+            "org_description": org_obj.description,
+            "homepage": org_obj.homepage,
+            "contact": org_obj.contact_email,
+            "type": org_obj.organization_types,
+            "dpa_name": org_obj.dpa_name,
+            "dpa_email": org_obj.dpa_email,
+            "dpa_designation": org_obj.dpa_designation,
+            "state": org_obj.state.name if org_obj.state else "",
+            "parent": org_obj.parent.id if org_obj.parent else "",
+            "dpa_phone": org_obj.dpa_phone,
+            "dpa_tid": org_obj.ogd_tid,
+            "sub_type": org_obj.organization_subtypes,
+            "address": org_obj.address,
+            "status": org_obj.status,
+            "issued": org_obj.issued,
+            "modified": org_obj.modified,
+            "logo": org_obj.logo.name,
+            "dataset_count": org_dataset_count(org_obj),
+            "user_count": org_user_count(org_obj),
+            "average_rating": org_average_rating(org_obj)
+        }
+        # Check if Org already exists.
+        resp = es_client.exists(index="organizations", id=org_obj.id)
+        if resp:
+            # Delete the Org.
+            resp = es_client.delete(index="organizations", id=org_obj.id)
+        #     # print(resp["result"])
+        # Index the Organization.
+        resp = es_client.index(index="organizations", id=org_obj.id, document=doc)
+        print(resp["result"], org_obj.id)
+        # return resp["result"]
+
+
+def reindex_data():
+    dataset_obj = Dataset.objects.filter(status="PUBLISHED")
+    for datasets in dataset_obj:
+        resp = index_data(datasets)
+        if resp == "created":
+            print("Dataset_id --", datasets.id)
+        else:
+            print("Re-indexing failed!")
