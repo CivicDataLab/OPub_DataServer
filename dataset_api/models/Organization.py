@@ -10,7 +10,7 @@ class Organization(models.Model):
     logo = models.ImageField(upload_to=_organization_directory_path, blank=True, null=True)
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    homepage = models.URLField(blank=True)
+    homepage = models.URLField(blank=True, null=True)
     contact_email = models.EmailField(blank=True, null=True)
     organization_types = models.CharField(
         max_length=50, choices=OrganizationTypes.choices
