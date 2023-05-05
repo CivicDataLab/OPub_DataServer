@@ -5,6 +5,8 @@ from graphene_file_upload.scalars import Upload
 from graphql import GraphQLError
 from graphql_auth.bases import Output
 
+from flags.state import flag_enabled
+
 from activity_log.signal import activity
 from .constants import IMAGE_FORMAT_MAPPING
 from .decorators import (
@@ -273,8 +275,13 @@ class Query(graphene.ObjectType):
                         )
                     )
                 if org.organization_subtypes in ["ORGANISATION"]:
-
-                    temp_parent = [org.state.name if org.state else "", org.parent.parent.title if org.parent and org.parent.parent else "", org.parent.title if org.parent else ""]
+                    temp_parent = [
+                        org.state.name if org.state else "",
+                        org.parent.parent.title
+                        if org.parent and org.parent.parent
+                        else "",
+                        org.parent.title if org.parent else "",
+                    ]
                     temp_org = OrgItem(org.id, org.title, temp_parent)
                     org_list.append(temp_org)
             return org_list
@@ -364,7 +371,7 @@ class CreateOrganization(Output, graphene.Mutation):
             upload_sample_data_file=organization_data.upload_sample_data_file,
             data_description=organization_data.data_description,
             sample_data_url=organization_data.sample_data_url,
-            status=OrganizationCreationStatusType.APPROVED.value,
+            status=OrganizationCreationStatusType.REQUESTED.value,
             username=username,
             dpa_email=organization_data.dpa_email,
             parent_id=organization_data.parent_id,
@@ -402,19 +409,19 @@ class CreateOrganization(Output, graphene.Mutation):
         # mime_type = mimetypes.guess_type(
         #     organization_additional_info_instance.logo.path
         # )
-
-        # Send email notification to the desired entities.
-        try:
-            org_create_notif(username, organization_additional_info_instance)
-        except Exception as e:
-            print(str(e))
+        if flag_enabled("ENABLE_ORG_CREATE_EMAIL"):
+            # Send email notification to the desired entities.
+            try:
+                org_create_notif(username, organization_additional_info_instance)
+            except Exception as e:
+                print(str(e))
 
         log_activity(
             target_obj=organization_additional_info_instance,
             ip=get_client_ip(info),
             username=username,
             target_group=organization_additional_info_instance,
-            verb=OrganizationCreationStatusType.APPROVED.value,
+            verb=OrganizationCreationStatusType.REQUESTED.value,
         )
         return CreateOrganization(organization=organization_additional_info_instance)
 
@@ -432,7 +439,9 @@ class UpdateOrganization(Output, graphene.Mutation):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_id = organization_data.id if organization_data.id else org_id
         try:
-            organization_create_request_instance = OrganizationCreateRequest.objects.get(organization_ptr_id=org_id)
+            organization_create_request_instance = (
+                OrganizationCreateRequest.objects.get(organization_ptr_id=org_id)
+            )
         except OrganizationCreateRequest.DoesNotExist as e:
             return {
                 "success": False,

@@ -5,8 +5,11 @@ from django.db.models import Q, Prefetch
 from graphene_django import DjangoObjectType
 from graphql_auth.bases import Output
 from graphql import GraphQLError
-from dataset_api.search import index_data
 
+# from flags.decorators import flag_check, flag_required
+from flags.state import flag_enabled
+
+from dataset_api.search import index_data
 from dataset_api.decorators import validate_token, auth_user_by_org
 from dataset_api.enums import DataType
 from dataset_api.models import (
@@ -206,29 +209,29 @@ class Query(graphene.ObjectType):
 class CreateDatasetInput(graphene.InputObjectType):
     title = graphene.String(required=True)
     description = graphene.String(required=True)
-    dataset_type = graphene.Enum.from_enum(DataType)(required=True)
-    funnel = graphene.String(required=True, default_value="upload")
+    dataset_type = graphene.Enum.from_enum(DataType)(required=False)
+    funnel = graphene.String(required=False, default_value="upload")
 
 
 class UpdateDatasetInput(graphene.InputObjectType):
-    id = graphene.ID()
-    source = graphene.String(required=True)
-    remote_issued = graphene.Date(required=True)
+    id = graphene.ID(required=True)
+    source = graphene.String(required=False)
+    remote_issued = graphene.Date(required=False)
     remote_modified = graphene.Date(required=False)
     period_from = graphene.Date(required=False)
     period_to = graphene.Date(required=False)
-    update_frequency = graphene.String(required=True)
+    update_frequency = graphene.String(required=False)
     highlights = graphene.List(of_type=graphene.String, required=False, default=[])
-    funnel = graphene.String(required=False, default_value="upload")
-    action = graphene.String(required=False, default_value="create data")
+    funnel = graphene.String(required=False, default_value="")
+    action = graphene.String(required=False, default_value="")
     tags_list: Iterable = graphene.List(
         of_type=graphene.String, default=[], required=False
     )
     geo_list: Iterable = graphene.List(
-        of_type=graphene.String, default=[], required=True
+        of_type=graphene.String, default=[], required=False
     )
     sector_list: Iterable = graphene.List(
-        of_type=graphene.String, default=[], required=True
+        of_type=graphene.String, default=[], required=False
     )
     language = graphene.String(required=False, default_value="")
     in_series = graphene.String(required=False, default_value="")
@@ -257,6 +260,8 @@ class CreateDataset(Output, graphene.Mutation):
 
     dataset = graphene.Field(DatasetType)
 
+    # if flag_enabled("DISABLE_FEATURE"):
+    # @flag_required("ENABLE_DATASET")
     @staticmethod
     @validate_token
     @auth_user_action_dataset(action="create_dataset")
@@ -267,6 +272,7 @@ class CreateDataset(Output, graphene.Mutation):
         username,
         dataset_data: CreateDatasetInput = None,
     ):
+        # if flag_enabled("ENABLE_DATASET"):
         try:
             org_id = info.context.META.get("HTTP_ORGANIZATION")
             organization = Organization.objects.get(id=org_id)
@@ -277,7 +283,7 @@ class CreateDataset(Output, graphene.Mutation):
             title=dataset_data.title,
             description=dataset_data.description,
             status="DRAFT",
-            dataset_type=dataset_data.dataset_type,
+            dataset_type=DataType.FILE.value,
             funnel=dataset_data.funnel,
             catalog=catalog,
         )
@@ -289,7 +295,7 @@ class CreateDataset(Output, graphene.Mutation):
             username=username,
             verb="Created",
         )
-        update_provider_agreement(dataset_instance, username)
+        # update_provider_agreement(dataset_instance, username)
         return CreateDataset(dataset=dataset_instance)
 
 
@@ -350,7 +356,7 @@ class UpdateDataset(Output, graphene.Mutation):
             username=username,
             verb="Updated",
         )
-        update_provider_agreement(dataset_instance, username)
+        # update_provider_agreement(dataset_instance, username)
 
         return UpdateDataset(dataset=dataset_instance)
 
@@ -378,7 +384,7 @@ class PatchDataset(Output, graphene.Mutation):
         if dataset_data.description:
             dataset_instance.description = dataset_data.description
         if dataset_data.hvd_rating:
-            dataset_instance.hvd_rating = dataset_data.hvd_rating 
+            dataset_instance.hvd_rating = dataset_data.hvd_rating
         dataset_instance.save()
         log_activity(
             target_obj=dataset_instance,
@@ -387,9 +393,10 @@ class PatchDataset(Output, graphene.Mutation):
             username=username,
             verb="Updated",
         )
-        update_provider_agreement(dataset_instance, username)
-        if dataset_instance.status == "PUBLISHED":
-            index_data(dataset_instance)
+        # update_provider_agreement(dataset_instance, username)
+        # if dataset_instance.status == "PUBLISHED":
+        #     index_data(dataset_instance)
+        # TODO: APPROVE the corresponding organization.
 
         return PatchDataset(success=True, dataset=dataset_instance)
 
