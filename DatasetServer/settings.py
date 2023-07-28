@@ -34,47 +34,39 @@ REFRESH_TOKEN_SECRET = (
 ACCESS_TOKEN_EXPIRY_MINS = 5
 REFRESH_TOKEN_EXPIRY_DAYS = 7
 BASE_DOMAIN = env("BASE_DOMAIN")
+DEPLOYMENT_DOMAIN = env("DEPLOYMENT_DOMAIN")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env("DEBUG")
 
-ALLOWED_HOSTS = [
-    "http://idpbe.civicdatalab.in",
-    "http://43.205.200.192",
-    "idp.civicdatalab.in",
-    "http://localhost:3000",
-    "*",
-    "idpbe.civicdatalab.in",
-]
+ALLOWED_HOSTS = ['http://idpbe.civicdatalab.in', 'http://43.205.200.192', 'idp.civicdatalab.in',
+                 'http://localhost:3000', '*', 'idpbe.civicdatalab.in', 'http://idp.nic.in', 'http://pmu.idp.nic.in']
 
-CORS_ORIGIN_WHITELIST = [
-    "idpbe.civicdatalab.in",
-    "43.205.200.192",
-    "idp.civicdatalab.in",
-    "localhost:3000",
-]
+CSRF_TRUSTED_ORIGINS = ['http://idp.nic.in', 'http://pmu.idp.nic.in']
+
+CORS_ORIGIN_WHITELIST = ['idpbe.civicdatalab.in', '43.205.200.192', 'idp.civicdatalab.in', 'localhost:3000']
 
 CORS_ALLOW_METHODS = [
-    "DELETE",
-    "GET",
-    "OPTIONS",
-    "PATCH",
-    "POST",
-    "PUT",
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
 ]
 
 CORS_ALLOW_HEADERS = [
-    "accept",
-    "accept-encoding",
-    "authorization",
-    "content-type",
-    "dnt",
-    "origin",
-    "user-agent",
-    "x-csrftoken",
-    "x-requested-with",
-    "referer",
-    "organization",
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'referer',
+    'organization',
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
@@ -94,20 +86,19 @@ INSTALLED_APPS = [
     "graphql_auth",
     "activity_log",
     "encrypted_json_fields",
-    "storages",
-    "flags",
+    'storages',
 ]
 
 MIDDLEWARE = [
-    "DatasetServer.middleware.SimpleMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
-    "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'DatasetServer.middleware.SimpleMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 ROOT_URLCONF = "DatasetServer.urls"
@@ -162,11 +153,10 @@ REDIS_HOST = env("REDIS_HOST")
 REDIS_PORT = env("REDIS_PORT")
 
 EMAIL_URL = env("EMAIL_URL")
+CMS_URL = env("CMS_URL")
+IDP_URL = env("IDP_URL")
 
 X_FRAME_OPTIONS = "ALLOW-FROM http://localhost:3000/"
-
-FLAGS_STATE_LOGGING = True
-FLAGS = {"ENABLE_ORG_CREATE_EMAIL": []}  # {"condition": "boolean", "value": True}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
@@ -189,29 +179,57 @@ AUTH_PASSWORD_VALIDATORS = [
 GRAPHENE = {"SCHEMA": "DatasetServer.schema.schema"}
 
 
-# security headers
-# SECURE_BROWSER_XSS_FILTER = True
-# SECURE_HSTS_SECONDS = 31536000
+# security headers 
+# SECURE_BROWSER_XSS_FILTER = True  
+# SECURE_HSTS_SECONDS = 31536000 
 # SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-# SECURE_HSTS_PRELOAD = True
-# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# SECURE_HSTS_PRELOAD = True 
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') 
 # SESSION_COOKIE_SECURE = True
 # CSRF_COOKIE_SECURE = True
 
 
-# s3 file storage - nic-prod
-# AWS_ACCESS_KEY_ID = "PGTNB49QR7JR7IYQCTXI"
-# AWS_SECRET_ACCESS_KEY = "EGobXDq8aVONay7DeBA9q5pJeXhodXfXzIMf7vc0"
-# AWS_STORAGE_BUCKET_NAME = "mit6c0-backup"
-# # AWS_S3_SIGNATURE_VERSION = 's3v4'
-# # AWS_S3_REGION_NAME = 'ap-south-1'
+
+# s3 file storage - nic - env
+AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_FILE_OVERWRITE = env("AWS_S3_FILE_OVERWRITE")
+AWS_DEFAULT_ACL = None
+DEFAULT_FILE_STORAGE = env("DEFAULT_FILE_STORAGE") 
+AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL")
+
+
+
+# # s3 file storage - nic - prod
+# AWS_ACCESS_KEY_ID = 'L3ZCKC5B59CXU87PTO7Z'
+# AWS_SECRET_ACCESS_KEY = 'pxFTc7ovuEJNqqWWhi2sZbmCts8eEHvXlim651qB'
+# AWS_STORAGE_BUCKET_NAME = 'w86w-vtrv2r-ceph-bb1-idp-prod'
+# #AWS_S3_SIGNATURE_VERSION = 's3v4'
+# #AWS_S3_REGION_NAME = 'ap-south-1'
 # AWS_S3_FILE_OVERWRITE = False
 # AWS_DEFAULT_ACL = None
 # # AWS_S3_VERIFY = True
-# DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-# AWS_S3_ENDPOINT_URL = "https://staas-bbs1.cloud.gov.in"
-# #AWS_LOCATION = 'files'
-# #AWS_S3_CUSTOM_DOMAIN = 'https://dev.idp.civicdatalab.in'
+# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage' 
+# AWS_S3_ENDPOINT_URL = 'https://staas-bbs1.cloud.gov.in'
+# # #AWS_LOCATION = 'files'
+# # #AWS_S3_CUSTOM_DOMAIN = 'https://dev.idp.civicdatalab.in'
+
+
+
+# # s3 file storage - nic - dev
+# AWS_ACCESS_KEY_ID = 'PGTNB49QR7JR7IYQCTXI'
+# AWS_SECRET_ACCESS_KEY = 'EGobXDq8aVONay7DeBA9q5pJeXhodXfXzIMf7vc0'
+# AWS_STORAGE_BUCKET_NAME = 'mit6c0-backup'
+# #AWS_S3_SIGNATURE_VERSION = 's3v4'
+# #AWS_S3_REGION_NAME = 'ap-south-1'
+# AWS_S3_FILE_OVERWRITE = False
+# AWS_DEFAULT_ACL = None
+# # AWS_S3_VERIFY = True
+# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage' 
+# AWS_S3_ENDPOINT_URL = 'https://staas-bbs1.cloud.gov.in'
+# # #AWS_LOCATION = 'files'
+# # #AWS_S3_CUSTOM_DOMAIN = 'https://dev.idp.civicdatalab.in'
 
 
 # s3 file storage - nic -staging
@@ -223,13 +241,14 @@ GRAPHENE = {"SCHEMA": "DatasetServer.schema.schema"}
 # AWS_S3_FILE_OVERWRITE = False
 # AWS_DEFAULT_ACL = None
 # # AWS_S3_VERIFY = True
-# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage' 
 # AWS_S3_ENDPOINT_URL = 'https://staas-bbs1.cloud.gov.in'
 # # #AWS_LOCATION = 'files'
 # # #AWS_S3_CUSTOM_DOMAIN = 'https://dev.idp.civicdatalab.in'
 
 
-# s3 file storage - idp -prod
+
+# s3 file storage - aws
 # AWS_ACCESS_KEY_ID = 'AKIARIP5TJ5DCZTLFFVK'
 # AWS_SECRET_ACCESS_KEY = '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'
 # AWS_STORAGE_BUCKET_NAME = 'idpfilebox'
@@ -238,23 +257,24 @@ GRAPHENE = {"SCHEMA": "DatasetServer.schema.schema"}
 # AWS_S3_FILE_OVERWRITE = False
 # AWS_DEFAULT_ACL = None
 # AWS_S3_VERIFY = True
-# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-# AWS_LOCATION = 'files'
-# AWS_S3_CUSTOM_DOMAIN = 'https://dev.idp.civicdatalab.in'
+# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage' 
+#AWS_LOCATION = 'files'
+#AWS_S3_CUSTOM_DOMAIN = 'https://dev.idp.civicdatalab.in'
 
 
-#s3 file storage - idp-dev
-AWS_ACCESS_KEY_ID = 'AKIARIP5TJ5DCZTLFFVK'
-AWS_SECRET_ACCESS_KEY = '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'
-AWS_STORAGE_BUCKET_NAME = 'devidpfilebox'
-AWS_S3_SIGNATURE_VERSION = 's3v4'
-AWS_S3_REGION_NAME = 'ap-south-1'
-AWS_S3_FILE_OVERWRITE = False
-AWS_DEFAULT_ACL = None
-AWS_S3_VERIFY = True
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-AWS_LOCATION = 'files'
-# AWS_S3_CUSTOM_DOMAIN = 'https://dev.idp.civicdatalab.in'
+
+# s3 file storage - dev
+# AWS_ACCESS_KEY_ID = 'AKIARIP5TJ5DCZTLFFVK'
+# AWS_SECRET_ACCESS_KEY = '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'
+# AWS_STORAGE_BUCKET_NAME = 'devidpfilebox'
+# AWS_S3_SIGNATURE_VERSION = 's3v4'
+# AWS_S3_REGION_NAME = 'ap-south-1'
+# AWS_S3_FILE_OVERWRITE = False
+# AWS_DEFAULT_ACL = None
+# AWS_S3_VERIFY = True
+# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage' 
+#AWS_LOCATION = 'files'
+#AWS_S3_CUSTOM_DOMAIN = 'https://dev.idp.civicdatalab.in'
 
 
 # Internationalization
@@ -271,15 +291,15 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-STATIC_URL = "static/"
-MEDIA_URL = "public/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "files", "public")
+STATIC_URL = 'static/'
+MEDIA_URL = 'public/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'files', 'public')
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY")
-EJF_ENCRYPTION_KEYS = env("FIELD_ENCRYPTION_KEY")
+FIELD_ENCRYPTION_KEY = env('FIELD_ENCRYPTION_KEY')
+EJF_ENCRYPTION_KEYS = env('FIELD_ENCRYPTION_KEY')
 
 django.utils.encoding.force_text = force_str

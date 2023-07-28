@@ -160,7 +160,7 @@ class CreateDataAccessModel(Output, graphene.Mutation):
                                                  organization=org_instance)
         if len(dam_obj) >= 1:
             raise GraphQLError(
-                "Data Access Model with Same name already exists"
+                "Access Model with the same title exists already. Please enter a unique title."
             )
         data_access_model_instance = DataAccessModel(
             title=data_access_model_data.title,
@@ -251,7 +251,7 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
                                                  organization=org_instance).exclude(id=data_access_model_instance.id)
         if len(dam_obj) >= 1:
             raise GraphQLError(
-                "Data Access Model with Same name already exists"
+                "Access Model with the same title exists already. Please enter a unique title."
             )
         data_access_model_instance.title = data_access_model_data.title
         data_access_model_instance.type = data_access_model_data.type
@@ -278,12 +278,11 @@ class UpdateDataAccessModel(Output, graphene.Mutation):
             return {"success": False, "errors": {"id": [{str(e)}]}}
         
         #NOTE: Temporary fix for DAM creation/updation in PMU.
-        if not data_access_model_instance.is_global:
-            create_contract(
-                dam_license,
-                data_access_model_data.additions,
-                data_access_model_instance,
-            )
+        create_contract(
+            dam_license,
+            data_access_model_data.additions,
+            data_access_model_instance,
+        )
 
         log_activity(
             target_obj=data_access_model_instance,

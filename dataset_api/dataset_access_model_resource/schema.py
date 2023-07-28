@@ -25,8 +25,8 @@ class AccessModelResourceType(DjangoObjectType):
     def resolve_supported_formats(self: DatasetAccessModelResource, info):
         resource = self.resource
         if resource.dataset.dataset_type == DataType.FILE.value:
-            if resource.filedetails.format in ["CSV", "XML", "JSON"]:
-                return ["CSV", "XML", "JSON"]
+            if resource.filedetails.supported_formats:
+                return resource.filedetails.supported_formats
             else:
                 return [resource.filedetails.format]
         elif resource.dataset.dataset_type == DataType.API.value:
@@ -57,6 +57,7 @@ class AccessModelResourceInput(graphene.InputObjectType):
     policy_id = graphene.ID(required=False)
     payment_type = graphene.Enum.from_enum(PAYMENTTYPES)(required=True)
     payment = graphene.Int(required=False)
+    description = graphene.String(required=True)
 
 
 class DeleteAccessModelResourceInput(graphene.InputObjectType):
@@ -82,15 +83,16 @@ class CreateAccessModelResource(Output, graphene.Mutation):
             )
             policy_instance = Policy.objects.get(pk=access_model_resource_data.policy_id)
             dam_obj = DatasetAccessModel.objects.filter(title__exact=access_model_resource_data.title,
-                                                        dataset__catalog__organization=dataset_instance.catalog.organization)
+                                                        dataset=dataset_instance)
             if len(dam_obj) >= 1:
                 raise GraphQLError(
-                    "Dataset Access Model with Same name already exists"
+                    "Dataset Access Model with the same title exists already. Please enter a unique title."
                 )
             dataset_access_model = DatasetAccessModel(
                 data_access_model=data_access_instance, dataset=dataset_instance,
                 title=access_model_resource_data.title, policy=policy_instance,
-                payment_type=access_model_resource_data.payment_type
+                payment_type=access_model_resource_data.payment_type,
+                description=access_model_resource_data.description
             )
             if access_model_resource_data.payment:
                 dataset_access_model.payment = access_model_resource_data.payment
@@ -114,11 +116,10 @@ class CreateAccessModelResource(Output, graphene.Mutation):
                         resource_id=resources.resource_id,
                         dataset_access_model=dataset_access_model,
                     )
-                    if resources.sample_enabled:
-                        access_model_resource_instance.sample_enabled = resources.sample_enabled
-                        access_model_resource_instance.sample_rows = resources.sample_rows
-                        if resources.parameters:
-                            access_model_resource_instance.parameters = resources.parameters
+                    access_model_resource_instance.sample_enabled = resources.sample_enabled
+                    access_model_resource_instance.sample_rows = resources.sample_rows
+                    if resources.parameters:
+                        access_model_resource_instance.parameters = resources.parameters
                     access_model_resource_instance.save()
                     access_model_resource_instance.fields.set(resource_schema)
                 except Resource.DoesNotExist as e:
@@ -174,11 +175,11 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                     "Please select at least one distribution and corresponding fields"
                 )
             dam_obj = DatasetAccessModel.objects.filter(title__exact=access_model_resource_data.title,
-                                                        dataset__catalog__organization=dataset_access_model_instance.dataset.catalog.organization)\
+                                                        dataset=dataset_access_model_instance.dataset)\
                 .exclude(id=dataset_access_model_instance.id)
             if len(dam_obj) >= 1:
                 raise GraphQLError(
-                    "Dataset Access Model with Same name already exists"
+                    "Dataset Access Model with the same title exists already. Please enter a unique title."
                 )
             try:
                 policy_instance = Policy.objects.get(pk=access_model_resource_data.policy_id)
@@ -194,6 +195,7 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
             dataset_access_model_instance.policy = policy_instance
             dataset_access_model_instance.title = access_model_resource_data.title
             dataset_access_model_instance.payment_type = access_model_resource_data.payment_type
+            dataset_access_model_instance.description = access_model_resource_data.description
             dataset_access_model_instance.payment = None
             if access_model_resource_data.payment:
                 dataset_access_model_instance.payment = access_model_resource_data.payment
@@ -224,11 +226,10 @@ class UpdateAccessModelResource(Output, graphene.Mutation):
                             resource_id=resources.resource_id,
                         )
                     )
-                    if resources.sample_enabled:
-                        access_model_resource_instance.sample_enabled = resources.sample_enabled
-                        access_model_resource_instance.sample_rows = resources.sample_rows
-                        if resources.parameters:
-                            access_model_resource_instance.parameters = resources.parameters
+                    access_model_resource_instance.sample_enabled = resources.sample_enabled
+                    access_model_resource_instance.sample_rows = resources.sample_rows
+                    if resources.parameters:
+                        access_model_resource_instance.parameters = resources.parameters
                     access_model_resource_instance.fields.set(resource_schema)
                     access_model_resource_instance.save()
                 except DatasetAccessModelResource.DoesNotExist as e:

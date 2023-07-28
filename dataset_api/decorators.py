@@ -4,6 +4,7 @@ import requests
 from graphql import GraphQLError
 
 from .models import Resource, DatasetReviewRequest, Organization
+from .models.OrganizationCreateRequest import OrgDpaHistory
 from .utils import get_child_orgs
 
 auth_url = settings.AUTH_URL
@@ -160,7 +161,7 @@ def auth_user_by_org(action):
             if not response_json["Success"]:
                 raise GraphQLError(response_json["error_description"])
             if response_json["access_allowed"]:
-                if action == "query" or action == "list_review_request":
+                if action in ["query","list_review_request","update_organization"] :
                     kwargs["role"] = response_json["role"]
                 return func(*args, **kwargs)
             else:
@@ -200,10 +201,34 @@ def create_user_org(func):
                 }
             )
             response_json = request_to_server(body, "update_user_role")
+            
+                
             if response_json["Success"]:
-                return value
+                orgdpa = OrgDpaHistory.objects.filter(org_id = org_id)
+                orgdpa_old = orgdpa[len(orgdpa)-1].old_dpa
+                if orgdpa_old:
+                    
+                    body = json.dumps(
+                            {
+                                "access_token": user_token,
+                                "org_id": org_id,
+                                "org_title": org_title,
+                                "tgt_user_email": orgdpa_old,
+                                "org_parent_id": org_parent if org_parent else "",
+                                "role_name": "DPA",
+                                "action": "delete",
+                            }
+                    )
+                    response_json = request_to_server(body, "update_user_role")
+                    
+                    if response_json["Success"]:
+                        return value
+                    else:
+                        return GraphQLError(response_json["error_description"])
             else:
                 return GraphQLError(response_json["error_description"])
+            
+
         else:
             return value
 

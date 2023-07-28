@@ -14,6 +14,7 @@ from graphql import GraphQLError
 from graphql_auth.bases import Output
 
 from .constants import FORMAT_MAPPING
+from .data_access_model.contract import update_provider_agreement
 from .decorators import (
     auth_user_action_resource,
     validate_token,
@@ -171,6 +172,8 @@ class ResourceType(DjangoObjectType):
     def resolve_api_details(self, info):
         try:
             api_details = APIDetails.objects.get(resource=self)
+            if  api_details.download_formats == None :
+                api_details.download_formats = []            
             return api_details
         except APIDetails.DoesNotExist as e:
             return None
@@ -305,6 +308,9 @@ class APIParameterInputType(graphene.InputObjectType):
     default = graphene.String(required=True)
     description = graphene.String(required=False)
     type = graphene.Enum.from_enum(ParameterTypes)(required=False)
+    options: Iterable = graphene.List(of_type=graphene.String, required=False)
+    download_options: Iterable = graphene.List(of_type=graphene.String, required=False)
+    download_api_options_same = graphene.Boolean(required=False, default=True)
 
 
 class ApiInputType(graphene.InputObjectType):
@@ -315,6 +321,9 @@ class ApiInputType(graphene.InputObjectType):
     request_type = RequestType()
     parameters: Iterable = graphene.List(of_type=APIParameterInputType, required=False)
     supported_formats: Iterable = graphene.List(of_type=graphene.String, required=False)
+    download_formats: Iterable = graphene.List(of_type=graphene.String, required=False)
+    download_same_as_api = graphene.Boolean(required=False, default=True)
+    is_large_dataset = graphene.Boolean(required=False, default=True)
     format_loc = graphene.Enum.from_enum(FormatLocation)(required=False)
     format_key = graphene.String(required=False)
     default_format = graphene.String(required=False)
@@ -334,35 +343,43 @@ class ResourceInput(graphene.InputObjectType):
     dataset = graphene.ID(required=True)
     status = graphene.String(required=True)
     schema: Iterable = graphene.List(of_type=ResourceSchemaInputType, required=False)
-    masked_fields = graphene.List(of_type=graphene.String, default=[], required=False)
     api_details: ApiInputType = graphene.Field(ApiInputType, required=False)
     file_details: FileInputType = graphene.Field(FileInputType, required=False)
+    masked_fields = graphene.List(of_type=graphene.String, default=[], required=False)
     byte_size = graphene.Float(required=False, default_value=0)
     release_date = graphene.Date(required=False)
     media_type = graphene.String(required=False, default_value="")
     compression_format = graphene.String(required=False, default_value="")
     packaging_format = graphene.String(required=False, default_value="")
     checksum = graphene.String(required=False, default_value="")
+    external_url = graphene.String(required=False)
+    is_downloadable = graphene.String(required=False, default_value=True)
+    is_large_data = graphene.Boolean(required=False, default_value=False)
+
+
+class UpdateSchemaInput(graphene.InputObjectType):
+    id = graphene.ID()
+    schema: Iterable = graphene.List(of_type=ResourceSchemaInputType, required=False)
 
 
 class DeleteResourceInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
 
 
-def _remove_masked_fields(resource_instance: Resource):
-     if (
-             resource_instance.masked_fields
-             and len(resource_instance.filedetails.file.name)
-             and "csv" in resource_instance.filedetails.format.lower()
-     ):
-         df = pd.read_csv(resource_instance.filedetails.file)
-         df = df.drop(columns=resource_instance.masked_fields)
-         data = df.to_csv(index=False)
-         temp_file = ContentFile(data.encode("utf-8"))
-         resource_instance.filedetails.file.save(
-             os.path.basename(resource_instance.filedetails.file.name), temp_file
-         )
-     resource_instance.save()
+# def _remove_masked_fields(resource_instance: Resource):
+#      if (
+#              resource_instance.masked_fields
+#              and len(resource_instance.filedetails.file.name)
+#              and "csv" in resource_instance.filedetails.format.lower()
+#      ):
+#          df = pd.read_csv(resource_instance.filedetails.file)
+#          df = df.drop(columns=resource_instance.masked_fields)
+#          data = df.to_csv(index=False)
+#          temp_file = ContentFile(data.encode("utf-8"))
+#          resource_instance.filedetails.file.save(
+#              os.path.basename(resource_instance.filedetails.file.name), temp_file
+#          )
+#      resource_instance.save()
 
 
 def _create_update_schema(resource_data: ResourceInput, resource_instance):
@@ -427,8 +444,10 @@ def _create_update_schema(resource_data: ResourceInput, resource_instance):
 
 def get_resource_schema(resource_instance):
 
-    schema = json.loads(api_fetch.schema("", resource_instance.id).content)['schema']
-    return schema
+    json_data = json.loads(api_fetch.schema("", resource_instance.id).content)
+    if 'schema' in json_data:
+        return json_data['schema']
+    else: return {}
 
 
 def _create_schema_new(resource_instance):
@@ -437,7 +456,7 @@ def _create_schema_new(resource_instance):
     
     for schema in prepared_schema:
         schema['filterable'] = False
-        schema= type('ResourceSchemaInputType', (object,), schema)
+        schema = type('ResourceSchemaInputType', (object,), schema)
         #schema = ResourceSchemaInputType(schema)
         print ('---------------------------------', schema.key) 
         schema_instance = _create_resource_schema_instance(
@@ -468,8 +487,6 @@ def _create_schema_new(resource_instance):
                 pass
 
         schema_instance.save()
-
-
 
 
 def _create_resource_schema_instance(resource_instance, schema):
@@ -516,12 +533,17 @@ def _create_update_api_parameter(api_detail_instance, parameters):
                 parameter_instance.api_details = api_detail_instance
                 parameter_instance.description = parameter.description
                 parameter_instance.type = parameter.type
+                parameter_instance.options = parameter.options
+                parameter_instance.download_api_options_same = parameter.download_api_options_same
+                parameter_instance.download_options = parameter.download_options
                 parameter_instance.save()
             else:
                 # Add new schema
                 parameter_instance = APIParameter(default=parameter.default, key=parameter.key, format=parameter.format,
                                                   api_details=api_detail_instance, type=parameter.type,
-                                                  description=parameter.description)
+                                                  description=parameter.description, options=parameter.options,
+                                                  download_api_options_same=parameter.download_api_options_same,
+                                                  download_options=parameter.download_options)
                 parameter_instance.save()
         except ResourceSchema.DoesNotExist as e:
             parameter_instance = APIParameter(
@@ -546,12 +568,16 @@ def _create_update_api_details(resource_instance, attribute):
     api_detail_object.api_source = api_source_instance
     api_detail_object.auth_required = attribute.auth_required
     api_detail_object.url_path = attribute.url_path
-    api_detail_object.response_type = attribute.response_type
+    api_detail_object.response_type = attribute.response_type if attribute.response_type else attribute.default_format.upper()
     api_detail_object.request_type = attribute.request_type
     api_detail_object.format_loc = attribute.format_loc
     api_detail_object.format_key = attribute.format_key
     api_detail_object.default_format = attribute.default_format
     api_detail_object.supported_formats = attribute.supported_formats
+    api_detail_object.download_same_as_api = attribute.download_same_as_api
+    api_detail_object.is_large_dataset = attribute.is_large_dataset
+    if attribute.download_formats:
+        api_detail_object.download_formats = attribute.download_formats
     api_detail_object.save()
     _create_update_api_parameter(api_detail_object, attribute.parameters)
 
@@ -600,17 +626,33 @@ def _create_update_file_details(resource_instance, attribute):
             print("before deep clone --", file_format)
             file_obj = copy.deepcopy(attribute.file) if not isinstance(attribute.file, str) else  copy.deepcopy(file_detail_object.file)
             # print(file_format)
+            supported_format = [file_format]
             if file_format.lower() == "csv":
                 data = pd.read_csv(file_obj)
+                cols = data.columns
+                supported_format = ["CSV", "JSON", "XML"]
+                for vals in cols:
+                    if vals == " " or vals == "Unnamed: 1":
+                        supported_format = []
+                        break
+                    elif not vals.isalnum():
+                        supported_format.pop()
+                        break
+                        #supported_format.append("CSV")
+                        #supported_format.append("JSON")
+                print(supported_format)
             if file_format.lower() == "xlsx":
+                supported_format = ["XLSX", "CSV", "JSON", "XML"]
                 data = pd.read_excel(file_obj, 1)
             if file_format.lower() == "json":
+                supported_format = ["CSV", "JSON", "XML"]
                 if isinstance(file_obj, str):
                     with open(file_obj, 'r') as data_file:
                         data = json.load(data_file)
                 else:
                     data = json.load(file_obj)
             if file_format.lower() == "xml":
+                supported_format = ["CSV", "JSON", "XML"]
                 data = pd.read_xml(file_obj)
             # print("------", file_format)
         except Exception as e:
@@ -620,6 +662,7 @@ def _create_update_file_details(resource_instance, attribute):
 
         if file_format:
             file_detail_object.format = file_format
+            file_detail_object.supported_formats = supported_format
         # else:
         #     resource_instance.delete()
         #     raise GraphQLError("Unsupported format")
@@ -667,19 +710,20 @@ class CreateResource(graphene.Mutation, Output):
                         else:
                             pass
 
-            masked_fields = resource_data.masked_fields
+            # masked_fields = resource_data.masked_fields
             resource_instance = Resource(
                 title=resource_data.title,
                 description=resource_data.description,
                 dataset=dataset,
                 status=resource_data.status,
-                masked_fields=masked_fields,
                 byte_size=resource_data.byte_size,
                 release_date=resource_data.release_date,
                 media_type=resource_data.media_type,
                 compression_format=resource_data.compression_format,
                 packaging_format=resource_data.packaging_format,
                 checksum=resource_data.checksum,
+                external_url=resource_data.external_url,
+                is_downloadable = resource_data.is_downloadable,
             )
             resource_instance.save()
 
@@ -696,15 +740,22 @@ class CreateResource(graphene.Mutation, Output):
                 except APISource.DoesNotExist as e:
                     resource_instance.delete()
                     raise GraphQLError({"message": "API Source with given id not found", "code": "404"})
-            elif dataset.dataset_type == DataType.FILE.value:
+            
+            if dataset.dataset_type == DataType.FILE.value:
                 _create_update_file_details(
                     resource_instance=resource_instance,
                     attribute=resource_data.file_details,
                 )
 
             # _remove_masked_fields(resource_instance)
-            _create_schema_new(resource_instance)
+            if not dataset.dataset_type == DataType.EXTERNAL.value:
+                try:
+                    _create_schema_new(resource_instance)
+                except Exception as e:
+                    resource_instance.delete()
+                    raise GraphQLError({"message": "Couldn't fetch data. Schema Generation Failed.", "code": "500"})
             # _create_update_schema(resource_data, resource_instance)
+            update_provider_agreement(dataset, username)
             log_activity(
                 target_obj=resource_instance,
                 ip=get_client_ip(info),
@@ -737,18 +788,20 @@ class UpdateResource(graphene.Mutation, Output):
         resource_instance.description = resource_data.description
         resource_instance.dataset = dataset
         resource_instance.status = resource_data.status
-        resource_instance.masked_fields = resource_data.masked_fields
+        # resource_instance.masked_fields = resource_data.masked_fields
         resource_instance.byte_size = resource_data.byte_size
         resource_instance.release_date = resource_data.release_date
         resource_instance.media_type = resource_data.media_type
         resource_instance.compression_format = resource_data.compression_format
         resource_instance.packaging_format = resource_data.packaging_format
         resource_instance.checksum = resource_data.checksum
+        resource_instance.external_url = resource_data.external_url
+        resource_instance.is_downloadable = resource_data.is_downloadable
 
         # resource_instance.save()
         # _remove_masked_fields(resource_instance)
         # _create_update_schema(resource_data, resource_instance)
-        if dataset.dataset_type == "API":
+        if dataset.dataset_type == DataType.API.value:
             try:
                 api_source_instance = APISource.objects.get(
                     id=resource_data.api_details.api_source
@@ -759,7 +812,8 @@ class UpdateResource(graphene.Mutation, Output):
                 )
             except APISource.DoesNotExist as e:
                 raise GraphQLError({"message": "API Source with given id not found", "code": "404", })
-        else:
+        
+        if dataset.dataset_type == DataType.FILE.value:
             _create_update_file_details(
                 resource_instance=resource_instance,
                 attribute=resource_data.file_details,
@@ -767,6 +821,7 @@ class UpdateResource(graphene.Mutation, Output):
         resource_instance.save()
         # _remove_masked_fields(resource_instance)
         _create_update_schema(resource_data, resource_instance)
+        update_provider_agreement(dataset, username)
         log_activity(
             target_obj=resource_instance,
             ip=get_client_ip(info),
@@ -775,6 +830,35 @@ class UpdateResource(graphene.Mutation, Output):
             verb="Updated",
         )
         return UpdateResource(success=True, resource=resource_instance)
+
+
+class UpdateSchema(graphene.Mutation, Output):
+    class Arguments:
+        resource_data = UpdateSchemaInput(required=True)
+
+    resource = graphene.Field(ResourceType)
+
+    @staticmethod
+    @validate_token
+    @auth_user_action_resource(action="update_resource")
+    def mutate(root, info, username, resource_data: UpdateSchemaInput = None):
+        try:
+            resource_instance = Resource.objects.get(id=resource_data.id)
+        except Resource.DoesNotExist as e:
+            raise GraphQLError({"message": "Distribution with given id not found", "code": "404"})
+
+        dataset = resource_instance.dataset
+
+        _create_update_schema(resource_data, resource_instance)
+        update_provider_agreement(dataset, username)
+        log_activity(
+            target_obj=resource_instance,
+            ip=get_client_ip(info),
+            target_group=dataset.catalog.organization,
+            username=username,
+            verb="Updated",
+        )
+        return UpdateSchema(success=True, resource=resource_instance)
 
 
 class DeleteResource(graphene.Mutation, Output):
@@ -822,10 +906,12 @@ class DeleteResource(graphene.Mutation, Output):
         except:
             pass
         resource_instance.delete()
+        update_provider_agreement(resource_instance.dataset, username)
         return DeleteResource(success=True)
 
 
 class Mutation(graphene.ObjectType):
     create_resource = CreateResource.Field()
     update_resource = UpdateResource.Field()
+    update_schema = UpdateSchema.Field()
     delete_resource = DeleteResource.Field()

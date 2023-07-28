@@ -15,3 +15,4 @@ class Policy(models.Model):
     file = models.FileField(upload_to=_policy_directory_path, blank=True)
     status = models.CharField(max_length=50, choices=PolicyStatus.choices)
     reject_reason = models.CharField(max_length=500, blank=True)
+    type = models.CharField(max_length=50, blank=True, null=True, default="")

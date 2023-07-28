@@ -6,7 +6,7 @@ from dataset_api.models.Dataset import Dataset
 
 class Resource(models.Model):
     title = models.CharField(max_length=100)
-    description = models.CharField(max_length=500)
+    description = models.CharField(max_length=1500)
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=50, default="Draft")
@@ -21,3 +21,6 @@ class Resource(models.Model):
     compression_format = models.CharField(blank=True, null=True, max_length=100)
     packaging_format = models.CharField(blank=True, null=True, max_length=100)
     checksum = models.CharField(blank=True, null=True, max_length=100)
+    external_url = models.URLField(blank=True, null=True)
+    is_downloadable = models.BooleanField(blank=False, null=False, default=True)
+    is_large_data = models.BooleanField(blank=False, null=False, default=False)

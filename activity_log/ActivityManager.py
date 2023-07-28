@@ -130,6 +130,22 @@ class ActivityManager(GFKManager):
             ), **kwargs)
 
     @stream
+    def search(self, search_query, **kwargs):
+        """
+        Stream of most recent actions where obj is the target OR action_object.
+        """
+        return self.public(
+            Q(
+                ip__icontains=search_query,
+            ) | Q(
+                actor__icontains=search_query,
+            ) | Q(
+                browser__icontains=search_query,
+            ) | Q(
+                verb__icontains=search_query,
+            ), **kwargs)
+
+    @stream
     def user(self, user, with_user_activity=False, follow_flag=None, **kwargs):
         """Create a stream of the most recent actions by objects that the user is following."""
         q = Q()

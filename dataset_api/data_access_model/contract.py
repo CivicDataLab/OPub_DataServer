@@ -11,6 +11,7 @@ from dataset_api.models import DatasetAccessModel, Agreement, Dataset, Additiona
 from dataset_api.models.DataAccessModel import DataAccessModel
 from dataset_api.models.License import License
 from dataset_api.models.LicenseAddition import LicenseAddition
+from dataset_api.utils import get_data_access_model_request_validity
 
 pdf_options = {
     'page-size': 'A4',
@@ -39,7 +40,7 @@ def create_contract(model_license: License, additions: Iterable, data_access_mod
 
     with open("out.pdf", 'rb') as f:
         rawdata = f.read()
-        data_access_model.contract.save('contract.pdf', ContentFile(rawdata))
+        data_access_model.contract.save('Licence-AdditionalT&C.pdf', ContentFile(rawdata))
 
     os.remove("./out.pdf")
 
@@ -50,7 +51,7 @@ def extract_text(additions, model_license, data_access_model: DataAccessModel):
         addition = LicenseAddition.objects.get(id=addition)
         text = text + addition.title
         text = text + addition.description
-    dam_license_content = body = f"""
+    dam_license_content = f"""
     <html>
       <head>
         <meta name="pdfkit-page-size" content="Legal"/>
@@ -58,13 +59,16 @@ def extract_text(additions, model_license, data_access_model: DataAccessModel):
       </head>
       <h1>Licence</h1>
       <h2>{model_license.title} </h2>
-      <p>This document acts as license condition set for the Data Access Model {data_access_model.title} <p>
+      <p>This Dataset Access Model, titled ‘{data_access_model.title}’, is available under the following licence and additional terms and conditions (if any).<p>
       <br/>
       <p>{model_license.description} </p>
-      <h2>Additional Terms and Conditions </h2>
-      <p>{text}<p>
-      </html>
-    """
+      """
+    if text:
+      dam_license_content = dam_license_content + f"""
+        <h2>Additional Terms and Conditions </h2>
+        <p>{text}<p>
+      """
+    dam_license_content = dam_license_content + f"""</html>"""
     return dam_license_content
 
 
@@ -123,7 +127,7 @@ def get_additional_conditions_text(dataset_access_model: DatasetAccessModel):
 
 
 def extract_agreement_text(dataset_access_model: DatasetAccessModel, username, agreement_model: Agreement):
-    organization = dataset_access_model.data_access_model.organization
+    organization = dataset_access_model.dataset.catalog.organization
 
     text = f"""
     <html lang="en">
@@ -222,6 +226,7 @@ def extract_agreement_text(dataset_access_model: DatasetAccessModel, username, a
                 <li style="margin-bottom: 10px"><b>Name of data access model:</b>&nbsp;<span>{dataset_access_model.data_access_model.title}</span></li>
     
                 <li style="margin-bottom: 10px"><b>Type of Access:</b>&nbsp;<span>{dataset_access_model.data_access_model.type}</span></li>
+                <li style="margin-bottom: 10px"><b>Valid Upto:</b>&nbsp;<span>{standardize_datetime(get_data_access_model_request_validity(dataset_access_model=dataset_access_model))}</span></li>
                 <li style="margin-bottom: 10px">
                   <b>Policy:</b>&nbsp;<span
                      NA;
@@ -369,8 +374,8 @@ def extract_agreement_text(dataset_access_model: DatasetAccessModel, username, a
             <div>
               <p>On behalf of {organization.title}</p>
               <p>[Box for digital signature - Implement later]</p>
-              <p>First Name & Last Name of Authorised Signatory]</p>
-              <p>Name of Authorised Signatory]</p>
+              <p>{organization.organizationcreaterequest.dpa_name}</p>
+              <p>{organization.organizationcreaterequest.dpa_designation}</p>
               <p{organization.contact_email}</p>
               <p>{standardize_datetime()}</p>
             </div>
@@ -665,8 +670,8 @@ def extract_provider_agreement(dataset: Dataset, username):
             <div>
               <p>On behalf of {organization.title}</p>
               <p>[Box for digital signature - Implement later]</p>
-              <p>First Name & Last Name of Authorised Signatory]</p>
-              <p>Name of Authorised Signatory]</p>
+              <p>{organization.organizationcreaterequest.dpa_name}</p>
+              <p>{organization.organizationcreaterequest.dpa_designation}</p>
               <p{organization.contact_email}</p>
               <p>{standardize_datetime()}</p>
             </div>

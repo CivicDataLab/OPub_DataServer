@@ -1,7 +1,7 @@
 from django.db import models
 
 from dataset_api.enums import OrganizationRequestStatusType, OrganizationSubTypes
-from dataset_api.file_paths import _organization_file_directory_path, _cdo_notification_directory_path
+from dataset_api.file_paths import _organization_file_directory_path, _cdo_notification_directory_path, _cdo_notification_hist_directory_path
 from dataset_api.models.Organization import Organization
 from dataset_api.models.Geography import Geography
 
@@ -11,7 +11,7 @@ class OrganizationCreateRequest(Organization):
     upload_sample_data_file = models.FileField(
         upload_to=_organization_file_directory_path, blank=True
     )
-    sample_data_url = models.URLField(blank=True, null=True)
+    sample_data_url = models.URLField(blank=True)
     status = models.CharField(
         max_length=20, choices=OrganizationRequestStatusType.choices, blank=False
     )
@@ -28,3 +28,12 @@ class OrganizationCreateRequest(Organization):
     dpa_designation = models.CharField(default="", blank=True, null=True, max_length=200)
     dpa_phone = models.CharField(default="", blank=True, null=True, max_length=15)
     ogd_tid   = models.IntegerField(blank=True, null=True)
+
+
+class OrgDpaHistory(OrganizationCreateRequest):
+    org_id  = models.ForeignKey(Organization, on_delete=models.PROTECT, default='', null=True)
+    old_dpa = models.CharField(max_length=100, null=True, blank=True)
+    new_dpa = models.CharField(max_length=100)
+    new_cdo_notification = models.FileField(
+        upload_to=_cdo_notification_hist_directory_path, blank=True
+    )

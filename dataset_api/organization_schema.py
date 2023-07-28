@@ -5,8 +5,6 @@ from graphene_file_upload.scalars import Upload
 from graphql import GraphQLError
 from graphql_auth.bases import Output
 
-from flags.state import flag_enabled
-
 from activity_log.signal import activity
 from .constants import IMAGE_FORMAT_MAPPING
 from .decorators import (
@@ -37,14 +35,23 @@ from .models import (
     Geography,
 )
 
-from .utils import get_client_ip, get_average_rating, log_activity
+from .models.OrganizationCreateRequest import OrgDpaHistory
+
+from .utils import get_client_ip, get_average_rating, log_activity, get_child_orgs
 from .email_utils import register_dpa_notif, org_create_notif
+import copy
 
 
 class CreateOrganizationType(DjangoObjectType):
     class Meta:
         model = OrganizationCreateRequest
         fields = "__all__"
+
+class OrgDpaType(DjangoObjectType):
+    class Meta:
+        model = OrgDpaHistory
+        fields = "__all__"   
+
 
 
 class OrganizationType(DjangoObjectType):
@@ -123,6 +130,7 @@ class OrganizationType(DjangoObjectType):
 class OrgItem(graphene.ObjectType):
     org_id = graphene.String()
     title = graphene.String()
+    dpa_email = graphene.String()
     parent = graphene.List(graphene.String)
 
 
@@ -131,13 +139,17 @@ class Query(graphene.ObjectType):
     organization_by_id = graphene.Field(
         OrganizationType, organization_id=graphene.Int()
     )
+    published_organization_by_id = graphene.Field(
+        OrganizationType, organization_id=graphene.Int()
+    )
     organization_by_tid = graphene.Field(
         OrganizationType, organization_tid=graphene.Int()
     )
-    organization_by_title = graphene.Field(
+    organization_by_title = graphene.List(
         OrganizationType, organization_title=graphene.String()
     )
     organizations = graphene.List(OrganizationType)
+    organizations_child = graphene.List(OrganizationType, organization_id=graphene.Int())
 
     requested_rejected_organizations = graphene.List(OrganizationType)
     organizations_by_user = graphene.List(OrganizationType)
@@ -172,6 +184,11 @@ class Query(graphene.ObjectType):
         else:
             raise GraphQLError("Access Denied")
 
+    # Access : DPA of that org.
+    def resolve_published_organization_by_id(self, info, organization_id):
+        return Organization.objects.get(pk=organization_id,
+                                        organizationcreaterequest__status=OrganizationCreationStatusType.APPROVED.value)
+
     # Used only in Script for updating dpa information.
     @auth_user_by_org(action="query")
     def resolve_organization_by_tid(self, info, role, organization_tid):
@@ -193,7 +210,7 @@ class Query(graphene.ObjectType):
 
     # Access : All
     def resolve_organization_by_title(self, info, organization_title, **kwargs):
-        return Organization.objects.get(
+        return Organization.objects.filter(
             Q(title__iexact=organization_title),
             Q(
                 organizationcreaterequest__status=OrganizationCreationStatusType.APPROVED.value
@@ -245,7 +262,7 @@ class Query(graphene.ObjectType):
                 parent_id=parent_id,
             )
 
-    def rnsolve_dept_by_ministry(self, info, state, organization_id):
+    def resolve_dept_by_ministry(self, info, state, organization_id):
         state_obj = Geography.objects.get(name=state)
         return Organization.objects.filter(
             parent_id=organization_id,
@@ -261,12 +278,13 @@ class Query(graphene.ObjectType):
             )
             for org in organizations:
                 if org.organization_subtypes in ["OTHER", "MINISTRY"]:
-                    org_list.append(OrgItem(org.id, org.title, ["", "", ""]))
+                    org_list.append(OrgItem(org.id, org.title, org.dpa_email, ["", "", ""]))
                 if org.organization_subtypes in ["DEPARTMENT"]:
                     org_list.append(
                         OrgItem(
                             org.id,
                             org.title,
+                            org.dpa_email,
                             [
                                 org.state.name if org.state else "",
                                 "",
@@ -275,20 +293,19 @@ class Query(graphene.ObjectType):
                         )
                     )
                 if org.organization_subtypes in ["ORGANISATION"]:
-                    temp_parent = [
-                        org.state.name if org.state else "",
-                        org.parent.parent.title
-                        if org.parent and org.parent.parent
-                        else "",
-                        org.parent.title if org.parent else "",
-                    ]
-                    temp_org = OrgItem(org.id, org.title, temp_parent)
+                    temp_parent = [org.state.name if org.state else "",
+                                   org.parent.parent.title if org.parent and org.parent.parent else "",
+                                   org.parent.title if org.parent else ""]
+                    temp_org = OrgItem(org.id, org.title, org.dpa_email, temp_parent)
                     org_list.append(temp_org)
             return org_list
         else:
             raise GraphQLError("Access Denied")
-
-
+    
+    def resolve_organizations_child(self, info, organization_id, **kwargs):
+        all_orgs = get_child_orgs(org_id=organization_id)
+        return Organization.objects.filter(id__in=all_orgs)
+    
 class OrganizationInput(graphene.InputObjectType):
     id = graphene.ID()
     title = graphene.String(required=True)
@@ -371,7 +388,7 @@ class CreateOrganization(Output, graphene.Mutation):
             upload_sample_data_file=organization_data.upload_sample_data_file,
             data_description=organization_data.data_description,
             sample_data_url=organization_data.sample_data_url,
-            status=OrganizationCreationStatusType.REQUESTED.value,
+            status=OrganizationCreationStatusType.APPROVED.value,
             username=username,
             dpa_email=organization_data.dpa_email,
             parent_id=organization_data.parent_id,
@@ -409,19 +426,19 @@ class CreateOrganization(Output, graphene.Mutation):
         # mime_type = mimetypes.guess_type(
         #     organization_additional_info_instance.logo.path
         # )
-        if flag_enabled("ENABLE_ORG_CREATE_EMAIL"):
-            # Send email notification to the desired entities.
-            try:
-                org_create_notif(username, organization_additional_info_instance)
-            except Exception as e:
-                print(str(e))
+
+        # Send email notification to the desired entities.
+        try:
+            org_create_notif(username, organization_additional_info_instance)
+        except Exception as e:
+            print(str(e))
 
         log_activity(
             target_obj=organization_additional_info_instance,
             ip=get_client_ip(info),
             username=username,
             target_group=organization_additional_info_instance,
-            verb=OrganizationCreationStatusType.REQUESTED.value,
+            verb=OrganizationCreationStatusType.APPROVED.value,
         )
         return CreateOrganization(organization=organization_additional_info_instance)
 
@@ -439,9 +456,7 @@ class UpdateOrganization(Output, graphene.Mutation):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_id = organization_data.id if organization_data.id else org_id
         try:
-            organization_create_request_instance = (
-                OrganizationCreateRequest.objects.get(organization_ptr_id=org_id)
-            )
+            organization_create_request_instance = OrganizationCreateRequest.objects.get(organization_ptr_id=org_id)
         except OrganizationCreateRequest.DoesNotExist as e:
             return {
                 "success": False,
@@ -501,10 +516,10 @@ class ApproveRejectOrganizationApproval(Output, graphene.Mutation):
     @auth_user_by_org(action="approve_organization")
     @modify_org_status
     def mutate(
-        root,
-        info,
-        username,
-        organization_data: ApproveRejectOrganizationApprovalInput = None,
+            root,
+            info,
+            username,
+            organization_data: ApproveRejectOrganizationApprovalInput = None,
     ):
         try:
             organization_create_request_instance = (
@@ -602,12 +617,15 @@ class PatchOrganization(Output, graphene.Mutation):
     @validate_token
     @auth_user_by_org(action="update_organization")
     @create_user_org
-    def mutate(root, info, username, organization_data: OrganizationPatchInput = None):
+    def mutate(root, info, role, username, organization_data: OrganizationPatchInput = None):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
         org_id = organization_data.id if organization_data.id else org_id
+
         organization_instance = OrganizationCreateRequest.objects.get(
             organization_ptr_id=org_id
         )
+
+        new_cdo_notif = copy.deepcopy(organization_data.cdo_notification)
 
         if organization_data.title:
             organization_instance.title = organization_data.title
@@ -620,6 +638,7 @@ class PatchOrganization(Output, graphene.Mutation):
         if organization_data.logo:
             organization_instance.logo = organization_data.logo
         if organization_data.dpa_email:
+            old_dpa_email = organization_instance.dpa_email
             organization_instance.dpa_email = organization_data.dpa_email
         if organization_data.cdo_notification:
             organization_instance.cdo_notification = organization_data.cdo_notification
@@ -630,6 +649,16 @@ class PatchOrganization(Output, graphene.Mutation):
         if organization_data.dpa_name:
             organization_instance.dpa_name = organization_data.dpa_name
         organization_instance.save()
+
+        if organization_data.dpa_email:
+            org = Organization.objects.get(pk=org_id)
+            orgdpahist = OrgDpaHistory(
+                org_id=org,
+                old_dpa=old_dpa_email,
+                new_dpa=organization_data.dpa_email,
+                new_cdo_notification=new_cdo_notif
+            )
+            orgdpahist.save()
 
         # Send email notification to the desired entities.
         try:

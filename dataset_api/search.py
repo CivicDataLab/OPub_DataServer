@@ -13,10 +13,11 @@ from .models import (
     FileDetails,
     APIDetails,
     Dataset,
-    DatasetAccessModel, DatasetAccessModelRequest,
+    DatasetAccessModel,
+    DatasetAccessModelRequest,
 )
 from .utils import dataset_slug, get_average_rating
-
+from .enums import DataType
 
 # from django.utils.datastructures import MultiValueDictKeyError
 
@@ -47,6 +48,8 @@ def index_data(dataset_obj):
         "download_count": dataset_obj.download_count,
         "average_rating": get_average_rating(dataset_obj),
         "hvd_rating": dataset_obj.hvd_rating,
+        "resource_count": Resource.objects.filter(dataset=dataset_obj).count(),
+        "dynamic_date": dataset_obj.is_datedynamic
     }
 
     geography = dataset_obj.geography.all()
@@ -72,9 +75,12 @@ def index_data(dataset_obj):
     org_instance = Organization.objects.get(id=catalog_instance.organization_id)
     doc["org_title"] = org_instance.title
     doc["org_description"] = org_instance.description
+    doc["org_types"] = org_instance.organization_types
     doc["org_id"] = catalog_instance.organization_id
     doc["org_logo"] = str(org_instance.logo) if org_instance.logo else ""
-    update_organization_index(OrganizationCreateRequest.objects.get(organization_ptr_id=org_instance.id))
+    update_organization_index(
+        OrganizationCreateRequest.objects.get(organization_ptr_id=org_instance.id)
+    )
     resource_instance = Resource.objects.filter(dataset_id=dataset_obj.id)
     resource_title = []
     resource_description = []
@@ -85,7 +91,7 @@ def index_data(dataset_obj):
         resource_title.append(resources.title)
         resource_description.append(resources.description)
         # Checks based on datasets_type.
-        if dataset_obj.dataset_type == "API":
+        if dataset_obj.dataset_type == DataType.API.value:
             try:
                 api_details_obj = APIDetails.objects.get(resource_id=resources.id)
                 auth_required.append(api_details_obj.auth_required)
@@ -93,12 +99,14 @@ def index_data(dataset_obj):
                 format.append(api_details_obj.response_type)
             except APIDetails.DoesNotExist as e:
                 pass
-        else:
+        elif dataset_obj.dataset_type == DataType.FILE.value:
             try:
                 file_details_obj = FileDetails.objects.get(resource_id=resources.id)
                 format.append(file_details_obj.format)
             except FileDetails.DoesNotExist as e:
                 pass
+        else:
+            format.append("EXTERNAL LINK")
     # Index all resources of a dataset.
     doc["resource_title"] = resource_title
     doc["resource_description"] = resource_description
@@ -115,15 +123,25 @@ def index_data(dataset_obj):
     data_access_model_titles = []
     data_access_model_types = []
     dataset_access_models = []
+    license = []
     for dam in dam_instances:
         data_access_model_ids.append(dam.data_access_model.id)
         data_access_model_titles.append(dam.data_access_model.title)
         data_access_model_types.append(dam.data_access_model.type)
-        dataset_access_models.append({"id": dam.id, "type": dam.data_access_model.type, "payment_type": dam.payment_type, "payment": dam.payment})
+        license.append(dam.data_access_model.license.title)
+        dataset_access_models.append(
+            {
+                "id": dam.id,
+                "type": dam.data_access_model.type,
+                "payment_type": dam.payment_type,
+                "payment": dam.payment,
+            }
+        )
     doc["dataset_access_models"] = dataset_access_models
     doc["data_access_model_id"] = data_access_model_ids
     doc["data_access_model_title"] = data_access_model_titles
     doc["data_access_model_type"] = data_access_model_types
+    doc["license"] = license
 
     # Check if Dataset already exists.
     resp = es_client.exists(index="dataset", id=dataset_obj.id)
@@ -133,7 +151,9 @@ def index_data(dataset_obj):
         # print(resp["result"])
     # Index the Dataset.
     resp = es_client.index(index="dataset", id=dataset_obj.id, document=doc)
-    update_organization_index(OrganizationCreateRequest.objects.get(organization_ptr_id=org_instance.id))
+    update_organization_index(
+        OrganizationCreateRequest.objects.get(organization_ptr_id=org_instance.id)
+    )
     # print(resp["result"])
     return resp["result"]
 
@@ -152,7 +172,15 @@ def delete_data(id):
 def facets(request):
     filters = []  # List of queries for elasticsearch to filter up on.
     selected_facets = []  # List of facets that are selected.
-    facet = ["license", "geography", "format", "status", "rating", "sector", "payment_type"]
+    facet = [
+        "license",
+        "geography",
+        "format",
+        "status",
+        "rating",
+        "sector",
+        "org_types",
+    ]
     dam_type = request.GET.get("type")
     payment_type = request.GET.get("payment_type")
     size = request.GET.get("size")
@@ -161,13 +189,13 @@ def facets(request):
     paginate_from = request.GET.get("from", 0)
     query_string = request.GET.get("q")
     sort_by = request.GET.get("sort_by", None)
-    sort_order = request.GET.get("sort", None)
+    sort_order = request.GET.get("sort", "")
     if sort_order == "":
         sort_order = "desc"
     org = request.GET.get("organization", None)
     start_duration = request.GET.get("start_duration", None)
     end_duration = request.GET.get("end_duration", None)
-    print(sort_by, sort_order)
+    # print(sort_by, sort_order)
     if sort_by and sort_order:
         if sort_by == "modified":
             sort_mapping = {"modified": {"order": sort_order}}
@@ -179,6 +207,8 @@ def facets(request):
             sort_mapping = {"last_updated": {"order": "desc"}}
         elif sort_by == "relevance":
             sort_mapping = {}
+        elif sort_by == "downloads":
+            sort_mapping = {"download_count": {"order": "desc"}}
         else:
             sort_mapping = {"dataset_title.keyword": {"order": sort_order}}
     else:
@@ -212,7 +242,13 @@ def facets(request):
         selected_facets.append({"type": dam_type.split("||")})
     if payment_type:
         filters.append(
-            {"match": {"dataset_access_models.payment_type": payment_type.replace("||", " ")}}
+            {
+                "match": {
+                    "dataset_access_models.payment_type": payment_type.replace(
+                        "||", " "
+                    )
+                }
+            }
         )
         selected_facets.append({"payment_type": payment_type.split("||")})
 
@@ -236,15 +272,44 @@ def facets(request):
 
     # Query for aggregations (facets).
     agg = {
-        "license": {"terms": {"field": "license.keyword", "size": 10000}},
-        "geography": {"terms": {"field": "geography.keyword", "size": 10000}},
-        "sector": {"terms": {"field": "sector.keyword", "size": 10000}},
-        "format": {"terms": {"field": "format.keyword", "size": 10000}},
-        "status": {"terms": {"field": "status.keyword", "size": 10000}},
-        "rating": {"terms": {"field": "rating.keyword", "size": 10000}},
+        "license": {
+            "global": {},
+            "aggs": {"all": {"terms": {"field": "license.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        },
+        # "license": {"terms": {"field": "license.keyword", "size": 10000}},
+        "geography": {
+            "global": {},
+            "aggs": {"all": {"terms": {"field": "geography.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        },
+        # "geography": {"terms": {"field": "geography.keyword", "size": 10000}},
+        "sector": {
+            "global": {},
+            "aggs": {"all": {"terms": {"field": "sector.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        },
+        # "sector": {"terms": {"field": "sector.keyword", "size": 10000}},
+        "format": {
+            "global": {},
+            "aggs": {"all": {"terms": {"field": "format.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        },
+        # "format": {"terms": {"field": "format.keyword", "size": 10000}},
+        "status": {
+            "global": {},
+            "aggs": {"all": {"terms": {"field": "status.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        },
+        # "status": {"terms": {"field": "status.keyword", "size": 10000}},
+        "rating": {
+            "global": {},
+            "aggs": {"all": {"terms": {"field": "rating.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        },
+        # "rating": {"terms": {"field": "rating.keyword", "size": 10000}},
+        "org_types": {
+            "global": {},
+            "aggs": {"all": {"terms": {"field": "org_types.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        },
+        # "org_types": {"terms": {"field": "org_types.keyword", "size": 10000}},
         "organization": {
             "global": {},
-            "aggs": {"all": {"terms": {"field": "org_title.keyword", "size": 10000}}},
+            "aggs": {"all": {"terms": {"field": "org_title.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
         },
         "duration": {
             "global": {},
@@ -253,8 +318,23 @@ def facets(request):
                 "max": {"max": {"field": "period_to", "format": "yyyy-MM-dd"}},
             },
         },
-        "type": {"terms": {"field": "dataset_access_models.type.keyword", "size": 10000}},
-        "payment_type": {"terms": {"field": "dataset_access_models.payment_type.keyword", "size": 10000}},
+        "type": {
+            "global": {},
+            "aggs": {"all": {"terms": {"field": "dataset_access_models.type.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        },
+        # "type": {
+        #     "terms": {"field": "dataset_access_models.type.keyword", "size": 10000}
+        # },
+        "payment_type": {
+            "global": {},
+            "aggs": {"all": {"terms": {"field": "dataset_access_models.payment_type.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        },
+        # "payment_type": {
+        #     "terms": {
+        #         "field": "dataset_access_models.payment_type.keyword",
+        #         "size": 10000,
+        #     }
+        # },
     }
     if not query_string:
         # For filter search
@@ -308,7 +388,7 @@ def facets(request):
             sort=sort_mapping,
         )
     resp["selected_facets"] = selected_facets
-    return JsonResponse(resp) #HttpResponse(json.dumps(resp))
+    return JsonResponse(resp)  # HttpResponse(json.dumps(resp))
 
 
 def organization_search(request):
@@ -320,43 +400,51 @@ def organization_search(request):
     if sort_order:
         if sort_order == "last_modified":
             sort_mapping = {"remote_modified": {"order": "desc"}}
+        elif sort_order == "trends":
+            sort_mapping = [{"average_rating": {"order": "desc"}}, {"dataset_count": {"order": "desc"}}]
         else:
             sort_mapping = {"dataset_title.keyword": {"order": sort_order}}
     else:
         sort_mapping = {}
 
     if query_string:
-        filters = [{
-            "bool": {
-                "should": [
-                    {
-                        "match": {
-                            "org_title": {
-                                "query": query_string,
-                                "operator": "OR",
-                                "fuzziness": "AUTO",
-                                "boost": "2",
+        filters = [
+            {
+                "bool": {
+                    "should": [
+                        {
+                            "match": {
+                                "org_title": {
+                                    "query": query_string,
+                                    "operator": "OR",
+                                    "fuzziness": "AUTO",
+                                    "boost": "2",
+                                }
                             }
-                        }
-                    },
-                    {
-                        "match": {
-                            "org_description": {
-                                "query": query_string,
-                                "boost": "0.5",
+                        },
+                        {
+                            "match": {
+                                "org_description": {
+                                    "query": query_string,
+                                    "boost": "0.5",
+                                }
                             }
-                        }
-                    },
-                ]
+                        },
+                    ],
+                }
             }
-        }]
+        ]
         query = {"bool": {"must": filters}}
         # query = {"match": {"org_title": {"query": query_string, "operator": "AND"}}}
     else:
-        query = {"match_all": {}}
+        query = {"bool": {"must": {"range": {"dataset_count": {"gt": 0}}}}}
 
     resp = es_client.search(
-        index="organizations", query=query, size=size, from_=paginate_from, sort=sort_mapping
+        index="organizations",
+        query=query,
+        size=size,
+        from_=paginate_from,
+        sort=sort_mapping,
     )
     return HttpResponse(json.dumps(resp["hits"]))
 
@@ -442,7 +530,7 @@ def update_organization_index(org_obj):
             "logo": org_obj.logo.name,
             "dataset_count": org_dataset_count(org_obj),
             "user_count": org_user_count(org_obj),
-            "average_rating": org_average_rating(org_obj)
+            "average_rating": org_average_rating(org_obj),
         }
         # Check if Org already exists.
         resp = es_client.exists(index="organizations", id=org_obj.id)

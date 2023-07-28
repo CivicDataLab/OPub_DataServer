@@ -11,6 +11,7 @@ import datetime
 import json
 import requests
 
+
 def get_client_ip(request):
     x_forwarded_for = request.context.META.get("HTTP_X_FORWARDED_FOR")
     if x_forwarded_for:
@@ -25,7 +26,7 @@ def dataset_slug(dataset_id):
     return slugify(unicode("%s_%s" % (dataset.title, dataset_id)))
 
 
-def log_activity(target_obj, verb, target_group=None, username="anonymous", ip=""):
+def log_activity(target_obj=None, verb="", target_group=None, username="anonymous", ip=""):
     activity.send(
         username, verb=verb, target=target_obj, target_group=target_group, ip=ip
     )
@@ -77,7 +78,7 @@ def idp_make_cache_key(group, window, rate, value, methods):
 
 # def json_keep_column(data, cols):
 #     try:
-        
+
 #         def get_child_keys(d, child_keys_list):
 #             if isinstance(d,  dict):
 #                 for key in list(d.keys()):
@@ -114,27 +115,28 @@ def idp_make_cache_key(group, window, rate, value, methods):
 
 
 def json_keep_column(data, cols, parentnodes):
-    #print ('------------inkeepcol', parentnodes)
-    
+    # print ('------------inkeepcol', parentnodes)
+
     try:
-        
+
         def get_child_keys(d, child_keys_list):
-            if isinstance(d,  dict):
+            if isinstance(d, dict):
                 for key in list(d.keys()):
                     child_keys_list.append(key)
                     if isinstance(d[key], dict):
-                        get_child_keys(d[key], child_keys_list)  
-            if isinstance(d,  list):
+                        get_child_keys(d[key], child_keys_list)
+            if isinstance(d, list):
                 for each in d:
-                    if isinstance(each,  dict):
-                        get_child_keys(each, child_keys_list)                          
+                    if isinstance(each, dict):
+                        get_child_keys(each, child_keys_list)
 
         def remove_a_key(d, parent, remove_key, parent_dict):
             for key in list(d.keys()):
                 child_keys_list = []
                 get_child_keys(d[key], child_keys_list)
-                #print ('--------------', key, '---', child_keys_list)
-                if (key.lower() not in remove_key or parent.lower()!=parent_dict.get(key, "").lower()) and not any([ item.lower() in remove_key for item in child_keys_list]):
+                # print ('--------------', key, '---', child_keys_list)
+                if (key.lower() not in remove_key or parent.lower() != parent_dict.get(key, "").lower()) and not any(
+                        [item.lower() in remove_key for item in child_keys_list]):
                     del d[key]
                 else:
                     keep_col(d[key], key, remove_key, parent_dict)
@@ -147,13 +149,12 @@ def json_keep_column(data, cols, parentnodes):
                     if isinstance(each, dict):
                         remove_a_key(each, parent, remove_key, parent_dict)
             return d
-        
 
         parent_dict = {}
 
         for each in parentnodes:
             node_path = [x for x in each.split('.') if x != "" and x != "." and "items" not in x]
-            parent_dict[node_path[-1]] = node_path[-2] if len(node_path)>=2 else ""
+            parent_dict[node_path[-1]] = node_path[-2] if len(node_path) >= 2 else ""
         cols = [x.lower() for x in cols]
         return keep_col(data, "", cols, parent_dict)
     except Exception as e:
@@ -161,10 +162,8 @@ def json_keep_column(data, cols, parentnodes):
         return data
 
 
-
 def clone_object(obj, clone_list, old_clone, trans_list, attrs={}):
-
-    #print("----clone", obj)
+    # print("----clone", obj)
 
     if (str(obj._meta.object_name) + str(obj.pk)) not in clone_list:
         # we start by building a "flat" clone
@@ -181,51 +180,50 @@ def clone_object(obj, clone_list, old_clone, trans_list, attrs={}):
         clone.save()
         clone_list.append(str(clone._meta.object_name) + str(clone.pk))
         old_clone.append(str(obj._meta.object_name) + str(obj.pk))
-       
-        print ('----------------------objname', str(obj._meta.object_name))
-        #for resource create transform clone
+
+        print('----------------------objname', str(obj._meta.object_name))
+        # for resource create transform clone
         if str(obj._meta.object_name) == "Dataset":
             for each in trans_list:
                 if each['dataset_id'] == str(obj.pk):
                     each['clone_dataset_id'] = clone.pk
 
-
         if str(obj._meta.object_name) == "Resource":
-            #print ('-------------------transl1', trans_list, obj.pk)
+            # print ('-------------------transl1', trans_list, obj.pk)
             for each in trans_list:
                 if each['resource_id'] == str(obj.pk):
                     each['clone_resource_id'] = clone.pk
-                    
+
                 if each['resultant_res_id'] == str(obj.pk):
                     each['clone_resultant_res_id'] = clone.pk
-                    
-                if (each['resultant_res_id'] == str(obj.pk) or each['resource_id'] == str(obj.pk)) and ("clone_resource_id" in each) and ("clone_resultant_res_id" in each):
-                   
-                    #print ('----------------inside')
+
+                if (each['resultant_res_id'] == str(obj.pk) or each['resource_id'] == str(obj.pk)) and (
+                        "clone_resource_id" in each) and ("clone_resultant_res_id" in each):
+                    # print ('----------------inside')
                     url = f"{settings.PIPELINE_URL}clone_pipe"
                     payload = json.dumps(
                         {
-                            "pipeline_id": each['pipeline_id'], 
+                            "pipeline_id": each['pipeline_id'],
                             "dataset_id": each['clone_dataset_id'],
-                            "resource_id": each['clone_resource_id'], 
-                            "resultant_res_id": each['clone_resultant_res_id'],                    
+                            "resource_id": each['clone_resource_id'],
+                            "resultant_res_id": each['clone_resultant_res_id'],
                         }
                     )
                     headers = {}
-                    response = requests.request("POST", url, headers=headers, data=payload)   
-                    response = response.json()        
-        
-        
+                    response = requests.request("POST", url, headers=headers, data=payload)
+                    response = response.json()
+
+
     else:
-        print ('----inelse')
-        obj_model = obj._meta.model.objects.get(pk=obj.pk) 
+        print('----inelse')
+        obj_model = obj._meta.model.objects.get(pk=obj.pk)
         for key, value in attrs.items():
-            #print ('----------key', key, '-------val', value)
+            # print ('----------key', key, '-------val', value)
             setattr(obj_model, key, value)
-            #obj_model.key = value;
+            # obj_model.key = value;
         # print (obj_model.dataset_access_model_id, '-------------obj')
         obj_model.save()
-           # setattr(obj_model, key, value)
+        # setattr(obj_model, key, value)
         return obj_model
 
     # Scan field to further investigate relations
@@ -276,7 +274,7 @@ def clone_object(obj, clone_list, old_clone, trans_list, attrs={}):
                         "Dataset",
 
                     ] and (str(child._meta.object_name) + str(child.pk)) not in old_clone:
-                        #clone_list.append(str(child._meta.object_name) + str(child.pk))
+                        # clone_list.append(str(child._meta.object_name) + str(child.pk))
                         # if child not in ["DataRequest", "Geography", "Sector"]:
                         clone_object(child, clone_list, old_clone, trans_list, attrs)
 
@@ -288,7 +286,7 @@ def cloner(object_type, object_id, trans_list):
     # data = {"id": str(obj.pk)}
 
     print("---in----")
-    clone_list = []   
+    clone_list = []
     old_clone = []
     clone = clone_object(obj, clone_list, old_clone, trans_list)
     print("---out----")
@@ -296,35 +294,46 @@ def cloner(object_type, object_id, trans_list):
     return clone.id
 
 
-def get_data_access_model_request_validity(data_access_model_request):
-    if data_access_model_request.status == "APPROVED":
-        validity = data_access_model_request.access_model.data_access_model.validation
-        validity_unit = data_access_model_request.access_model.data_access_model.validation_unit
-        approval_date = data_access_model_request.modified
-        validation_deadline = approval_date
-        if validity_unit and validity:
-            if validity_unit == ValidationUnits.DAY:
-                validation_deadline = approval_date + datetime.timedelta(days=validity)
-            elif validity_unit == ValidationUnits.WEEK:
-                validation_deadline = approval_date + datetime.timedelta(weeks=validity)
-            elif validity_unit == ValidationUnits.MONTH:
-                validation_deadline = approval_date + datetime.timedelta(
-                    days=(30 * validity)
-                )
-            elif validity_unit == ValidationUnits.YEAR:
-                validation_deadline = approval_date + datetime.timedelta(
-                    days=(365 * validity)
-                )
-            elif validity_unit == ValidationUnits.LIFETIME:
-                validation_deadline = approval_date + datetime.timedelta(
-                    days=(365 * 100)
-                )
-            return validation_deadline
+def get_data_access_model_request_validity(data_access_model_request=None, dataset_access_model=None):
+    if data_access_model_request:
+        if data_access_model_request.status == "APPROVED":
+            validity = data_access_model_request.access_model.data_access_model.validation
+            validity_unit = data_access_model_request.access_model.data_access_model.validation_unit
+            approval_date = data_access_model_request.modified
+            validation_deadline = approval_date
         else:
-            return datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRY_DAYS)
-    else:
-        return None
+            return None
+    if dataset_access_model:
+        validity = dataset_access_model.data_access_model.validation
+        validity_unit = dataset_access_model.data_access_model.validation_unit
+        approval_date = datetime.datetime.now(datetime.timezone.utc)
+        validation_deadline = approval_date
 
+    if validity_unit and validity:
+        if validity_unit == ValidationUnits.DAY:
+            validation_deadline = approval_date + datetime.timedelta(days=validity)
+        elif validity_unit == ValidationUnits.WEEK:
+            validation_deadline = approval_date + datetime.timedelta(weeks=validity)
+        elif validity_unit == ValidationUnits.MONTH:
+            validation_deadline = approval_date + datetime.timedelta(
+                days=(30 * validity)
+            )
+        elif validity_unit == ValidationUnits.YEAR:
+            validation_deadline = approval_date + datetime.timedelta(
+                days=(365 * validity)
+            )
+        elif validity_unit == ValidationUnits.LIFETIME:
+            validation_deadline = approval_date + datetime.timedelta(
+                days=(365 * 100)
+            )
+        return validation_deadline
+    else:
+        return datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
+            days=settings.REFRESH_TOKEN_EXPIRY_DAYS)
+
+
+# else:
+#     return None
 
 
 def get_child_orgs(org_id: int):
@@ -334,6 +343,7 @@ def get_child_orgs(org_id: int):
     # print(initial_parents)
     for x in initial_parents:
         working_list.append(x)
+
     # print(working_list)
     def get_all_child(items: list):
         if items:
@@ -348,8 +358,16 @@ def get_child_orgs(org_id: int):
             return get_all_child(working_list)
         else:
             return
-    
+
     # Recursion call.
     get_all_child(working_list)
     # print(all_ids)
-    return all_ids 
+    return all_ids
+
+
+def add_pagination_filters(first, query, skip):
+    if skip:
+        query = query[skip:]
+    if first:
+        query = query[:first]
+    return query

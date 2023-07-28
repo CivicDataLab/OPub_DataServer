@@ -18,7 +18,7 @@ from ..license_addition.enums import LICENSEADDITIONSTATE
 from ..license_addition.license_addition_schema import LicenceAdditionInputType, _create_update_license_additions, \
     LicenseAdditionType
 from dataset_api.utils import get_client_ip, log_activity
-
+from ..enums import DataType
 
 class LicenseType(DjangoObjectType):
     additions = graphene.List(LicenseAdditionType)
@@ -46,7 +46,7 @@ class Query(graphene.ObjectType):
         return License.objects.all().order_by("-modified")
 
     def resolve_licenses(self, info, **kwargs):
-        return License.objects.filter(status=LicenseStatus.PUBLISHED.value).order_by("-modified")
+        return License.objects.filter(status=LicenseStatus.PUBLISHED.value).exclude(type="EXTERNAL").order_by("-modified")
 
     def resolve_license_by_org(self, info, **kwargs):
         org_id = info.context.META.get("HTTP_ORGANIZATION")
@@ -69,11 +69,12 @@ class LicenseApproveRejectInput(graphene.InputObjectType):
 class LicenseInput(graphene.InputObjectType):
     id = graphene.ID(required=False)
     title = graphene.String(required=True)
-    short_name = graphene.String(required=True)
+    short_name = graphene.String(required=False)
     description = graphene.String(required=True)
     file = Upload(required=False)
     remote_url = graphene.String(required=False)
     license_additions = graphene.List(LicenceAdditionInputType, required=False, default=[])
+    type = graphene.String(required=False)
 
 
 class CreateLicense(graphene.Mutation, Output):
@@ -90,14 +91,19 @@ class CreateLicense(graphene.Mutation, Output):
         license_instance = License(
             title=license_data.title,
             description=license_data.description,
-            short_name=license_data.short_name
         )
+        if license_data.short_name:
+            license_instance.short_name = license_data.short_name
         if license_data.file:
             license_instance.file = license_data.file
         if license_data.remote_url:
             license_instance.remote_url = license_data.remote_url
+        if license_data.type:
+            license_instance.type = DataType.EXTERNAL.value
+            license_instance.status = LicenseStatus.PUBLISHED.value
         if role == "DPA":
-            license_instance.status = LicenseStatus.CREATED.value
+            if not license_data.type:
+                license_instance.status = LicenseStatus.CREATED.value
             org_id = info.context.META.get("HTTP_ORGANIZATION")
             organization = Organization.objects.get(id=org_id)
             license_instance.created_organization_id = org_id
@@ -150,16 +156,20 @@ class UpdateLicense(graphene.Mutation, Output):
             organization = None
 
         license_instance.title = license_data.title
-        license_instance.short_name = license_data.short_name
         license_instance.description = license_data.description
+        if license_data.short_name:
+            license_instance.short_name = license_data.short_name
         if organization:
             license_instance.created_organization = organization
         if license_data.file:
             license_instance.file = license_data.file
         if license_data.remote_url:
             license_instance.remote_url = license_data.remote_url
+        if license_data.type:
+            license_instance.status = LicenseStatus.PUBLISHED.value
         if role == "DPA":
-            license_instance.status = LicenseStatus.CREATED.value
+            if not license_data.type:
+                license_instance.status = LicenseStatus.CREATED.value
         if role == "PMU":
             license_instance.status = LicenseStatus.PUBLISHED.value
         license_instance.save()

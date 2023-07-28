@@ -13,6 +13,9 @@ from .decorators import (
 from DatasetServer import settings
 import requests
 
+from ..data_access_model.contract import update_provider_agreement
+from ..decorators import validate_token
+
 
 class EditDatasetInput(graphene.InputObjectType):
     id = graphene.ID(required=True)
@@ -26,13 +29,14 @@ class EditDataset(Output, graphene.Mutation):
     dataset_id = graphene.ID()
 
     @staticmethod
-    # @validate_token
+    @validate_token
     # @auth_user_action_dataset(action="create_dataset")
     @map_user_dataset
     def mutate(
             root,
             info,
             dataset_data: EditDatasetInput = None,
+            username = None
     ):
         try:
             dataset_instance = Dataset.objects.get(pk=dataset_data.id)
@@ -52,7 +56,7 @@ class EditDataset(Output, graphene.Mutation):
                     #get transformers of the dataset
                     url = f"{settings.PIPELINE_URL}pipeline_filter?datasetId={dataset_data.id}"
                     headers = {}
-                    response = requests.request("GET", url, headers=headers)   
+                    response = requests.request("GET", url, headers=headers)
                     response = response.json()
                     trans_list = []
                     for each in response['result']:
@@ -60,13 +64,14 @@ class EditDataset(Output, graphene.Mutation):
                             trans_list.append({'pipeline_id': each['pipeline_id'], 'dataset_id': dataset_data.id, 'resource_id': each['resource_id'], 'resultant_res_id': each['resultant_res_id'] })
                         else:
                             trans_list.append({'pipeline_id': each['pipeline_id'], 'dataset_id': dataset_data.id, 'resource_id': each['resource_id'], 'resultant_res_id': each['resource_id'] })
-                        
+
                     cloned_id = cloner(Dataset, dataset_instance.id, trans_list)
                     cloned_dataset = Dataset.objects.get(pk=cloned_id)
                     cloned_dataset.status = "DRAFT"
                     cloned_dataset.parent = dataset_instance
-                    cloned_dataset.accepted_agreement = File(dataset_instance.accepted_agreement, os.path.basename(
-                        dataset_instance.accepted_agreement.name), )
+                    # cloned_dataset.accepted_agreement = File(dataset_instance.accepted_agreement, os.path.basename(
+                    #     dataset_instance.accepted_agreement.name), )
+                    update_provider_agreement(cloned_dataset, username)
                     cloned_dataset.version_name = dataset_data.new_version_name
                     cloned_dataset.save()
                 else:

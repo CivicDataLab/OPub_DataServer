@@ -1,9 +1,10 @@
 import copy
+import datetime
 
 import graphene
 import redis
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, Case, When, Value
 from django.utils import timezone
 from graphene_django import DjangoObjectType
 from graphql import GraphQLError
@@ -14,15 +15,16 @@ from dataset_api.decorators import (
     validate_token_or_none,
     auth_user_by_org,
 )
-from dataset_api.enums import SubscriptionUnits
+from dataset_api.enums import SubscriptionUnits, ParameterTypes
 from dataset_api.models.DatasetAccessModel import DatasetAccessModel
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
+from dataset_api.models.Dataset import Dataset
 from .decorators import auth_query_dam_request
 from ..constants import DATAREQUEST_SWAGGER_SPEC
 from ..data_request.token_handler import create_data_refresh_token, create_data_jwt_token
 from ..email_utils import data_access_approval_notif
 from ..models import DatasetAccessModelResource, Resource
-from ..utils import get_client_ip, get_data_access_model_request_validity, log_activity
+from ..utils import get_client_ip, get_data_access_model_request_validity, log_activity, add_pagination_filters
 
 r = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
 
@@ -116,6 +118,7 @@ class DataAccessModelRequestStatusType(graphene.Enum):
     REQUESTED = "REQUESTED"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    PAYMENTPENDING = "PAYMENTPENDING"
 
 
 class PurposeType(graphene.Enum):
@@ -128,7 +131,8 @@ class PurposeType(graphene.Enum):
 
 
 class Query(graphene.ObjectType):
-    all_data_access_model_requests = graphene.List(DataAccessModelRequestType)
+    all_data_access_model_requests = graphene.List(DataAccessModelRequestType, first=graphene.Int(), skip=graphene.Int())
+    all_pending_data_access_model_requests = graphene.List(DataAccessModelRequestType, first=graphene.Int(), skip=graphene.Int())
     data_access_model_request = graphene.Field(
         DataAccessModelRequestType, data_access_model_request_id=graphene.Int()
     )
@@ -142,9 +146,20 @@ class Query(graphene.ObjectType):
 
     # Access : PMU
     @auth_user_by_org(action="query")
-    def resolve_all_data_access_model_requests(self, info, role, **kwargs):
+    def resolve_all_data_access_model_requests(self, info, role,  first=None, skip=None, **kwargs):
         if role == "PMU":
-            return DatasetAccessModelRequest.objects.all().order_by("-modified")
+            query = DatasetAccessModelRequest.objects.all().order_by("-modified")
+            query = add_pagination_filters(first, query, skip)
+            return query
+        else:
+            raise GraphQLError("Access Denied")
+
+    @auth_user_by_org(action="query")
+    def resolve_all_pending_data_access_model_requests(self, info, role,  first=None, skip=None, **kwargs):
+        if role == "PMU":
+            query = DatasetAccessModelRequest.objects.filter(status="REQUESTED").order_by("-modified")
+            query = add_pagination_filters(first, query, skip)
+            return query
         else:
             raise GraphQLError("Access Denied")
 
@@ -172,7 +187,7 @@ class Query(graphene.ObjectType):
         if role == "PMU" or role == "DPA":
             org_id = info.context.META.get("HTTP_ORGANIZATION")
             return DatasetAccessModelRequest.objects.filter(
-                Q(access_model_id__data_access_model__organization=org_id),
+                Q(access_model_id__dataset__catalog__organization=org_id),
             ).order_by("-modified")
         else:
             raise GraphQLError("Access Denied")
@@ -206,16 +221,24 @@ class Query(graphene.ObjectType):
         spec["paths"]["/get_dist_data"]["get"]["parameters"][0]["example"] = data_token
         parameters = []
         if resource_instance and resource_instance.dataset.dataset_type == "API":
-            parameters = resource_instance.apidetails.apiparameter_set.all().exclude(type="PREVIEW")
+            parameters = resource_instance.apidetails.apiparameter_set.all() \
+                .exclude(type__in=[ParameterTypes.PREVIEW, ParameterTypes.DOWNLOAD]).order_by(Case(
+                When(type=ParameterTypes.EXPOSED, then=Value(0)),
+                When(type=ParameterTypes.PAGINATION, then=Value(1)),
+                default=Value(2)
+            )
+            )
             for parameter in parameters:
                 param_input = {
                     "name": parameter.key,
                     "in": "query",
-                    "required": True,
+                    "required": False,
                     "description": parameter.description,
                     "schema": {"type": parameter.format},
                     "example": parameter.default,
                 }
+                if parameter.options:
+                    param_input["schema"] = {"type": "string", "enum": parameter.options}
                 spec["paths"]["/get_dist_data"]["get"]["parameters"].append(param_input)
             if resource_instance.apidetails.format_key and resource_instance.apidetails.format_key != "":
                 param_input = {
@@ -309,6 +332,10 @@ class DataAccessModelRequestUpdateInput(graphene.InputObjectType):
     status = DataAccessModelRequestStatusType()
     remark = graphene.String(required=False)
 
+class UserMigrationInput(graphene.InputObjectType):
+    source_dam_id = graphene.ID()
+    target_dam_id = graphene.ID()
+    target_user = graphene.String()
 
 def create_dataset_access_model_request(
         access_model,
@@ -323,14 +350,10 @@ def create_dataset_access_model_request(
         data_access_model_request_instance = DatasetAccessModelRequest.objects.filter(
             access_model=access_model, status=status, user=username
         ).order_by('-modified')
-        print('--dam--req--', data_access_model_request_instance)
         if data_access_model_request_instance.exists():
-            print('--dam--req--0--', data_access_model_request_instance[0])
             validity = get_data_access_model_request_validity(data_access_model_request_instance[0])
             if validity:
-                print('validity--', validity)
                 if timezone.now() <= validity:
-                    print('Request is valid')
                     return data_access_model_request_instance[0]
                 else:
                     pass
@@ -341,14 +364,13 @@ def create_dataset_access_model_request(
             access_model=access_model
         )
     else:
-        data_access_model_request_instance = DatasetAccessModelRequest.objects.get(
-            id=id
-        )
+        data_access_model_request_instance = DatasetAccessModelRequest.objects.get(id=id)
     data_access_model_request_instance.status = status
     data_access_model_request_instance.purpose = purpose
     data_access_model_request_instance.description = description
     data_access_model_request_instance.user = username
     data_access_model_request_instance.user_email = user_email
+    data_access_model_request_instance.token_time = datetime.datetime.now()
     data_access_model_request_instance.save()
     access_model.save()
     return data_access_model_request_instance
@@ -406,6 +428,7 @@ class ApproveRejectDataAccessModelRequest(graphene.Mutation, Output):
 
     @staticmethod
     @validate_token_or_none
+    # TODO: validate dpa before continuing
     def mutate(
             root,
             info,
@@ -429,6 +452,10 @@ class ApproveRejectDataAccessModelRequest(graphene.Mutation, Output):
                 },
             }
         data_access_model_request_instance.status = data_access_model_request.status
+        if data_access_model_request.status == "APPROVED" and\
+                data_access_model_request_instance.access_model.payment_type == "PAID":
+            data_access_model_request_instance.status = "PAYMENTPENDING"
+            data_access_model_request_instance.token_time = datetime.datetime.now()
         if data_access_model_request.remark:
             data_access_model_request_instance.remark = data_access_model_request.remark
         data_access_model_request_instance.save()
@@ -450,9 +477,47 @@ class ApproveRejectDataAccessModelRequest(graphene.Mutation, Output):
             data_access_model_request=data_access_model_request_instance
         )
 
+class DatasetAccessModelRequestUserMigration(graphene.Mutation, Output):
+    class Arguments:
+        data_access_model_request = UserMigrationInput()
+
+    data_access_model_request = graphene.Field(DataAccessModelRequestType)
+    
+    @staticmethod
+    @validate_token_or_none
+    # TODO: validate dpa before continuing
+    def mutate(
+            root,
+            info,
+            username,
+            data_access_model_request: UserMigrationInput = None,
+    ):
+        initial_dataset_am_object = DatasetAccessModel.objects.get(pk=data_access_model_request.source_dam_id)
+        target_dataset_am_object = DatasetAccessModel.objects.get(pk=data_access_model_request.target_dam_id)
+        try:
+            Dataset.objects.get(pk=target_dataset_am_object.dataset.id, parent=initial_dataset_am_object.dataset.id)
+        except Dataset.DoesNotExist as e:
+            raise GraphQLError("User cannot be migrated between these datasets.")
+        
+        try:
+            source_dam_request_obj = DatasetAccessModelRequest.objects.get(access_model=initial_dataset_am_object, user=data_access_model_request.target_user, status="APPROVED")
+            source_dam_request_obj.access_model = target_dataset_am_object
+            source_dam_request_obj.save()
+        except DatasetAccessModelRequest.DoesNotExist as e:
+            raise GraphQLError("Data Access Request does not exist for this user.")
+        
+        log_activity(
+            target_obj=source_dam_request_obj,
+            ip=get_client_ip(info),
+            username=username,
+            target_group=source_dam_request_obj.access_model.dataset.catalog.organization,
+            verb=source_dam_request_obj.status,
+        )
+        return DatasetAccessModelRequestUserMigration(
+            data_access_model_request=source_dam_request_obj
+        )
 
 class Mutation(graphene.ObjectType):
     data_access_model_request = DataAccessModelRequestMutation.Field()
-    approve_reject_data_access_model_request = (
-        ApproveRejectDataAccessModelRequest.Field()
-    )
+    approve_reject_data_access_model_request = ApproveRejectDataAccessModelRequest.Field()
+    dataset_access_model_request_user_migration = DatasetAccessModelRequestUserMigration.Field()

@@ -36,6 +36,7 @@ from dataset_api.models.DataRequest import DataRequest
 from dataset_api.models.DatasetAccessModelRequest import DatasetAccessModelRequest
 from dataset_api.utils import get_client_ip, log_activity
 from dataset_api.utils import json_keep_column
+import xmltodict, dicttoxml
 
 
 class DataRequestType(DjangoObjectType):
@@ -150,7 +151,6 @@ def initiate_dam_request(
     dam_resource_field_ids = list(dam_resource.fields.all().values_list('id', flat=True))
     schema_rows = list(resource.resourceschema_set.filter(id__in=dam_resource_field_ids).values_list('path', flat=True))
 
-    schema_rows
     print('-------rows', schema_rows)
     fields = []
 
@@ -164,11 +164,12 @@ def initiate_dam_request(
     # TODO: fix magic strings
     if resource and resource.dataset.dataset_type == "API":
         for parameter in resource.apidetails.apiparameter_set.all().exclude(type="PREVIEW"):
-            value = parameters.get(parameter.key, parameter.default)
-            dr_parameter_instance = DataRequestParameter(
-                api_parameter=parameter, value=value, data_request=data_request_instance
-            )
-            dr_parameter_instance.save()
+            value = parameters.get(parameter.key)
+            if value:
+                dr_parameter_instance = DataRequestParameter(
+                    api_parameter=parameter, value=value, data_request=data_request_instance
+                )
+                dr_parameter_instance.save()
         url = f"{settings.PIPELINE_URL}api_source_query"
         if not target_format:
             target_format = resource.apidetails.default_format
@@ -186,7 +187,6 @@ def initiate_dam_request(
         response = requests.request("POST", url, headers=headers, data=payload)
         # print(response.text)
     elif resource and resource.dataset.dataset_type == DataType.FILE.value:
-        print('-----------------bbbbbaaa')
         data_request_instance.file = File(
             resource.filedetails.file,
             os.path.basename(resource.filedetails.file.name),
@@ -222,6 +222,19 @@ def initiate_dam_request(
             output_file = default_storage.open(data_request_instance.file.name, "w")
             output_file.write(json_buffer.getvalue())
             output_file.close()
+        elif file_instance.format.lower() == "xml":
+            read_file = data_request_instance.file
+            file = xmltodict.parse(read_file.read())
+            if len(fields) > 0:
+                # skip_col(file, fields)
+                file = json_keep_column(file, fields, schema_rows)
+                # file = json_keep_column(file, fields)
+            print("-----------------fltrddata", file)
+            #read_file.close()
+            data = dicttoxml.dicttoxml(file).decode("utf-8")
+            output_file = default_storage.open(data_request_instance.file.name, "w")
+            output_file.write(data)
+            output_file.close()            
         data_request_instance.status = "FETCHED"
         data_request_instance.save()
         # update_data_request_index(data_request_instance)

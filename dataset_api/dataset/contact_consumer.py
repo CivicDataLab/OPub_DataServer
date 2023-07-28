@@ -10,12 +10,11 @@ Trigger mail for contact_consumer
 def contact_consumer(request):
     
     post_data = json.loads(request.body.decode("utf-8"))
-    
+    print ('-------------------', post_data) 
     # Send email notification to the user for subscribing to dataset.
     try:
         contact_consumer_notif(post_data)
         return JsonResponse({"Success": True}, safe=False)
     except Exception as e:
         print(str(e))
-
-    return JsonResponse({"Success": False}, safe=False)
+        return JsonResponse({"Success": False, "error": str(e)}, safe=False)

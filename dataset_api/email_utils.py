@@ -102,13 +102,14 @@ def subscribe_notif(username, dataset_obj, action):
 
 
 def contact_provider_notif(contact_info):
-    dataset_instance = Dataset.objects.get(pk=contact_info.dataset_id)
+    dataset_instance = Dataset.objects.get(pk=contact_info.get("dataset_id"))
     body = {
         "actor": contact_info.get("user"),
         "action": "contact_provider",
         "tgt_obj": contact_info.get("org_id"),
         "tgt_group": "Entity",
-        "extras": {"category": contact_info.category, "desc": contact_info.desc, "dataset_id": contact_info.dataset_id, "dataset_title":dataset_instance.title },
+        "extras": {"category": contact_info.get("category"), "desc": contact_info.get("desc"),
+                   "dataset_id": contact_info.get("dataset_id"), "dataset_title": dataset_instance.title},
     }
     headers = {}
     response = requests.request("POST", email_url, json=body, headers=headers)
@@ -117,13 +118,31 @@ def contact_provider_notif(contact_info):
 
 
 def contact_consumer_notif(contact_info):
-    org_instance = Organization.objects.get(pk=contact_info.org_id)
+    org_instance = Organization.objects.get(pk=contact_info.get("org_id"))
     body = {
         "actor": contact_info.get("user"),
         "action": "contact_consumer",
         "tgt_obj": contact_info.get("org_id"),
         "tgt_group": "Entity",
-        "extras": {"entity_title": org_instance.title, "subject": contact_info.subject, "msg": contact_info.msg, "consumers": contact_info.consumers},
+        "extras": {"entity_title": org_instance.title, "subject": contact_info.get("subject"),
+                   "msg": contact_info.get("msg"), "consumers": contact_info.get("consumers")},
+    }
+    headers = {}
+    response = requests.request("POST", email_url, json=body, headers=headers)
+    response_json = response.text
+    return response_json
+
+
+def remind_dpa_notif(contact_info, request):
+    dataset_instance = request.access_model.dataset
+    body = {
+        "actor": contact_info.get("user"),
+        "action": "remind_dpa_for_data_access",
+        "tgt_obj": dataset_instance.id,
+        "tgt_group": "Dataset",
+        "extras": {"req_date": contact_info.get("req_date"), "consumer": contact_info.get("consumer"),
+                   "dpa": contact_info.get("dpa"), "dataset_id": dataset_instance.id,
+                   "dataset_title": dataset_instance.title},
     }
     headers = {}
     response = requests.request("POST", email_url, json=body, headers=headers)

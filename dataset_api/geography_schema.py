@@ -14,12 +14,15 @@ class GeographyType(DjangoObjectType):
 class Query(graphene.ObjectType):
     all_geography = graphene.List(GeographyType)
     geography = graphene.Field(GeographyType, geography_id=graphene.Int())
-
+    sub_geographies = graphene.List(GeographyType, parent_id=graphene.Int())
     def resolve_all_geography(self, info, **kwargs):
         return Geography.objects.all()
 
     def resolve_geography(self, info, geography_id):
         return Geography.objects.get(pk=geography_id)
+    
+    def resolve_sub_geographies(self, info, parent_id):
+        return Geography.objects.filter(parent_id=parent_id)
 
 
 class GeographyInput(graphene.InputObjectType):

@@ -1,12 +1,13 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphql import GraphQLError
 from graphql_auth.bases import Output
 
 from dataset_api.data_access_model.contract import create_consumer_agreement
 from dataset_api.dataset_access_model_request.schema import create_dataset_access_model_request, PurposeType
 from dataset_api.decorators import validate_token, validate_token_or_none
 from dataset_api.license.enums import AgreementStatus
-from dataset_api.models import Agreement, DatasetAccessModel
+from dataset_api.models import Agreement, DatasetAccessModel, Organization
 
 
 class AgreementType(DjangoObjectType):
@@ -34,8 +35,13 @@ class AgreementMutation(graphene.Mutation, Output):
     @staticmethod
     @validate_token_or_none
     def mutate(root, info, agreement_request: AgreementInput, username):
+        org_id = int(info.context.META.get("HTTP_ORGANIZATION"))
         dataset_access_model = DatasetAccessModel.objects.get(id=agreement_request.dataset_access_model)
+        if not dataset_access_model.data_access_model.is_global and org_id != dataset_access_model.data_access_model.organization.id:
+            raise GraphQLError("Dataset Access Model with given ID doesnt exist")
         status = "REQUESTED" if dataset_access_model.data_access_model.type == "RESTRICTED" else "APPROVED"
+        if dataset_access_model.payment_type == "PAID" and dataset_access_model.data_access_model.type == "REGISTERED":
+            status = "PAYMENTPENDING"
         # TODO: Add check for open dam
         if not username:
             username = agreement_request.username

@@ -1,3 +1,4 @@
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 from dataset_api.enums import ParameterTypes
@@ -11,3 +12,6 @@ class APIParameter(models.Model):
     description = models.CharField(max_length=500, default="")
     api_details = models.ForeignKey(APIDetails, on_delete=models.PROTECT)
     type = models.CharField(choices=ParameterTypes.choices, max_length=50)
+    options = ArrayField(models.CharField(max_length=100, default=""), null=True, blank=True)
+    download_options = ArrayField(models.CharField(max_length=100, default=""), null=True, blank=True)
+    download_api_options_same = models.BooleanField(blank=False, null=False, default=False)

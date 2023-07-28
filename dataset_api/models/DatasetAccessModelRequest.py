@@ -1,3 +1,5 @@
+import datetime
+
 from django.db import models
 
 from dataset_api.models.DatasetAccessModel import DatasetAccessModel
@@ -13,3 +15,4 @@ class DatasetAccessModelRequest(models.Model):
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     user_email = models.EmailField(blank=True, null=True)
+    token_time = models.DateTimeField(blank=False, null=False, default=datetime.datetime.now())

@@ -79,7 +79,7 @@ class GeoTypes(models.TextChoices):
 class DataType(models.TextChoices):
     API = "API"
     FILE = "FILE"
-
+    EXTERNAL = "EXTERNAL"
 
 class ValidationUnits(models.TextChoices):
     LIFETIME = "LIFETIME"
@@ -103,6 +103,8 @@ class ParameterTypes(models.TextChoices):
     EXPOSED = "EXPOSED"
     PAGINATION = "PAGINATION"
     PREVIEW = "PREVIEW"
+    DOWNLOAD = "DOWNLOAD"
+
 
 class FormatLocation(models.TextChoices):
     HEADER = "HEADER"

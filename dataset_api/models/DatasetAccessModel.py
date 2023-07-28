@@ -15,3 +15,4 @@ class DatasetAccessModel(models.Model):
     policy = models.ForeignKey(Policy, on_delete=models.CASCADE, blank=True, null=True)
     payment_type = models.CharField(max_length=50, choices=PAYMENTTYPES.choices, default=PAYMENTTYPES.FREE)
     payment = models.FloatField(blank=True, null=True)
+    description = models.CharField(max_length=1500, blank=False, default="", null=False)

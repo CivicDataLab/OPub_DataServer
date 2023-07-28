@@ -6,6 +6,7 @@ from dataset_api.models import Organization
 from dataset_api.utils import dataset_slug
 from datetime import datetime, timezone
 
+
 class FieldTypes(graphene.Enum):
     ip = "ip"
     actor = "actor"
@@ -44,7 +45,7 @@ class ActivityType(DjangoObjectType):
     def resolve_target_title(self: Activity, info):
         if hasattr(self.target, "title"):
             return self.target.title
-    
+
     def resolve_dtf_passed_time(self: Activity, info):
         # dtf = datetime.now(timezone.utc) - self.issued
         dtf = self.issued.strftime("%H:%M %p, %d %b %Y ")
@@ -68,13 +69,13 @@ def get_filter_args(filters):
 
 class Query(graphene.ObjectType):
     org_activity = graphene.List(ActivityType, organization_id=graphene.ID(), first=graphene.Int(),
-                                 skip=graphene.Int(),
+                                 skip=graphene.Int(), search_query=graphene.String(required=False),
                                  filters=graphene.Argument(type=graphene.List(of_type=ActivityFilter), required=False))
     user_activity = graphene.List(ActivityType, user=graphene.String(), first=graphene.Int(),
-                                  skip=graphene.Int(),
+                                  skip=graphene.Int(), search_query=graphene.String(required=False),
                                   filters=graphene.Argument(graphene.List(of_type=ActivityFilter), required=False))
 
-    def resolve_org_activity(self, info, organization_id, filters: [ActivityFilter] = [], first=None, skip=None):
+    def resolve_org_activity(self, info, organization_id, filters: [ActivityFilter] = [], first=None, skip=None, search_query=None):
         try:
             organization = Organization.objects.get(pk=organization_id)
         except Organization.DoesNotExist:
@@ -83,11 +84,16 @@ class Query(graphene.ObjectType):
         kwargs = get_filter_args(filters)
         query = Activity.objects.target_group(organization, **kwargs)
         query = add_pagination_filters(first, query, skip)
+        if search_query:
+            query = Activity.objects.search(search_query)
         return query
 
-    def resolve_user_activity(self, info, user, filters: [ActivityFilter] = [], first=None, skip=None):
+    def resolve_user_activity(self, info, user, filters: [ActivityFilter] = [], first=None, skip=None,
+                              search_query=None):
         query = Activity.objects.actor(user)
         kwargs = get_filter_args(filters)
         query = Activity.objects.actor(user, **kwargs)
         query = add_pagination_filters(first, query, skip)
+        if search_query:
+            query = Activity.objects.search(search_query)
         return query

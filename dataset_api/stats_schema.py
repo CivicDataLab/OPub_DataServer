@@ -19,8 +19,7 @@ class Query(graphene.ObjectType):
     def resolve_stat_count(self, info, **kwargs):
         sector = Dataset.objects.filter(status="PUBLISHED").values_list("sector", flat=True).distinct().count()
         geography = Dataset.objects.filter(status="PUBLISHED").values_list("geography", flat=True).distinct().count()
-        organization = Organization.objects.filter(
-            organizationcreaterequest__status=OrganizationCreationStatusType.APPROVED.value).count()
+        organization = Organization.objects.filter(catalog__dataset__status="PUBLISHED").distinct().count()
         dataset = Dataset.objects.filter(status="PUBLISHED").count()
         api = Resource.objects.filter(Q(dataset__status__exact="PUBLISHED")).count()
 

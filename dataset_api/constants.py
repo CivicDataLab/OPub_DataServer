@@ -9,7 +9,7 @@ FORMAT_MAPPING = {
     # "application/msword": "DOC",
     # "application/doc": "DOC",
     # "application/ms-doc": "DOC",
-    "application/pdf": "PDF",
+    # "application/pdf": "PDF",
     # "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
     "application/xml": "XML",
     "xml": "XML",

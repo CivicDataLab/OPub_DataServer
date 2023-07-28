@@ -1,5 +1,6 @@
 import copy
 import json
+import mimetypes
 import os
 
 import jwt
@@ -8,6 +9,7 @@ import pandas as pd
 import requests
 import xmltodict
 from django.conf import settings
+from django.core.files.storage import default_storage
 from django.http import HttpResponse, FileResponse, HttpResponseForbidden, JsonResponse
 from elasticsearch import Elasticsearch
 from pandas import DataFrame
@@ -24,6 +26,7 @@ from dataset_api.utils import idp_make_cache_key
 from .decorators import dam_request_validity
 # Overwriting ratelimit's cache key function.
 from .schema import initiate_dam_request
+from ..enums import ParameterTypes
 from ..models import DatasetAccessModelResource, DatasetAccessModelRequest
 
 # from graphql import GraphQLError
@@ -130,7 +133,7 @@ class InvalidDataException(Exception):
 def filter_csv(request, csv_file, paginate_from, size):
     # paginate
     start = paginate_from
-    end = len(csv_file) if start + size > len(csv_file) else start + size
+    end = len(csv_file) if (size == -1 or  start + size > len(csv_file)) else start + size
     csv_file = csv_file[start:end]
     csv_file = csv_file.applymap(str)
 
@@ -151,7 +154,7 @@ def filter_csv(request, csv_file, paginate_from, size):
 
 class FormatConverter:
     @classmethod
-    def convert_csv_to_json(cls, csv_file, csv_file_path, src_mime_type, return_type="data", size=10000,
+    def convert_csv_to_json(cls, csv_file, csv_file_path, src_mime_type, return_type="data", size=-1,
                             paginate_from=0,
                             request=None):
         csv_file = pd.DataFrame(
@@ -186,7 +189,7 @@ class FormatConverter:
             return response
 
     @classmethod
-    def convert_csv_to_xml(cls, csv_file, csv_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0,
+    def convert_csv_to_xml(cls, csv_file, csv_file_path, src_mime_type, return_type="data", size=-1, paginate_from=0,
                            request=None):
         csv_file = pd.DataFrame(
             pd.read_csv(csv_file, sep=",", header=0, index_col=False)
@@ -211,7 +214,7 @@ class FormatConverter:
             return response
 
     @classmethod
-    def convert_xml_to_json(cls, xml_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0,
+    def convert_xml_to_json(cls, xml_file_path, src_mime_type, return_type="data", size=-1, paginate_from=0,
                             request=None):
         with open(xml_file_path) as xmlFile:
             xml_contents = xmlFile.read()
@@ -236,7 +239,7 @@ class FormatConverter:
             return response
 
     @classmethod
-    def convert_xml_to_csv(cls, xml_file, xml_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0,
+    def convert_xml_to_csv(cls, xml_file, xml_file_path, src_mime_type, return_type="data", size=-1, paginate_from=0,
                            request=None):
         df = pd.read_xml(xml_file)
         # with open(xml_file_path) as xmlFile:
@@ -262,7 +265,7 @@ class FormatConverter:
             return response
 
     @classmethod
-    def convert_xml_to_xml(cls, xml_file, xml_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0,
+    def convert_xml_to_xml(cls, xml_file, xml_file_path, src_mime_type, return_type="data", size=-1, paginate_from=0,
                            request=None):
         if return_type == "file":
             with open("file.xml", "w") as f:
@@ -282,7 +285,7 @@ class FormatConverter:
         return response
 
     @classmethod
-    def convert_csv_to_csv(cls, csv_file, csv_file_path, src_mime_type, return_type="data", size=10000, paginate_from=0,
+    def convert_csv_to_csv(cls, csv_file, csv_file_path, src_mime_type, return_type="data", size=-1, paginate_from=0,
                            request=None):
         csv_file = pd.DataFrame(
             pd.read_csv(csv_file, sep=",", header=0, index_col=False)
@@ -311,7 +314,7 @@ class FormatConverter:
             return response
 
     @classmethod
-    def convert_json_to_json(cls, json_file, json_file_path, src_mime_type, return_type="data", size=10000,
+    def convert_json_to_json(cls, json_file, json_file_path, src_mime_type, return_type="data", size=-1,
                              paginate_from=0,
                              request=None):
         if return_type == "file":
@@ -332,7 +335,7 @@ class FormatConverter:
         return response
 
     @classmethod
-    def convert_json_to_csv(cls, json_file, json_file_path, src_mime_type, return_type="data", size=10000,
+    def convert_json_to_csv(cls, json_file, json_file_path, src_mime_type, return_type="data", size=-1,
                             paginate_from=0,
                             request=None):
         # final_json = pd.read_json(json_file_path, orient='index' )  #cls.process_json_data(json_file_path)
@@ -402,7 +405,7 @@ class FormatConverter:
                 return pd.DataFrame.from_dict(data)
 
     @classmethod
-    def convert_json_to_xml(cls, json_file, json_file_path, src_mime_type, return_type="data", size=10000,
+    def convert_json_to_xml(cls, json_file, json_file_path, src_mime_type, return_type="data", size=-1,
                             paginate_from=0,
                             request=None):
         final_json = cls.process_json_data(json_file)
@@ -765,7 +768,7 @@ def get_request_file(
         data_request_id,
         target_format,
         return_type="file",
-        size=10000,
+        size=-1,
         paginate_from=0,
         request=None,
 ):
@@ -775,7 +778,7 @@ def get_request_file(
     try:
         if len(file_path):
             deep_copy_file_1 = copy.deepcopy(data_request.file)
-            mime_type = magic.from_buffer(deep_copy_file_1.read(), mime=True)
+            mime_type = mimetypes.guess_type(deep_copy_file_1.name)[0]
             if data_request.resource.dataset.dataset_type == "FILE" and target_format and target_format in ["CSV",
                                                                                                             "XML",
                                                                                                             "JSON"]:
@@ -790,7 +793,9 @@ def get_request_file(
                     os.path.basename(file_path)
                 )
             update_download_count(username, data_request)
-            data_request.file.delete()
+            file_path = "/" + data_request.file.name
+            if default_storage.exists(file_path):
+                data_request.file.delete()
             return response
     except InvalidDataException as e:
         raise e
@@ -810,11 +815,9 @@ def get_request_file(
 
 def get_resource_file(request, data_request, token, apidetails, username, return_type="file"):
     format = request.GET.get("format")
-    size = request.GET.get("size")
-    if not size:
-        size = 10000
+    size = request.GET.get("size", -1)
     paginate_from = request.GET.get("from", 0)
-    if not str(size).isdigit() or not str(paginate_from).isdigit():
+    if not size == -1 and (not str(size).isdigit() or not str(paginate_from).isdigit()):
         return HttpResponse(
             "invalid pagination params",
             content_type="text/plain",
@@ -928,7 +931,7 @@ def get_dist_data(request):
     try:
         token_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
-        return HttpResponse("Authentication failed! Kindly Refresh", content_type="text/plain")
+        return HttpResponse("Authentication failed! Kindly refresh authentication token!", content_type="text/plain")
     except IndexError:
         return HttpResponse("Token prefix missing", content_type="text/plain")
 
@@ -937,9 +940,12 @@ def get_dist_data(request):
         dam_request_id = token_payload.get("dam_request")
         dam_resource_resource_id = token_payload.get("resource_id")
         username = token_payload.get("username")
+        token_time = token_payload.get("token_time")
 
         dam_resource = DatasetAccessModelResource.objects.get(id=dam_resource_id)
         dam_request = DatasetAccessModelRequest.objects.get(pk=dam_request_id)
+        if token_time != dam_request.token_time.strftime("%m/%d/%Y, %H:%M:%S"):
+            return HttpResponse("Invalid token!! try again", content_type="text/plain", status=502)
 
         try:
             apidetails = dam_resource.resource.apidetails
@@ -953,8 +959,10 @@ def get_dist_data(request):
         for param in default_parameters:
             if param.key in request.GET:
                 parameters[param.key] = request.GET.get(param.key)
-            else:
+            if return_type != "data" and param.type == ParameterTypes.DOWNLOAD:
                 parameters[param.key] = param.default
+            # else:
+            #     parameters[param.key] = param.default
 
         data_request_id = initiate_dam_request(
             dam_request, dam_resource.resource, username, parameters, True,

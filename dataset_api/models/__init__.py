@@ -16,6 +16,7 @@ from dataset_api.models.LicenseAddition import LicenseAddition
 from dataset_api.models.DatasetReviewRequest import DatasetReviewRequest
 from dataset_api.models.Organization import Organization
 from dataset_api.models.OrganizationCreateRequest import OrganizationCreateRequest
+from dataset_api.models.OrganizationCreateRequest import OrgDpaHistory
 from dataset_api.models.OrganizationRequest import OrganizationRequest
 from dataset_api.models.Resource import Resource
 from dataset_api.models.ResourceSchema import ResourceSchema
@@ -26,3 +27,4 @@ from dataset_api.models.APIParameter import APIParameter
 from dataset_api.models.DataRequestParameter import DataRequestParameter
 from dataset_api.models.Subscribe import Subscribe
 from dataset_api.models.Policy import Policy
+from dataset_api.models.ExternalAccessModel import ExternalAccessModel

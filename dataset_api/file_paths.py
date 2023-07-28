@@ -29,9 +29,22 @@ def _cdo_notification_directory_path(org, filename):
 
     """
 
-    org_name = org.title
+    org_name = org.organization_ptr_id
     _, extension = os.path.splitext(filename)
     return f"files/public/organizations/{org_name}/notifications/{extension[1:]}/{filename}"
+
+
+def _cdo_notification_hist_directory_path(org, filename):
+    """
+    Create a directory path to upload the notifications file by CDO.
+
+    """
+
+    org_name = org.org_id.id
+    dpa_name = org.new_dpa
+    _, extension = os.path.splitext(filename)
+    return f"files/public/organizations/{org_name}/notifications_hist/{dpa_name}/{extension[1:]}/{filename}"
+
 
 def _resource_directory_path(file_details, filename):
     """
@@ -62,7 +75,10 @@ def _contract_directory_path(dam, filename):
     Create a directory path to upload DAM contract files.
 
     """
-    org_name = dam.organization.title
+    if dam.organization:
+        org_name = dam.organization.title
+    else:
+        org_name = f'global_dam/{dam.id}'
     dam_name = dam.title
     _, extension = os.path.splitext(filename)
     return f"files/info/{org_name}/{dam_name}/{extension[1:]}/{filename}"

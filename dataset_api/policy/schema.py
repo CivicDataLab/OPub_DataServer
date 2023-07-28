@@ -11,7 +11,7 @@ from .enums import PolicyStatus
 from dataset_api.utils import get_client_ip, log_activity
 from dataset_api.decorators import validate_token
 from dataset_api.license.decorators import check_license_role
-
+from ..enums import DataType
 class PolicyType(DjangoObjectType):
     class Meta:
         model = Policy
@@ -29,7 +29,7 @@ class Query(graphene.ObjectType):
         return Policy.objects.all().order_by("-modified")
 
     def resolve_approved_policy(self, info, **kwargs):
-        return Policy.objects.filter(status=PolicyStatus.PUBLISHED.value).order_by("-modified")
+        return Policy.objects.filter(status=PolicyStatus.PUBLISHED.value).exclude(type="EXTERNAL").order_by("-modified")
 
     # def resolve_policy_by_dam(self, info, dam_id, **kwargs):
     #     dam_object = DataAccessModel.objects.get(id=dam_id)
@@ -56,6 +56,7 @@ class PolicyInput(graphene.InputObjectType):
     description = graphene.String(required=True)
     file = Upload(required=False)
     remote_url = graphene.String(required=False)
+    type = graphene.String(required=False)
 
 
 class CreatePolicy(graphene.Mutation, Output):
@@ -82,9 +83,12 @@ class CreatePolicy(graphene.Mutation, Output):
             policy_instance.file = policy_data.file
         if policy_data.remote_url:
             policy_instance.remote_url = policy_data.remote_url
-        
+        if policy_data.type:
+            policy_instance.type = DataType.EXTERNAL.value
+            policy_instance.status = PolicyStatus.PUBLISHED.value
         if role == "DPA":
-            policy_instance.status = PolicyStatus.REQUESTED.value
+            if not policy_data.type:
+                policy_instance.status = PolicyStatus.REQUESTED.value
             org_id = info.context.META.get("HTTP_ORGANIZATION")
             try:
                 organization = Organization.objects.get(id=org_id)
@@ -129,8 +133,11 @@ class UpdatePolicy(graphene.Mutation, Output):
             policy_instance.file = policy_data.file
         if policy_data.remote_url:
             policy_instance.remote_url = policy_data.remote_url
+        if policy_data.type:
+            policy_instance.status = PolicyStatus.PUBLISHED.value
         if role == "DPA":
-            policy_instance.status = PolicyStatus.REQUESTED.value
+            if not policy_data.type:
+                policy_instance.status = PolicyStatus.REQUESTED.value
         if role == "PMU":
             policy_instance.status = PolicyStatus.PUBLISHED.value
         policy_instance.save()

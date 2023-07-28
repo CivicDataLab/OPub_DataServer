@@ -57,7 +57,7 @@ class APISourceInput(graphene.InputObjectType):
     base_url = graphene.String(required=True)
     description = graphene.String(required=True)
     api_version = graphene.String()
-    headers = graphene.List(of_type=KeyValueType)
+    headers = graphene.List(of_type=KeyValueType, required=False)
     auth_loc = graphene.Enum.from_enum(AuthLocation)(default="")
     auth_type = graphene.Enum.from_enum(AuthType)(required=True)
     auth_credentials = graphene.List(of_type=KeyValueType)

@@ -75,7 +75,7 @@ class Query(graphene.ObjectType):
                                                  "-modified").prefetch_related(
                                                  prefetch_data_requests))
 
-        return DatasetAccessModel.objects.filter(dataset=dataset).order_by("-modified").prefetch_related(
+        return DatasetAccessModel.objects.filter(dataset=dataset).order_by("title").prefetch_related(
             prefetch_agreements, prefetch_dam_requests)
 
     def resolve_dataset_access_model_by_id(self, info, dataset_access_model_id):

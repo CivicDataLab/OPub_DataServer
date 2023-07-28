@@ -11,7 +11,7 @@ from dataset_api.models.Policy import Policy
 class DataAccessModel(models.Model):
     title = models.CharField(max_length=100)
     type = models.CharField(max_length=100, default="OPEN")
-    description = models.CharField(max_length=500)
+    description = models.CharField(max_length=1500)
     issued = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, default="", null=True, blank=True)
