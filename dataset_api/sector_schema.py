@@ -74,7 +74,7 @@ class SectorInput(graphene.InputObjectType):
     name = graphene.String(required=True)
     description = graphene.String()
     highlights = graphene.List(of_type=graphene.String)
-    official_id = graphene.String(required=True)
+    official_id = graphene.String(required=False)
     # organization = graphene.String()
     parent_id = graphene.String(required=False)
 

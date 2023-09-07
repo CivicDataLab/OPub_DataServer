@@ -24,7 +24,7 @@ class Query(graphene.ObjectType):
 
 class TagInput(graphene.InputObjectType):
     id = graphene.ID()
-    name = graphene.String()
+    name = graphene.String(required=True)
     # organization = graphene.String()
 
 

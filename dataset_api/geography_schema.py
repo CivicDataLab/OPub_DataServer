@@ -28,7 +28,7 @@ class Query(graphene.ObjectType):
 class GeographyInput(graphene.InputObjectType):
     id = graphene.ID()
     name = graphene.String()
-    official_id = graphene.String(required=True)
+    official_id = graphene.String(required=False)
     geo_type = graphene.Enum.from_enum(GeoTypes)(required=True)
     parent_id = graphene.String(required=False)
     # organization = graphene.String()
