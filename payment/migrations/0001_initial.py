@@ -8,10 +8,6 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-        ('dataset_api', '0158_filedetails_supported_formats_alter_datarequest_file_and_more'),
-    ]
-
     operations = [
         migrations.CreateModel(
             name='Transaction',
