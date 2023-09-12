@@ -795,7 +795,10 @@ def get_request_file(
             update_download_count(username, data_request)
             file_path = "/" + data_request.file.name
             if default_storage.exists(file_path):
-                data_request.file.delete()
+                try:
+                    data_request.file.delete()
+                except Exception as e:
+                    print (e)
             return response
     except InvalidDataException as e:
         raise e
