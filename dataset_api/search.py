@@ -110,38 +110,38 @@ def index_data(dataset_obj):
     # Index all resources of a dataset.
     doc["resource_title"] = resource_title
     doc["resource_description"] = resource_description
-    if auth_required:
-        doc["auth_required"] = auth_required
-    if auth_type:
-        doc["auth_type"] = auth_type
-    if format:
-        doc["format"] = format
+    # if auth_required:
+    #     doc["auth_required"] = auth_required
+    # if auth_type:
+    #     doc["auth_type"] = auth_type
+    # if format:
+    #     doc["format"] = format
 
     # Index Data Access Model.
-    dam_instances = DatasetAccessModel.objects.filter(dataset=dataset_obj)
-    data_access_model_ids = []
-    data_access_model_titles = []
-    data_access_model_types = []
-    dataset_access_models = []
-    license = []
-    for dam in dam_instances:
-        data_access_model_ids.append(dam.data_access_model.id)
-        data_access_model_titles.append(dam.data_access_model.title)
-        data_access_model_types.append(dam.data_access_model.type)
-        license.append(dam.data_access_model.license.title)
-        dataset_access_models.append(
-            {
-                "id": dam.id,
-                "type": dam.data_access_model.type,
-                "payment_type": dam.payment_type,
-                "payment": dam.payment,
-            }
-        )
-    doc["dataset_access_models"] = dataset_access_models
-    doc["data_access_model_id"] = data_access_model_ids
-    doc["data_access_model_title"] = data_access_model_titles
-    doc["data_access_model_type"] = data_access_model_types
-    doc["license"] = license
+    # dam_instances = DatasetAccessModel.objects.filter(dataset=dataset_obj)
+    # data_access_model_ids = []
+    # data_access_model_titles = []
+    # data_access_model_types = []
+    # dataset_access_models = []
+    # license = []
+    # for dam in dam_instances:
+    #     data_access_model_ids.append(dam.data_access_model.id)
+    #     data_access_model_titles.append(dam.data_access_model.title)
+    #     data_access_model_types.append(dam.data_access_model.type)
+    #     license.append(dam.data_access_model.license.title)
+    #     dataset_access_models.append(
+    #         {
+    #             "id": dam.id,
+    #             "type": dam.data_access_model.type,
+    #             "payment_type": dam.payment_type,
+    #             "payment": dam.payment,
+    #         }
+    #     )
+    # doc["dataset_access_models"] = dataset_access_models
+    # doc["data_access_model_id"] = data_access_model_ids
+    # doc["data_access_model_title"] = data_access_model_titles
+    # doc["data_access_model_type"] = data_access_model_types
+    # doc["license"] = license
 
     # Check if Dataset already exists.
     resp = es_client.exists(index="dataset", id=dataset_obj.id)
@@ -179,10 +179,10 @@ def facets(request):
         "status",
         "rating",
         "sector",
-        "org_types",
+        # "org_types",
     ]
-    dam_type = request.GET.get("type")
-    payment_type = request.GET.get("payment_type")
+    # dam_type = request.GET.get("type")
+    # payment_type = request.GET.get("payment_type")
     size = request.GET.get("size")
     if not size:
         size = 5
@@ -235,22 +235,22 @@ def facets(request):
                 )
                 selected_facets.append({f"{value}": request.GET.get(value).split("||")})
 
-    if dam_type:
-        filters.append(
-            {"match": {"dataset_access_models.type": dam_type.replace("||", " ")}}
-        )
-        selected_facets.append({"type": dam_type.split("||")})
-    if payment_type:
-        filters.append(
-            {
-                "match": {
-                    "dataset_access_models.payment_type": payment_type.replace(
-                        "||", " "
-                    )
-                }
-            }
-        )
-        selected_facets.append({"payment_type": payment_type.split("||")})
+    # if dam_type:
+    #     filters.append(
+    #         {"match": {"dataset_access_models.type": dam_type.replace("||", " ")}}
+    #     )
+    #     selected_facets.append({"type": dam_type.split("||")})
+    # if payment_type:
+    #     filters.append(
+    #         {
+    #             "match": {
+    #                 "dataset_access_models.payment_type": payment_type.replace(
+    #                     "||", " "
+    #                 )
+    #             }
+    #         }
+    #     )
+    #     selected_facets.append({"payment_type": payment_type.split("||")})
 
     if org:
         filters.append({"terms": {"org_title.keyword": org.split("||")}})
@@ -272,10 +272,10 @@ def facets(request):
 
     # Query for aggregations (facets).
     agg = {
-        "license": {
-            "global": {},
-            "aggs": {"all": {"terms": {"field": "license.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
-        },
+        # "license": {
+        #     "global": {},
+        #     "aggs": {"all": {"terms": {"field": "license.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        # },
         # "license": {"terms": {"field": "license.keyword", "size": 10000}},
         "geography": {
             "global": {},
@@ -302,10 +302,10 @@ def facets(request):
             "aggs": {"all": {"terms": {"field": "rating.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
         },
         # "rating": {"terms": {"field": "rating.keyword", "size": 10000}},
-        "org_types": {
-            "global": {},
-            "aggs": {"all": {"terms": {"field": "org_types.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
-        },
+        # "org_types": {
+        #     "global": {},
+        #     "aggs": {"all": {"terms": {"field": "org_types.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        # },
         # "org_types": {"terms": {"field": "org_types.keyword", "size": 10000}},
         "organization": {
             "global": {},
@@ -318,17 +318,17 @@ def facets(request):
                 "max": {"max": {"field": "period_to", "format": "yyyy-MM-dd"}},
             },
         },
-        "type": {
-            "global": {},
-            "aggs": {"all": {"terms": {"field": "dataset_access_models.type.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
-        },
+        # "type": {
+        #     "global": {},
+        #     "aggs": {"all": {"terms": {"field": "dataset_access_models.type.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        # },
         # "type": {
         #     "terms": {"field": "dataset_access_models.type.keyword", "size": 10000}
         # },
-        "payment_type": {
-            "global": {},
-            "aggs": {"all": {"terms": {"field": "dataset_access_models.payment_type.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
-        },
+        # "payment_type": {
+        #     "global": {},
+        #     "aggs": {"all": {"terms": {"field": "dataset_access_models.payment_type.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        # },
         # "payment_type": {
         #     "terms": {
         #         "field": "dataset_access_models.payment_type.keyword",
