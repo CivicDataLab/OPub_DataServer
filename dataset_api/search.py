@@ -176,8 +176,8 @@ def facets(request):
         "license",
         "geography",
         "format",
-        "status",
-        "rating",
+        # "status",
+        # "rating",
         "sector",
         # "org_types",
     ]
@@ -199,16 +199,16 @@ def facets(request):
     if sort_by and sort_order:
         if sort_by == "modified":
             sort_mapping = {"modified": {"order": sort_order}}
-        elif sort_by == "rating":
-            sort_mapping = {"average_rating": {"order": sort_order}}
+        # elif sort_by == "rating":
+        #     sort_mapping = {"average_rating": {"order": sort_order}}
         elif sort_by == "provider":
             sort_mapping = {"org_title.keyword": {"order": sort_order}}
         elif sort_by == "recent":
             sort_mapping = {"last_updated": {"order": "desc"}}
         elif sort_by == "relevance":
             sort_mapping = {}
-        elif sort_by == "downloads":
-            sort_mapping = {"download_count": {"order": "desc"}}
+        # elif sort_by == "downloads":
+        #     sort_mapping = {"download_count": {"order": "desc"}}
         else:
             sort_mapping = {"dataset_title.keyword": {"order": sort_order}}
     else:
@@ -292,15 +292,15 @@ def facets(request):
             "aggs": {"all": {"terms": {"field": "format.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
         },
         # "format": {"terms": {"field": "format.keyword", "size": 10000}},
-        "status": {
-            "global": {},
-            "aggs": {"all": {"terms": {"field": "status.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
-        },
-        # "status": {"terms": {"field": "status.keyword", "size": 10000}},
-        "rating": {
-            "global": {},
-            "aggs": {"all": {"terms": {"field": "rating.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
-        },
+        # "status": {
+        #     "global": {},
+        #     "aggs": {"all": {"terms": {"field": "status.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        # },
+        # # "status": {"terms": {"field": "status.keyword", "size": 10000}},
+        # "rating": {
+        #     "global": {},
+        #     "aggs": {"all": {"terms": {"field": "rating.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        # },
         # "rating": {"terms": {"field": "rating.keyword", "size": 10000}},
         # "org_types": {
         #     "global": {},
