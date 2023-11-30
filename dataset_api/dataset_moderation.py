@@ -146,7 +146,7 @@ class ModerationRequestMutation(graphene.Mutation, Output):
         moderation_request_instance.parent = review_requests if review_requests else None
         moderation_request_instance.save()
         # TODO: fix magic string
-        dataset.status = "UNDERMODERATION"
+        dataset.status = "PUBLISHED" #"UNDERMODERATION"
         dataset.save()
         return ModerationRequestMutation(moderation_request=moderation_request_instance)
 

@@ -49,7 +49,8 @@ def index_data(dataset_obj):
         "average_rating": get_average_rating(dataset_obj),
         "hvd_rating": dataset_obj.hvd_rating,
         "resource_count": Resource.objects.filter(dataset=dataset_obj).count(),
-        "dynamic_date": dataset_obj.is_datedynamic
+        "dynamic_date": dataset_obj.is_datedynamic,
+        "source": dataset_obj.source
     }
 
     geography = dataset_obj.geography.all()
@@ -66,7 +67,7 @@ def index_data(dataset_obj):
         dataset_tag.append(tag.name)
     doc["geography"] = dataset_geography
     doc["sector"] = dataset_sector
-    doc["tags"] = dataset_tag
+    doc["category"] = dataset_tag
 
     catalog_instance = Catalog.objects.get(id=dataset_obj.catalog_id)
     doc["catalog_title"] = catalog_instance.title
@@ -114,8 +115,8 @@ def index_data(dataset_obj):
     #     doc["auth_required"] = auth_required
     # if auth_type:
     #     doc["auth_type"] = auth_type
-    # if format:
-    #     doc["format"] = format
+    if format:
+        doc["format"] = format
 
     # Index Data Access Model.
     # dam_instances = DatasetAccessModel.objects.filter(dataset=dataset_obj)
@@ -173,25 +174,26 @@ def facets(request):
     filters = []  # List of queries for elasticsearch to filter up on.
     selected_facets = []  # List of facets that are selected.
     facet = [
-        "license",
-        "geography",
+        # "license",
+        # "geography",
         "format",
+        "source",
         # "status",
         # "rating",
-        "sector",
+        # "sector",
         # "org_types",
     ]
     # dam_type = request.GET.get("type")
     # payment_type = request.GET.get("payment_type")
-    size = request.GET.get("size")
-    if not size:
-        size = 5
+    size = request.GET.get("size", 5)
+    # if not size:
+    #     size = 5
     paginate_from = request.GET.get("from", 0)
     query_string = request.GET.get("q")
     sort_by = request.GET.get("sort_by", None)
-    sort_order = request.GET.get("sort", "")
-    if sort_order == "":
-        sort_order = "desc"
+    sort_order = request.GET.get("sort", "desc")
+    # if sort_order == "":
+    #     sort_order = "desc"
     org = request.GET.get("organization", None)
     start_duration = request.GET.get("start_duration", None)
     end_duration = request.GET.get("end_duration", None)
@@ -276,20 +278,28 @@ def facets(request):
         #     "global": {},
         #     "aggs": {"all": {"terms": {"field": "license.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
         # },
+        "source": {
+            "global": {},
+            "aggs": {"all": {"terms": {"field": "source.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        },
         # "license": {"terms": {"field": "license.keyword", "size": 10000}},
         "geography": {
             "global": {},
             "aggs": {"all": {"terms": {"field": "geography.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
         },
         # "geography": {"terms": {"field": "geography.keyword", "size": 10000}},
-        "sector": {
-            "global": {},
-            "aggs": {"all": {"terms": {"field": "sector.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
-        },
+        # "sector": {
+        #     "global": {},
+        #     "aggs": {"all": {"terms": {"field": "sector.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        # },
         # "sector": {"terms": {"field": "sector.keyword", "size": 10000}},
         "format": {
             "global": {},
             "aggs": {"all": {"terms": {"field": "format.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        },
+        "category": {
+            "global": {},
+            "aggs": {"all": {"terms": {"field": "category.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
         },
         # "format": {"terms": {"field": "format.keyword", "size": 10000}},
         # "status": {
@@ -307,10 +317,10 @@ def facets(request):
         #     "aggs": {"all": {"terms": {"field": "org_types.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
         # },
         # "org_types": {"terms": {"field": "org_types.keyword", "size": 10000}},
-        "organization": {
-            "global": {},
-            "aggs": {"all": {"terms": {"field": "org_title.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
-        },
+        # "organization": {
+        #     "global": {},
+        #     "aggs": {"all": {"terms": {"field": "org_title.keyword", "size": 10000, "order": {"_key" : "asc"}}}},
+        # },
         "duration": {
             "global": {},
             "aggs": {
