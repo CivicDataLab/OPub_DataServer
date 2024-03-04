@@ -13,25 +13,25 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from activity_log.views import login_logout_activity
+from dataset_api import (license_file, organization_logo, public_download,
+                         resource_file, utils)
+from dataset_api.api_resource import api_fetch
+from dataset_api.data_access_model import contract_file
+from dataset_api.data_preview import data_preview
+from dataset_api.data_request import data_request_file
+from dataset_api.dataset import (contact_consumer, contact_provider,
+                                 dataset_show, remind_dpa)
+from dataset_api.dataset_access_model_request.token_management import \
+    reset_token
+from dataset_api.policy import policy_file
+from DatasetServer import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path, include, re_path
+from django.urls import include, path, re_path
 from django.views.decorators.csrf import csrf_exempt
 from graphene_file_upload.django import FileUploadGraphQLView
-
-from DatasetServer import settings
-from activity_log.views import login_logout_activity
-from dataset_api import resource_file, organization_logo, license_file, public_download
-from dataset_api.data_access_model import contract_file
-from dataset_api.data_request import data_request_file
-from dataset_api.dataset_access_model_request.token_management import reset_token
-from dataset_api.policy import policy_file
-from dataset_api.api_resource import api_fetch
-from dataset_api.data_preview import data_preview
-from dataset_api.dataset import contact_provider
-from dataset_api.dataset import dataset_show
 from payment.views import initiate_payment, process_payment
-from dataset_api.dataset import contact_consumer, remind_dpa
 
 urlpatterns = [
     path("pmu/", admin.site.urls),
@@ -65,4 +65,5 @@ urlpatterns = [
     path('payment/process/', process_payment),
     re_path(r'activity/(?P<action>\bloggedin\b|\bloggedout\b)', login_logout_activity, name='case'),
     # path("payment/", include("payment.urls"))
+    path("direct_download/", utils.direct_download),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

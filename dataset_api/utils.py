@@ -1,15 +1,19 @@
-from django.db.models import Avg
-from django.utils.text import slugify
-from django.conf import settings
-from numpy.compat import unicode
-
-from activity_log.signal import activity
-from dataset_api.enums import RatingStatus
-from dataset_api.models import Dataset, DataAccessModel, Organization
-from dataset_api.enums import ValidationUnits
 import datetime
 import json
+import mimetypes
+import os
+
 import requests
+from activity_log.signal import activity
+from dataset_api.enums import RatingStatus, ValidationUnits
+from dataset_api.models import DataAccessModel, Dataset, Organization
+from django.conf import settings
+from django.db.models import Avg
+from django.http import HttpResponse
+from django.utils.text import slugify
+from numpy.compat import unicode
+
+from Work.IDP_DataServer.dataset_api.models import FileDetails
 
 
 def get_client_ip(request):
@@ -371,3 +375,18 @@ def add_pagination_filters(first, query, skip):
     if first:
         query = query[:first]
     return query
+
+
+def direct_download(resource_id):
+    '''
+    Bypass auth and other checks to download resources/distributions 
+    directly using <resource_id>.
+    '''
+
+    file_object = FileDetails.objects.get(resource=resource_id)
+    mime_type = mimetypes.guess_type(file_object.file.name)[0]
+    response = HttpResponse(file_object.file, content_type=mime_type)
+    response["Content-Disposition"] = 'attachment; filename="{}"'.format(
+        os.path.basename(file_object.file.name)
+        )
+    return response
