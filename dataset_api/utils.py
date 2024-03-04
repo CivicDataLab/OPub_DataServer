@@ -13,7 +13,7 @@ from django.http import HttpResponse
 from django.utils.text import slugify
 from numpy.compat import unicode
 
-from Work.IDP_DataServer.dataset_api.models import FileDetails
+from .models import FileDetails
 
 
 def get_client_ip(request):
