@@ -1,11 +1,13 @@
 import copy
 import json
+import mimetypes
 from typing import Iterable
 
 import genson
 import graphene
 import pandas as pd
 import xmltodict
+from dataset_api.api_resource import api_fetch
 from django.db.models import Q
 from graphene import List
 from graphene_django import DjangoObjectType
@@ -15,24 +17,13 @@ from graphql_auth.bases import Output
 
 from .constants import FORMAT_MAPPING
 from .data_access_model.contract import update_provider_agreement
-from .decorators import (
-    auth_user_action_resource,
-    validate_token,
-    auth_query_resource,
-)
-from .enums import DataType, ParameterTypes, FormatLocation
+from .decorators import (auth_query_resource, auth_user_action_resource,
+                         validate_token)
+from .enums import DataType, FormatLocation, ParameterTypes
 from .file_utils import file_validation
-from .models import (
-    APISource,
-    Resource,
-    Dataset,
-    ResourceSchema,
-    APIDetails,
-    FileDetails,
-    APIParameter,
-)
-from .utils import log_activity, get_client_ip
-from dataset_api.api_resource import api_fetch
+from .models import (APIDetails, APIParameter, APISource, Dataset, FileDetails,
+                     Resource, ResourceSchema)
+from .utils import get_client_ip, log_activity
 
 
 def parse_schema(schema_dict, parent, schema, current_path):
@@ -611,16 +602,16 @@ def _create_update_file_details(resource_instance, attribute):
         print("-----", attribute.file)
         print(deep_copy_file, type(deep_copy_file))
         if not isinstance(attribute.file, str):
-            mime_type = file_validation(deep_copy_file, file_detail_object.file, FORMAT_MAPPING)
+            mime_type = mimetypes.guess_type(file_detail_object.file.name)[0]#file_validation(deep_copy_file, file_detail_object.file, FORMAT_MAPPING)
             if not mime_type:
                 resource_instance.delete()
                 raise GraphQLError("Unsupported File Format")
             file_format = FORMAT_MAPPING.get(mime_type.lower())
         else:
             file_format = file_detail_object.format
-        if not file_format:
-            resource_instance.delete()
-            raise GraphQLError("Unsupported File Format")
+        # if not file_format:
+        #     resource_instance.delete()
+        #     raise GraphQLError("Unsupported File Format")
 
         try:
             print("before deep clone --", file_format)

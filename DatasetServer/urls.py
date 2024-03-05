@@ -65,5 +65,4 @@ urlpatterns = [
     path('payment/process/', process_payment),
     re_path(r'activity/(?P<action>\bloggedin\b|\bloggedout\b)', login_logout_activity, name='case'),
     # path("payment/", include("payment.urls"))
-    path("direct_download/<int:resource_id>/", utils.direct_download),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

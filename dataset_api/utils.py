@@ -375,18 +375,3 @@ def add_pagination_filters(first, query, skip):
     if first:
         query = query[:first]
     return query
-
-
-def direct_download(resource_id):
-    '''
-    Bypass auth and other checks to download resources/distributions 
-    directly using <resource_id>.
-    '''
-
-    file_object = FileDetails.objects.get(resource=resource_id)
-    mime_type = mimetypes.guess_type(file_object.file.name)[0]
-    response = HttpResponse(file_object.file, content_type=mime_type)
-    response["Content-Disposition"] = 'attachment; filename="{}"'.format(
-        os.path.basename(file_object.file.name)
-        )
-    return response
