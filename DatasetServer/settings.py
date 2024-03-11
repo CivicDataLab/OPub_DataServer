@@ -11,9 +11,10 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 import os
 from pathlib import Path
+
 import django
-from django.utils.encoding import force_str
 import environ
+from django.utils.encoding import force_str
 
 env = environ.Env(DEBUG=(bool, False))
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -31,7 +32,7 @@ SECRET_KEY = "django-insecure-ya3++8kan(4=ny+d@^g6(le^a1p@9@d2q=eqp&ksh_lrt!--$+
 REFRESH_TOKEN_SECRET = (
     "django-insecure-ya3++8kan(4=ny+d@^g6(le^a1p@9@d2q=eqp&ksh_lrt!--$+"
 )
-ACCESS_TOKEN_EXPIRY_MINS = 5
+ACCESS_TOKEN_EXPIRY_MINS = 259200
 REFRESH_TOKEN_EXPIRY_DAYS = 7
 BASE_DOMAIN = env("BASE_DOMAIN")
 DEPLOYMENT_DOMAIN = env("DEPLOYMENT_DOMAIN")
@@ -40,9 +41,9 @@ DEPLOYMENT_DOMAIN = env("DEPLOYMENT_DOMAIN")
 DEBUG = env("DEBUG")
 
 ALLOWED_HOSTS = ['http://idpbe.civicdatalab.in', 'http://43.205.200.192', 'idp.civicdatalab.in',
-                 'http://localhost:3000', '*', 'idpbe.civicdatalab.in', 'http://idp.nic.in', 'http://pmu.idp.nic.in']
+                 'http://localhost:3000', '*', 'idpbe.civicdatalab.in']
 
-CSRF_TRUSTED_ORIGINS = ['http://idp.nic.in', 'http://pmu.idp.nic.in']
+CSRF_TRUSTED_ORIGINS = ['https://opub-backend.civicdatalab.in']
 
 CORS_ORIGIN_WHITELIST = ['idpbe.civicdatalab.in', '43.205.200.192', 'idp.civicdatalab.in', 'localhost:3000']
 
@@ -142,6 +143,7 @@ CACHES = {
     }
 }
 
+# Set the maximum size of files that can be held in memory during uploading
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 ELASTICSEARCH = env("ES_URL")
