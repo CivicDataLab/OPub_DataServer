@@ -5,19 +5,11 @@ from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from elasticsearch import Elasticsearch
 
-from .models import (
-    Catalog,
-    Organization,
-    OrganizationCreateRequest,
-    Resource,
-    FileDetails,
-    APIDetails,
-    Dataset,
-    DatasetAccessModel,
-    DatasetAccessModelRequest,
-)
-from .utils import dataset_slug, get_average_rating
 from .enums import DataType
+from .models import (APIDetails, Catalog, Dataset, DatasetAccessModel,
+                     DatasetAccessModelRequest, FileDetails, Organization,
+                     OrganizationCreateRequest, Resource)
+from .utils import dataset_slug, get_average_rating
 
 # from django.utils.datastructures import MultiValueDictKeyError
 
@@ -175,9 +167,10 @@ def facets(request):
     selected_facets = []  # List of facets that are selected.
     facet = [
         # "license",
-        # "geography",
+        "geography",
         "format",
         "source",
+        "category",
         # "status",
         # "rating",
         # "sector",

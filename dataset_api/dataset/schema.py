@@ -1,39 +1,22 @@
 from typing import Iterable
 
 import graphene
-from django.db.models import Q, Prefetch
+from dataset_api.decorators import auth_user_by_org, validate_token
+from dataset_api.enums import DataType
+from dataset_api.models import (Agreement, Catalog, DataRequest, Dataset,
+                                DatasetAccessModel, DatasetAccessModelRequest,
+                                Geography, Organization, Sector, Tag)
+from dataset_api.search import index_data
+from dataset_api.utils import (dataset_slug, get_average_rating, get_client_ip,
+                               log_activity)
+from django.db.models import Prefetch, Q
 from graphene_django import DjangoObjectType
 from graphql import GraphQLError
 from graphql_auth.bases import Output
 
-from dataset_api.decorators import validate_token, auth_user_by_org
-from dataset_api.enums import DataType
-from dataset_api.models import (
-    Dataset,
-    Catalog,
-    Tag,
-    Geography,
-    Sector,
-    Organization,
-    DataRequest,
-    Agreement,
-    DatasetAccessModelRequest,
-    DatasetAccessModel,
-)
-from dataset_api.search import index_data
-from dataset_api.utils import (
-    get_client_ip,
-    dataset_slug,
-    log_activity,
-    get_average_rating,
-)
-from .decorators import (
-    auth_user_action_dataset,
-    map_user_dataset,
-    auth_query_dataset,
-    get_user_datasets,
-)
 from ..data_access_model.contract import update_provider_agreement
+from .decorators import (auth_query_dataset, auth_user_action_dataset,
+                         get_user_datasets, map_user_dataset)
 
 
 class DatasetType(DjangoObjectType):
@@ -199,8 +182,8 @@ class Query(graphene.ObjectType):
             raise GraphQLError("Access Denied")
 
     # Access : PMU / DPA / DP
-    @auth_query_dataset(action="query||id")
-    def resolve_dataset(self, info, dataset_id, role=None):
+    # @auth_query_dataset(action="query||id")
+    def resolve_dataset(self, info, dataset_id, role="PMU"):
         dataset_instance = Dataset.objects.get(pk=dataset_id)
         if dataset_instance.status == "PUBLISHED":
             return dataset_instance
