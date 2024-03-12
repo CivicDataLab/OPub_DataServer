@@ -1,17 +1,17 @@
+import datetime
 from collections.abc import Iterable
 
 import graphene
-import datetime
 from graphene_django import DjangoObjectType
-from graphql_auth.bases import Output
 from graphql import GraphQLError
+from graphql_auth.bases import Output
 
-from .decorators import validate_token, validate_token_or_none
-from .enums import ReviewType
-from .models import DatasetReviewRequest, Dataset
-from .decorators import auth_user_by_org, auth_user_action_resource
-from .search import index_data, delete_data
+from .decorators import (auth_user_action_resource, auth_user_by_org,
+                         validate_token, validate_token_or_none)
 from .email_utils import dataset_approval_notif
+from .enums import ReviewType
+from .models import Dataset, DatasetReviewRequest
+from .search import delete_data, index_data
 
 
 class ModerationRequestType(DjangoObjectType):
@@ -144,6 +144,7 @@ class ModerationRequestMutation(graphene.Mutation, Output):
                 instances.save()
         moderation_request_instance.dataset = dataset
         moderation_request_instance.parent = review_requests if review_requests else None
+        moderation_request_instance.status = StatusType.APPROVED.value
         moderation_request_instance.save()
         # TODO: fix magic string
         dataset.status = "PUBLISHED" #"UNDERMODERATION"
