@@ -144,7 +144,7 @@ CACHES = {
 }
 
 # Set the maximum size of files that can be held in memory during uploading
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024
 
 ELASTICSEARCH = env("ES_URL")
 
